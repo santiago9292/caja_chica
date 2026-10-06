@@ -3,15 +3,9 @@ import {
   Send, 
   Receipt, 
   Banknote, 
-  FileText, 
   Upload, 
   CheckCircle, 
   AlertCircle, 
-  Car, 
-  Utensils, 
-  Wrench, 
-  Briefcase, 
-  HelpCircle,
   X
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
@@ -124,39 +118,39 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
   };
 
   return (
-    <div style={{ maxWidth: '820px', margin: '0 auto' }}>
+    <div style={{ maxWidth: '820px', margin: '0 auto', width: '100%' }}>
       
       {/* Notificación de Éxito */}
       {successCode && (
         <div className="glass-panel" style={{
           background: 'var(--success-bg)',
           border: '1px solid var(--success-border)',
-          padding: '1.25rem 1.5rem',
-          marginBottom: '1.5rem',
+          padding: '1rem 1.25rem',
+          marginBottom: '1rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           flexWrap: 'wrap',
-          gap: '1rem'
+          gap: '0.85rem'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <CheckCircle size={20} color="#fff" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <CheckCircle size={18} color="#fff" />
             </div>
             <div>
-              <div style={{ fontWeight: '700', color: 'var(--success-text)', fontSize: '0.95rem' }}>
+              <div style={{ fontWeight: '700', color: 'var(--success-text)', fontSize: '0.9rem' }}>
                 Solicitud registrada con éxito
               </div>
-              <div style={{ color: '#047857', fontSize: '0.8rem' }}>
-                Código generado: <strong>{successCode}</strong>. Notificación enviada al Administrador.
+              <div style={{ color: '#047857', fontSize: '0.78rem' }}>
+                Código generado: <strong>{successCode}</strong>
               </div>
             </div>
           </div>
-          <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ display: 'flex', gap: '0.5rem', width: '100%', justifyContent: 'flex-end' }}>
             <button 
               type="button" 
               className="btn btn-secondary" 
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', flex: '1' }}
               onClick={() => setSuccessCode('')}
             >
               Registrar Otra
@@ -164,33 +158,33 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
             <button 
               type="button" 
               className="btn btn-primary" 
-              style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}
+              style={{ fontSize: '0.78rem', padding: '0.35rem 0.75rem', flex: '1' }}
               onClick={onSuccessTab}
             >
-              Ver Mis Solicitudes
+              Ver Solicitudes
             </button>
           </div>
         </div>
       )}
 
-      <div className="glass-panel" style={{ padding: '2rem' }}>
+      <div className="glass-panel" style={{ padding: '1.25rem' }}>
         
         {/* Cabecera */}
-        <div style={{ marginBottom: '1.5rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '1rem' }}>
-          <h2 style={{ fontSize: '1.35rem', color: '#0f172a', marginBottom: '0.25rem' }}>
-            Registro de Solicitud de Caja Chica
+        <div style={{ marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
+          <h2 style={{ fontSize: '1.25rem', color: '#0f172a', marginBottom: '0.2rem' }}>
+            Nueva Solicitud de Caja Chica
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
             Solicitante: <strong>{currentUser?.nombres} {currentUser?.apellidos}</strong> (DNI: {currentUser?.dni})
           </p>
         </div>
 
-        {/* Selector de Tipo */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1.5rem' }}>
+        {/* Selector de Tipo Responsive (Wrap) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.75rem', marginBottom: '1.25rem' }}>
           <div
             onClick={() => setTipo('RENDICION_GASTO')}
             style={{
-              padding: '1rem',
+              padding: '0.85rem 1rem',
               borderRadius: 'var(--radius-md)',
               border: `2px solid ${tipo === 'RENDICION_GASTO' ? '#0f172a' : 'var(--border-subtle)'}`,
               background: tipo === 'RENDICION_GASTO' ? '#f8fafc' : '#ffffff',
@@ -198,26 +192,27 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
               transition: 'var(--transition)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.85rem'
+              gap: '0.75rem'
             }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
+              width: '36px',
+              height: '36px',
               borderRadius: 'var(--radius-md)',
               background: tipo === 'RENDICION_GASTO' ? '#0f172a' : '#f1f5f9',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
-              <Receipt size={20} color={tipo === 'RENDICION_GASTO' ? '#fff' : '#475569'} />
+              <Receipt size={18} color={tipo === 'RENDICION_GASTO' ? '#fff' : '#475569'} />
             </div>
             <div>
-              <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#0f172a' }}>
+              <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a' }}>
                 Rendición de Gasto
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Cuenta con comprobante o factura
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Con factura o comprobante
               </div>
             </div>
           </div>
@@ -225,7 +220,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
           <div
             onClick={() => setTipo('ADELANTO_DINERO')}
             style={{
-              padding: '1rem',
+              padding: '0.85rem 1rem',
               borderRadius: 'var(--radius-md)',
               border: `2px solid ${tipo === 'ADELANTO_DINERO' ? '#0f172a' : 'var(--border-subtle)'}`,
               background: tipo === 'ADELANTO_DINERO' ? '#f8fafc' : '#ffffff',
@@ -233,26 +228,27 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
               transition: 'var(--transition)',
               display: 'flex',
               alignItems: 'center',
-              gap: '0.85rem'
+              gap: '0.75rem'
             }}
           >
             <div style={{
-              width: '38px',
-              height: '38px',
+              width: '36px',
+              height: '36px',
               borderRadius: 'var(--radius-md)',
               background: tipo === 'ADELANTO_DINERO' ? '#0f172a' : '#f1f5f9',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexShrink: 0
             }}>
-              <Banknote size={20} color={tipo === 'ADELANTO_DINERO' ? '#fff' : '#475569'} />
+              <Banknote size={18} color={tipo === 'ADELANTO_DINERO' ? '#fff' : '#475569'} />
             </div>
             <div>
-              <div style={{ fontWeight: '700', fontSize: '0.9rem', color: '#0f172a' }}>
+              <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a' }}>
                 Adelanto de Efectivo
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Requerimiento previo de fondos
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Requerimiento previo
               </div>
             </div>
           </div>
@@ -260,7 +256,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
 
         <form onSubmit={handleSubmit}>
           
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '1rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '0.85rem' }}>
             <div className="form-group">
               <label className="form-label">
                 Monto (S/) *
@@ -274,7 +270,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                   step="0.01"
                   min="0.10"
                   className="form-input"
-                  style={{ paddingLeft: '2.2rem', fontSize: '1.1rem', fontWeight: '700' }}
+                  style={{ paddingLeft: '2.2rem', fontWeight: '700' }}
                   placeholder="0.00"
                   value={monto}
                   onChange={(e) => setMonto(e.target.value)}
@@ -304,7 +300,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
             <textarea
               className="form-textarea"
               rows={3}
-              placeholder="Describa el motivo del gasto, gestiones o justificación..."
+              placeholder="Describa el motivo del gasto o compra..."
               value={motivo}
               onChange={(e) => setMotivo(e.target.value)}
               required
@@ -317,19 +313,19 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
               background: '#f8fafc',
               border: '1px solid #e2e8f0',
               borderRadius: 'var(--radius-md)',
-              padding: '1.25rem',
-              marginBottom: '1.25rem'
+              padding: '1rem',
+              marginBottom: '1.15rem'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.85rem' }}>
                 <Receipt size={16} color="#0f172a" />
-                <span style={{ fontWeight: '700', fontSize: '0.875rem', color: '#0f172a' }}>
+                <span style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a' }}>
                   Datos del Comprobante
                 </span>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Tipo Comprobante</label>
+                  <label className="form-label">Tipo</label>
                   <select
                     className="form-select"
                     value={comprobanteTipo}
@@ -353,7 +349,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                 </div>
 
                 <div className="form-group" style={{ marginBottom: 0 }}>
-                  <label className="form-label">Fecha Comprobante</label>
+                  <label className="form-label">Fecha</label>
                   <input
                     type="date"
                     className="form-input"
@@ -363,7 +359,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem', marginTop: '0.85rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginTop: '0.75rem' }}>
                 <div className="form-group" style={{ marginBottom: 0 }}>
                   <label className="form-label">RUC Proveedor</label>
                   <input
@@ -381,7 +377,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Nombre o razón social"
+                    placeholder="Nombre o empresa"
                     value={comprobanteRazonSocial}
                     onChange={(e) => setComprobanteRazonSocial(e.target.value)}
                   />
@@ -389,8 +385,8 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
               </div>
 
               {/* Adjuntar Archivo */}
-              <div style={{ marginTop: '1rem' }}>
-                <label className="form-label">Foto o Documento del Comprobante</label>
+              <div style={{ marginTop: '0.85rem' }}>
+                <label className="form-label">Foto del Voucher / Comprobante</label>
                 
                 {!comprobanteArchivo ? (
                   <label style={{
@@ -398,23 +394,24 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    padding: '1.25rem',
+                    padding: '1rem',
                     border: '2px dashed #cbd5e1',
                     borderRadius: 'var(--radius-md)',
                     cursor: 'pointer',
                     background: '#ffffff',
                     transition: 'var(--transition)'
                   }}>
-                    <Upload size={22} color="#64748b" style={{ marginBottom: '0.35rem' }} />
-                    <span style={{ fontSize: '0.825rem', color: '#0f172a', fontWeight: '600' }}>
-                      Haga clic para subir archivo o foto
+                    <Upload size={20} color="#64748b" style={{ marginBottom: '0.25rem' }} />
+                    <span style={{ fontSize: '0.8rem', color: '#0f172a', fontWeight: '600' }}>
+                      Tomar foto o seleccionar archivo
                     </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
-                      PNG, JPG o WebP
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>
+                      PNG, JPG hasta 8MB
                     </span>
                     <input
                       type="file"
                       accept="image/*"
+                      capture="environment"
                       onChange={handleFileChange}
                       style={{ display: 'none' }}
                     />
@@ -424,14 +421,14 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                     position: 'relative',
                     borderRadius: 'var(--radius-md)',
                     overflow: 'hidden',
-                    maxHeight: '200px',
+                    maxHeight: '180px',
                     border: '1px solid #e2e8f0',
                     background: '#f8fafc'
                   }}>
                     <img
                       src={comprobanteArchivo}
                       alt="Comprobante"
-                      style={{ width: '100%', height: '200px', objectFit: 'contain' }}
+                      style={{ width: '100%', height: '180px', objectFit: 'contain' }}
                     />
                     <button
                       type="button"
@@ -444,8 +441,8 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                         color: '#fff',
                         border: 'none',
                         borderRadius: '50%',
-                        width: '28px',
-                        height: '28px',
+                        width: '26px',
+                        height: '26px',
                         cursor: 'pointer',
                         display: 'flex',
                         alignItems: 'center',
@@ -453,7 +450,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                       }}
                       title="Quitar"
                     >
-                      <X size={15} />
+                      <X size={14} />
                     </button>
                   </div>
                 )}
@@ -472,22 +469,22 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
               border: '1px solid var(--danger-border)',
               borderRadius: 'var(--radius-md)',
               color: 'var(--danger-text)',
-              fontSize: '0.825rem',
+              fontSize: '0.8rem',
               marginBottom: '1rem'
             }}>
-              <AlertCircle size={16} />
+              <AlertCircle size={15} />
               <span>{errorMsg}</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
             <button
               type="submit"
               disabled={submitting}
               className="btn btn-primary"
-              style={{ minWidth: '160px', padding: '0.75rem 1.25rem' }}
+              style={{ width: '100%', padding: '0.75rem', maxWidth: '240px' }}
             >
-              <Send size={16} />
+              <Send size={15} />
               <span>{submitting ? 'Enviando...' : 'Registrar Solicitud'}</span>
             </button>
           </div>
