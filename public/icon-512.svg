@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="50%" stop-color="#0369a1" />
+      <stop offset="100%" stop-color="#0f172a" />
+    </linearGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#facc15" />
+      <stop offset="100%" stop-color="#eab308" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.35" />
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)" />
+  <g filter="url(#shadow)">
+    <!-- Safe Box / Vault Icon -->
+    <rect x="106" y="126" width="300" height="260" rx="36" fill="#1e293b" stroke="#38bdf8" stroke-width="12" />
+    <!-- Vault door line -->
+    <rect x="136" y="156" width="240" height="200" rx="24" fill="#0f172a" stroke="#0ea5e9" stroke-width="4" />
+    <!-- Vault handle/wheel -->
+    <circle cx="256" cy="256" r="54" fill="url(#gold)" stroke="#ca8a04" stroke-width="8" />
+    <circle cx="256" cy="256" r="24" fill="#0f172a" />
+    <!-- Wheel spokes -->
+    <line x1="256" y1="202" x2="256" y2="216" stroke="#0f172a" stroke-width="8" stroke-linecap="round" />
+    <line x1="256" y1="296" x2="256" y2="310" stroke="#0f172a" stroke-width="8" stroke-linecap="round" />
+    <line x1="202" y1="256" x2="216" y2="256" stroke="#0f172a" stroke-width="8" stroke-linecap="round" />
+    <line x1="296" y1="256" x2="310" y2="256" stroke="#0f172a" stroke-width="8" stroke-linecap="round" />
+    <!-- Bolt studs -->
+    <circle cx="156" cy="176" r="6" fill="#38bdf8" />
+    <circle cx="356" cy="176" r="6" fill="#38bdf8" />
+    <circle cx="156" cy="336" r="6" fill="#38bdf8" />
+    <circle cx="356" cy="336" r="6" fill="#38bdf8" />
+    <!-- Realtime Signal pulse badge -->
+    <circle cx="380" cy="132" r="28" fill="#10b981" stroke="#ffffff" stroke-width="6" />
+    <polyline points="368,132 376,140 392,124" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
