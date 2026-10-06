@@ -5,15 +5,8 @@ import {
   XCircle, 
   Clock, 
   Eye, 
-  User, 
-  FileText, 
   Receipt, 
-  Calendar, 
-  DollarSign, 
-  Building2, 
   AlertTriangle,
-  Sparkles,
-  Filter,
   Check,
   X
 } from 'lucide-react';
@@ -21,7 +14,6 @@ import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
 
 export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
-  // 1. Verificación estricta de seguridad: Solo ADMINISTRADOR
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR');
 
   if (!isAdmin) {
@@ -29,54 +21,51 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
       <div className="glass-panel" style={{
         padding: '3rem 2rem',
         textAlign: 'center',
-        maxWidth: '650px',
+        maxWidth: '560px',
         margin: '2rem auto',
         border: '1px solid var(--danger-border)',
-        background: 'rgba(239, 68, 68, 0.05)'
+        background: 'var(--danger-bg)'
       }}>
         <div style={{
-          width: '72px',
-          height: '72px',
+          width: '54px',
+          height: '54px',
           borderRadius: '50%',
-          background: 'var(--danger-bg)',
-          border: '2px solid var(--danger-border)',
+          background: '#ffffff',
+          border: '1px solid var(--danger-border)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1.25rem'
+          marginBottom: '1rem'
         }}>
-          <ShieldAlert size={38} color="#ef4444" />
+          <ShieldAlert size={28} color="#dc2626" />
         </div>
-        <h2 style={{ fontSize: '1.6rem', color: '#fff', marginBottom: '0.75rem' }}>
+        <h2 style={{ fontSize: '1.4rem', color: '#0f172a', marginBottom: '0.5rem' }}>
           Módulo de Aprobación Restringido
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', lineHeight: '1.6', marginBottom: '1.5rem' }}>
-          Por directiva de control interno corporativo, el <strong>Módulo de Aprobación de Fondos y Rendiciones</strong> es exclusivo para usuarios con rol de <strong style={{ color: '#38bdf8' }}>ADMINISTRADOR</strong>.
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.25rem' }}>
+          Este módulo es exclusivo para usuarios con rol de <strong>ADMINISTRADOR</strong>.
         </p>
         <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 1rem',
-          background: 'rgba(15, 23, 42, 0.8)',
+          display: 'inline-block',
+          padding: '0.35rem 0.85rem',
+          background: '#ffffff',
           borderRadius: 'var(--radius-md)',
-          fontSize: '0.85rem',
-          color: 'var(--text-faint)'
+          fontSize: '0.8rem',
+          color: 'var(--text-muted)',
+          border: '1px solid #e2e8f0'
         }}>
-          Tus roles registrados: {currentUser?.roles?.join(', ') || 'Sin roles asignados'}
+          Tus roles registrados: {currentUser?.roles?.join(', ') || 'Sin roles'}
         </div>
       </div>
     );
   }
 
-  // Estado del componente de Aprobación
   const [filtroEstado, setFiltroEstado] = useState('PENDIENTE');
   const [selectedItem, setSelectedItem] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [showRechazoDialog, setShowRechazoDialog] = useState(false);
   const [processingId, setProcessingId] = useState(null);
 
-  // Filtrado de solicitudes
   const solicitudesFiltradas = solicitudes.filter(s => {
     if (filtroEstado === 'TODOS') return true;
     return s.estado === filtroEstado;
@@ -87,15 +76,9 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   const handleAprobar = async (item) => {
     setProcessingId(item.id);
     try {
-      await onUpdateEstado(item.id, 'APROBADO', 'Aprobado conforme por Administrador');
-      
-      // Confeti de celebración
+      await onUpdateEstado(item.id, 'APROBADO', 'Aprobado conforme');
       try {
-        confetti({
-          particleCount: 80,
-          spread: 70,
-          origin: { y: 0.6 }
-        });
+        confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
       } catch (e) {
         console.log(e);
       }
@@ -111,7 +94,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   const handleRechazarConfirm = async () => {
     if (!selectedItem) return;
     if (!motivoRechazo.trim()) {
-      alert('Debe ingresar un motivo u observación para el rechazo.');
+      alert('Debe ingresar un motivo para el rechazo.');
       return;
     }
 
@@ -132,24 +115,24 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   return (
     <div>
       
-      {/* Encabezado del Módulo de Aprobación */}
-      <div className="glass-panel" style={{ padding: '1.5rem 2rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Encabezado */}
+      <div className="glass-panel" style={{ padding: '1.25rem 1.75rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <span>Bandeja de Aprobación de Caja Chica</span>
+          <h2 style={{ fontSize: '1.35rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <span>Bandeja de Aprobaciones</span>
             {pendientesCount > 0 && (
-              <span className="badge badge-pendiente" style={{ fontSize: '0.8rem' }}>
+              <span className="badge badge-pendiente">
                 {pendientesCount} Pendientes
               </span>
             )}
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Aprobador Autorizado: <strong style={{ color: '#38bdf8' }}>{currentUser?.nombres} {currentUser?.apellidos}</strong> (DNI: {currentUser?.dni})
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+            Administrador: <strong>{currentUser?.nombres} {currentUser?.apellidos}</strong> (DNI: {currentUser?.dni})
           </p>
         </div>
 
-        {/* Filtros de Estado */}
-        <div style={{ display: 'flex', gap: '0.4rem', background: 'rgba(15, 23, 42, 0.7)', padding: '0.35rem', borderRadius: 'var(--radius-md)' }}>
+        {/* Filtros */}
+        <div style={{ display: 'flex', gap: '0.35rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
           {[
             { id: 'PENDIENTE', label: 'Pendientes', count: pendientesCount },
             { id: 'APROBADO', label: 'Aprobados' },
@@ -161,11 +144,13 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
               onClick={() => setFiltroEstado(f.id)}
               className="btn btn-ghost"
               style={{
-                fontSize: '0.8rem',
-                padding: '0.4rem 0.8rem',
+                fontSize: '0.78rem',
+                padding: '0.35rem 0.75rem',
                 borderRadius: 'var(--radius-sm)',
-                background: filtroEstado === f.id ? 'var(--primary-gradient)' : 'transparent',
-                color: filtroEstado === f.id ? '#fff' : 'var(--text-muted)'
+                background: filtroEstado === f.id ? '#ffffff' : 'transparent',
+                color: filtroEstado === f.id ? '#0f172a' : 'var(--text-muted)',
+                boxShadow: filtroEstado === f.id ? 'var(--shadow-sm)' : 'none',
+                fontWeight: filtroEstado === f.id ? '700' : '500'
               }}
             >
               {f.label} {f.count !== undefined && f.count > 0 ? `(${f.count})` : ''}
@@ -174,19 +159,19 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
         </div>
       </div>
 
-      {/* Listado / Tabla de Solicitudes */}
+      {/* Listado */}
       {solicitudesFiltradas.length === 0 ? (
         <div className="glass-panel" style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
-          <Clock size={40} color="var(--text-faint)" style={{ marginBottom: '1rem' }} />
-          <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '0.4rem' }}>
-            No hay solicitudes en este estado ({filtroEstado})
+          <Clock size={36} color="var(--text-faint)" style={{ marginBottom: '0.75rem' }} />
+          <h3 style={{ color: '#0f172a', fontSize: '1.05rem', marginBottom: '0.25rem' }}>
+            No hay solicitudes en estado {filtroEstado.toLowerCase()}
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Las solicitudes registradas por los colaboradores se reflejarán automáticamente en tiempo real.
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+            Las solicitudes registradas aparecerán aquí automáticamente en tiempo real.
           </p>
         </div>
       ) : (
-        <div className="glass-panel" style={{ padding: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '0.75rem' }}>
           <div className="table-responsive">
             <table className="data-table">
               <thead>
@@ -194,7 +179,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                   <th>Código</th>
                   <th>Fecha</th>
                   <th>Solicitante</th>
-                  <th>Tipo Operación</th>
+                  <th>Operación</th>
                   <th>Categoría</th>
                   <th>Comprobante</th>
                   <th>Monto</th>
@@ -206,39 +191,39 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                 {solicitudesFiltradas.map((sol) => (
                   <tr key={sol.id}>
                     <td>
-                      <strong style={{ color: 'var(--primary-light)', fontFamily: 'monospace' }}>
+                      <span style={{ color: '#0f172a', fontFamily: 'monospace', fontWeight: '700' }}>
                         {sol.codigo}
-                      </strong>
+                      </span>
                     </td>
                     <td>{new Date(sol.created_at).toLocaleDateString('es-PE')}</td>
                     <td>
                       <div>
-                        <div style={{ fontWeight: '600', color: '#fff' }}>{sol.solicitante_nombre}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>DNI: {sol.solicitante_dni}</div>
+                        <div style={{ fontWeight: '600', color: '#0f172a' }}>{sol.solicitante_nombre}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {sol.solicitante_dni}</div>
                       </div>
                     </td>
                     <td>
                       <span style={{ fontSize: '0.8rem' }}>
-                        {sol.tipo === 'ADELANTO_DINERO' ? '💵 Adelanto' : '🧾 Rendición'}
+                        {sol.tipo === 'ADELANTO_DINERO' ? 'Adelanto' : 'Rendición'}
                       </span>
                     </td>
                     <td>
-                      <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}>
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
                         {sol.categoria.replace(/_/g, ' ')}
                       </span>
                     </td>
                     <td>
                       {sol.comprobante_tipo ? (
-                        <div style={{ fontSize: '0.8rem' }}>
+                        <div style={{ fontSize: '0.78rem' }}>
                           <div>{sol.comprobante_tipo.replace(/_/g, ' ')}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>{sol.comprobante_numero || 'Sin número'}</div>
+                          <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>{sol.comprobante_numero || '-'}</div>
                         </div>
                       ) : (
-                        <span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>N/A</span>
+                        <span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>-</span>
                       )}
                     </td>
                     <td>
-                      <span style={{ fontSize: '1rem', fontWeight: '800', color: '#fff' }}>
+                      <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a' }}>
                         S/ {Number(sol.monto).toFixed(2)}
                       </span>
                     </td>
@@ -251,14 +236,13 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                      <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                         <button
                           onClick={() => setSelectedItem(sol)}
                           className="btn btn-secondary"
-                          style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
-                          title="Ver detalle completo"
+                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                         >
-                          <Eye size={15} />
+                          <Eye size={14} />
                           <span>Revisar</span>
                         </button>
 
@@ -268,10 +252,9 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                               onClick={() => handleAprobar(sol)}
                               disabled={processingId === sol.id}
                               className="btn btn-success"
-                              style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
-                              title="Aprobar de inmediato"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                             >
-                              <Check size={15} />
+                              <Check size={14} />
                               <span>Aprobar</span>
                             </button>
                             <button
@@ -281,10 +264,9 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                               }}
                               disabled={processingId === sol.id}
                               className="btn btn-danger"
-                              style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
-                              title="Rechazar solicitud"
+                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                             >
-                              <X size={15} />
+                              <X size={14} />
                               <span>Rechazar</span>
                             </button>
                           </>
@@ -299,107 +281,91 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
         </div>
       )}
 
-      {/* Modal de Detalle de Solicitud y Decisión */}
+      {/* Modal Detalle */}
       {selectedItem && !showRechazoDialog && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '620px' }}>
+          <div className="modal-content" style={{ maxWidth: '580px' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
               <div>
-                <span className="badge badge-admin" style={{ marginBottom: '0.3rem' }}>
+                <span className="badge badge-admin" style={{ marginBottom: '0.25rem' }}>
                   Evaluación de Solicitud
                 </span>
-                <h3 style={{ fontSize: '1.35rem', color: '#fff' }}>
+                <h3 style={{ fontSize: '1.25rem', color: '#0f172a' }}>
                   {selectedItem.codigo}
                 </h3>
               </div>
-              <button 
-                onClick={() => setSelectedItem(null)} 
-                className="btn btn-ghost btn-icon"
-              >
-                <X size={20} />
+              <button onClick={() => setSelectedItem(null)} className="btn btn-ghost btn-icon">
+                <X size={18} />
               </button>
             </div>
 
             {/* Ficha Resumen */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1.25rem' }}>
-              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.85rem', borderRadius: 'var(--radius-md)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Solicitante</span>
-                <div style={{ fontWeight: '700', color: '#fff', fontSize: '0.95rem' }}>{selectedItem.solicitante_nombre}</div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>DNI: {selectedItem.solicitante_dni}</div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
+              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Solicitante</span>
+                <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.9rem' }}>{selectedItem.solicitante_nombre}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {selectedItem.solicitante_dni}</div>
               </div>
 
-              <div style={{ background: 'rgba(15, 23, 42, 0.6)', padding: '0.85rem', borderRadius: 'var(--radius-md)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Monto Solicitado</span>
-                <div style={{ fontWeight: '800', color: '#38bdf8', fontSize: '1.4rem' }}>
+              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Monto Solicitado</span>
+                <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '1.3rem' }}>
                   S/ {Number(selectedItem.monto).toFixed(2)}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>{selectedItem.tipo === 'ADELANTO_DINERO' ? 'Adelanto de Efectivo' : 'Rendición de Gasto'}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{selectedItem.tipo === 'ADELANTO_DINERO' ? 'Adelanto de Efectivo' : 'Rendición de Gasto'}</div>
               </div>
             </div>
 
-            {/* Concepto / Motivo */}
-            <div style={{ marginBottom: '1.25rem' }}>
+            {/* Concepto */}
+            <div style={{ marginBottom: '1rem' }}>
               <label className="form-label">Concepto / Justificación</label>
               <div style={{
-                background: 'rgba(15, 23, 42, 0.5)',
-                padding: '0.85rem 1rem',
+                background: '#f8fafc',
+                padding: '0.75rem',
                 borderRadius: 'var(--radius-md)',
-                color: '#e2e8f0',
-                fontSize: '0.9rem',
-                border: '1px solid var(--border-subtle)'
+                color: '#334155',
+                fontSize: '0.875rem',
+                border: '1px solid #e2e8f0'
               }}>
                 {selectedItem.motivo}
               </div>
             </div>
 
-            {/* Datos de Comprobante si existen */}
+            {/* Comprobante */}
             {selectedItem.comprobante_tipo && (
               <div style={{
-                background: 'rgba(15, 23, 42, 0.5)',
-                padding: '1rem',
+                background: '#f8fafc',
+                padding: '0.85rem',
                 borderRadius: 'var(--radius-md)',
-                border: '1px solid var(--border-subtle)',
-                marginBottom: '1.25rem'
+                border: '1px solid #e2e8f0',
+                marginBottom: '1rem'
               }}>
-                <div style={{ fontWeight: '700', color: '#fff', fontSize: '0.85rem', marginBottom: '0.65rem' }}>
+                <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.825rem', marginBottom: '0.5rem' }}>
                   Sustento de Comprobante
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem', fontSize: '0.82rem' }}>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Tipo: </span>
-                    <strong style={{ color: '#fff' }}>{selectedItem.comprobante_tipo}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>N°: </span>
-                    <strong style={{ color: '#fff' }}>{selectedItem.comprobante_numero || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>RUC: </span>
-                    <strong style={{ color: '#fff' }}>{selectedItem.comprobante_ruc_emisor || '-'}</strong>
-                  </div>
-                  <div>
-                    <span style={{ color: 'var(--text-muted)' }}>Proveedor: </span>
-                    <strong style={{ color: '#fff' }}>{selectedItem.comprobante_razon_social || '-'}</strong>
-                  </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Tipo: </span><strong>{selectedItem.comprobante_tipo}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>N°: </span><strong>{selectedItem.comprobante_numero || '-'}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>RUC: </span><strong>{selectedItem.comprobante_ruc_emisor || '-'}</strong></div>
+                  <div><span style={{ color: 'var(--text-muted)' }}>Proveedor: </span><strong>{selectedItem.comprobante_razon_social || '-'}</strong></div>
                 </div>
 
-                {/* Imagen del comprobante adjunto si existe */}
                 {selectedItem.comprobante_archivo_url && (
-                  <div style={{ marginTop: '0.85rem' }}>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.3rem' }}>
-                      Foto o Voucher Adjunto:
+                  <div style={{ marginTop: '0.75rem' }}>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginBottom: '0.25rem' }}>
+                      Foto / Voucher:
                     </span>
                     <img 
                       src={selectedItem.comprobante_archivo_url} 
-                      alt="Voucher de sustento" 
+                      alt="Voucher" 
                       style={{
                         width: '100%',
-                        maxHeight: '220px',
+                        maxHeight: '180px',
                         objectFit: 'contain',
                         borderRadius: 'var(--radius-sm)',
-                        background: '#000',
-                        border: '1px solid var(--border-glass)'
+                        background: '#ffffff',
+                        border: '1px solid #cbd5e1'
                       }}
                     />
                   </div>
@@ -407,29 +373,9 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
               </div>
             )}
 
-            {/* Estado Actual y Aprobador */}
-            {selectedItem.estado !== 'PENDIENTE' && (
-              <div style={{
-                padding: '0.75rem 1rem',
-                borderRadius: 'var(--radius-md)',
-                background: selectedItem.estado === 'APROBADO' ? 'var(--success-bg)' : 'var(--danger-bg)',
-                border: `1px solid ${selectedItem.estado === 'APROBADO' ? 'var(--success-border)' : 'var(--danger-border)'}`,
-                marginBottom: '1.25rem',
-                fontSize: '0.85rem'
-              }}>
-                <div><strong>Estado:</strong> {selectedItem.estado}</div>
-                {selectedItem.aprobado_por_nombre && <div><strong>Evaluado por:</strong> {selectedItem.aprobado_por_nombre}</div>}
-                {selectedItem.observaciones_aprobador && <div><strong>Observación:</strong> {selectedItem.observaciones_aprobador}</div>}
-              </div>
-            )}
-
-            {/* Botones de Acción para Administrador */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
-              <button 
-                type="button" 
-                onClick={() => setSelectedItem(null)} 
-                className="btn btn-secondary"
-              >
+            {/* Acciones */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.85rem' }}>
+              <button type="button" onClick={() => setSelectedItem(null)} className="btn btn-secondary">
                 Cerrar
               </button>
 
@@ -441,7 +387,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                     className="btn btn-danger"
                     disabled={processingId === selectedItem.id}
                   >
-                    <XCircle size={17} />
+                    <XCircle size={16} />
                     <span>Rechazar</span>
                   </button>
 
@@ -451,7 +397,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                     className="btn btn-success"
                     disabled={processingId === selectedItem.id}
                   >
-                    <CheckCircle size={17} />
+                    <CheckCircle size={16} />
                     <span>Aprobar Solicitud</span>
                   </button>
                 </>
@@ -462,17 +408,17 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
         </div>
       )}
 
-      {/* Modal para Motivo de Rechazo */}
+      {/* Rechazo Dialog */}
       {showRechazoDialog && selectedItem && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '480px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem', color: '#ef4444' }}>
-              <AlertTriangle size={24} />
-              <h3 style={{ fontSize: '1.2rem', color: '#fff' }}>Rechazar Solicitud {selectedItem.codigo}</h3>
+          <div className="modal-content" style={{ maxWidth: '460px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '0.85rem', color: '#dc2626' }}>
+              <AlertTriangle size={20} />
+              <h3 style={{ fontSize: '1.15rem', color: '#0f172a' }}>Rechazar Solicitud {selectedItem.codigo}</h3>
             </div>
             
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-              Por favor indique el motivo o sustento del rechazo. El solicitante recibirá una notificación en tiempo real con este mensaje.
+            <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginBottom: '0.85rem' }}>
+              Ingrese el motivo del rechazo para notificar al solicitante:
             </p>
 
             <div className="form-group">
@@ -480,14 +426,14 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
               <textarea
                 className="form-textarea"
                 rows={3}
-                placeholder="Ej: El comprobante no cuenta con RUC válido, o el gasto excede el límite autorizado..."
+                placeholder="Indique la observación..."
                 value={motivoRechazo}
                 onChange={(e) => setMotivoRechazo(e.target.value)}
                 autoFocus
               />
             </div>
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.65rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
               <button
                 type="button"
                 className="btn btn-secondary"

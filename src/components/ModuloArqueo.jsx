@@ -1,5 +1,5 @@
 import React from 'react';
-import { Wallet, TrendingDown, Clock, CheckCircle2, AlertCircle, PieChart, Layers } from 'lucide-react';
+import { Wallet, TrendingDown, Clock, CheckCircle2, Layers } from 'lucide-react';
 
 export function ModuloArqueo({ cajaFondo, solicitudes }) {
   const montoTotal = Number(cajaFondo?.monto_total || 5000);
@@ -15,7 +15,6 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
 
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
 
-  // Agrupación por categoría
   const categoriasMap = {};
   solicitudes.forEach(s => {
     const cat = s.categoria.replace(/_/g, ' ');
@@ -26,11 +25,11 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
 
   return (
     <div>
-      {/* Tarjetas Métricas Principales */}
+      {/* Tarjetas Métricas */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8' }}>
-            <Wallet size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
+            <Wallet size={22} />
           </div>
           <div>
             <div className="stat-value">S/ {montoTotal.toFixed(2)}</div>
@@ -39,8 +38,8 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-            <CheckCircle2 size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669' }}>
+            <CheckCircle2 size={22} />
           </div>
           <div>
             <div className="stat-value">S/ {montoDisponible.toFixed(2)}</div>
@@ -49,8 +48,8 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(239, 68, 68, 0.15)', color: '#f87171' }}>
-            <TrendingDown size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#fef2f2', color: '#dc2626' }}>
+            <TrendingDown size={22} />
           </div>
           <div>
             <div className="stat-value">S/ {totalAprobado.toFixed(2)}</div>
@@ -59,8 +58,8 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
-            <Clock size={26} />
+          <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706' }}>
+            <Clock size={22} />
           </div>
           <div>
             <div className="stat-value">S/ {totalPendiente.toFixed(2)}</div>
@@ -69,21 +68,21 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
         </div>
       </div>
 
-      {/* Barra de Progreso del Fondo */}
-      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+      {/* Barra de Progreso */}
+      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
           <div>
-            <span style={{ fontWeight: '700', fontSize: '0.95rem', color: '#fff' }}>
+            <span style={{ fontWeight: '700', fontSize: '0.9rem', color: '#0f172a' }}>
               Estado del Presupuesto de Caja Chica
             </span>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-              Consumido: {porcentajeConsumido}% del fondo inicial
+              Consumido: {porcentajeConsumido}% del fondo asignado
             </div>
           </div>
           <span style={{
             fontSize: '0.85rem',
             fontWeight: '800',
-            color: porcentajeConsumido > 75 ? '#ef4444' : porcentajeConsumido > 40 ? '#f59e0b' : '#10b981'
+            color: porcentajeConsumido > 75 ? '#dc2626' : porcentajeConsumido > 40 ? '#d97706' : '#059669'
           }}>
             {porcentajeConsumido}%
           </span>
@@ -91,50 +90,48 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
 
         <div style={{
           width: '100%',
-          height: '12px',
-          background: 'rgba(255, 255, 255, 0.08)',
+          height: '8px',
+          background: '#f1f5f9',
           borderRadius: 'var(--radius-full)',
           overflow: 'hidden'
         }}>
           <div style={{
             width: `${porcentajeConsumido}%`,
             height: '100%',
-            background: porcentajeConsumido > 75 
-              ? 'linear-gradient(90deg, #f59e0b, #ef4444)' 
-              : 'linear-gradient(90deg, #0284c7, #10b981)',
+            background: porcentajeConsumido > 75 ? '#dc2626' : '#0f172a',
             borderRadius: 'var(--radius-full)',
-            transition: 'width 0.5s ease-out'
+            transition: 'width 0.4s ease-out'
           }} />
         </div>
       </div>
 
       {/* Desglose por Categorías */}
-      <div className="glass-panel" style={{ padding: '1.5rem', marginBottom: '1.5rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1.25rem' }}>
-          <Layers size={20} color="var(--primary-light)" />
-          <h3 style={{ fontSize: '1.15rem', color: '#fff' }}>
+      <div className="glass-panel" style={{ padding: '1.25rem 1.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
+          <Layers size={18} color="#0f172a" />
+          <h3 style={{ fontSize: '1.05rem', color: '#0f172a' }}>
             Distribución de Gastos por Categoría
           </h3>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
           {Object.entries(categoriasMap).map(([cat, data]) => (
             <div 
               key={cat}
               style={{
-                background: 'rgba(15, 23, 42, 0.5)',
-                border: '1px solid var(--border-subtle)',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 borderRadius: 'var(--radius-md)',
-                padding: '1rem'
+                padding: '0.85rem'
               }}
             >
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '0.35rem' }}>
+              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
                 {cat}
               </div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '800', color: '#fff', marginBottom: '0.2rem' }}>
+              <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.15rem' }}>
                 S/ {data.total.toFixed(2)}
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
                 {data.count} movimiento(s)
               </div>
             </div>

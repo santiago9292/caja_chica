@@ -4,8 +4,8 @@
   "description": "Sistema PWA en tiempo real para gestión, aprobación y rendición de Caja Chica corporativa.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#090d16",
-  "theme_color": "#0284c7",
+  "background_color": "#ffffff",
+  "theme_color": "#0f172a",
   "orientation": "portrait-primary",
   "icons": [
     {

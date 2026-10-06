@@ -4,23 +4,18 @@ import {
   UserPlus, 
   Search, 
   Edit3, 
-  ShieldCheck, 
-  CheckSquare, 
   Check, 
-  X, 
   AlertCircle, 
   Power,
   Lock,
-  Phone,
-  Mail,
-  User
+  X
 } from 'lucide-react';
 
 const TODOS_LOS_ROLES = [
-  { id: 'SYSADMIN', label: 'SYSADMIN', desc: 'Control maestro de DNIs, roles y parámetros del sistema' },
-  { id: 'ADMINISTRADOR', label: 'ADMINISTRADOR', desc: 'Módulo exclusivo de aprobación de gastos, arqueo y cierre' },
-  { id: 'SOLICITANTE', label: 'SOLICITANTE', desc: 'Registro de solicitudes de fondos y rendición de comprobantes' },
-  { id: 'USUARIO', label: 'USUARIO', desc: 'Consulta de balances, historial y reportes informativos' }
+  { id: 'SYSADMIN', label: 'SYSADMIN', desc: 'Gestión maestro de DNIs, roles y parámetros del sistema' },
+  { id: 'ADMINISTRADOR', label: 'ADMINISTRADOR', desc: 'Módulo exclusivo de aprobación de gastos y arqueo' },
+  { id: 'SOLICITANTE', label: 'SOLICITANTE', desc: 'Registro de solicitudes y rendición con comprobantes' },
+  { id: 'USUARIO', label: 'USUARIO', desc: 'Consulta de balances, historial y reportes' }
 ];
 
 export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActivo }) {
@@ -28,22 +23,21 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
 
   if (!isSysadmin) {
     return (
-      <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '600px', margin: '2rem auto' }}>
-        <Lock size={40} color="#ef4444" style={{ marginBottom: '1rem' }} />
-        <h2 style={{ color: '#fff', fontSize: '1.4rem', marginBottom: '0.5rem' }}>Acceso Restringido al Maestro de DNI</h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>
-          Solo los usuarios con el rol <strong style={{ color: '#c084fc' }}>SYSADMIN</strong> pueden gestionar el maestro de personal y asignar roles.
+      <div className="glass-panel" style={{ padding: '3rem', textAlign: 'center', maxWidth: '560px', margin: '2rem auto' }}>
+        <Lock size={36} color="#dc2626" style={{ marginBottom: '0.75rem' }} />
+        <h2 style={{ color: '#0f172a', fontSize: '1.35rem', marginBottom: '0.4rem' }}>Acceso Restringido</h2>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+          Solo los usuarios con rol <strong>SYSADMIN</strong> pueden gestionar el maestro de personal.
         </p>
       </div>
     );
   }
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [editingUser, setEditingUser] = useState(null); // null o usuario objeto
+  const [editingUser, setEditingUser] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Formulario del modal
   const [dni, setDni] = useState('');
   const [nombres, setNombres] = useState('');
   const [apellidos, setApellidos] = useState('');
@@ -81,7 +75,7 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
   const handleRoleToggle = (roleId) => {
     if (selectedRoles.includes(roleId)) {
       if (selectedRoles.length === 1) {
-        setErrorMsg('El usuario debe tener asignado al menos 1 rol.');
+        setErrorMsg('El colaborador debe tener al menos 1 rol asignado.');
         return;
       }
       setSelectedRoles(selectedRoles.filter(r => r !== roleId));
@@ -107,15 +101,14 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
     }
 
     if (selectedRoles.length === 0) {
-      setErrorMsg('Debe seleccionar al menos un rol para el usuario.');
+      setErrorMsg('Debe seleccionar al menos un rol.');
       return;
     }
 
-    // Verificar DNI duplicado si es nuevo
     if (!editingUser) {
       const existe = usuarios.find(u => u.dni === cleanDni);
       if (existe) {
-        setErrorMsg(`Ya existe un usuario registrado con el DNI ${cleanDni}.`);
+        setErrorMsg(`Ya existe un colaborador con el DNI ${cleanDni}.`);
         return;
       }
     }
@@ -148,45 +141,45 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
 
   return (
     <div>
-      {/* Encabezado del Maestro de DNI */}
-      <div className="glass-panel" style={{ padding: '1.5rem 2rem', marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      {/* Encabezado */}
+      <div className="glass-panel" style={{ padding: '1.25rem 1.75rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-            <Users size={26} color="var(--primary-light)" />
+          <h2 style={{ fontSize: '1.35rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Users size={22} color="#0f172a" />
             <span>Maestro de DNI y Asignación de Roles</span>
           </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Administración central de colaboradores y permisos multi-rol en tiempo real
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+            Gestión de usuarios y asignación multi-rol
           </p>
         </div>
 
         <button 
           onClick={handleOpenCreate}
           className="btn btn-primary"
-          style={{ padding: '0.65rem 1.25rem' }}
+          style={{ padding: '0.6rem 1.15rem' }}
         >
-          <UserPlus size={18} />
+          <UserPlus size={16} />
           <span>Registrar Nuevo DNI</span>
         </button>
       </div>
 
       {/* Buscador */}
-      <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.5rem' }}>
+      <div className="glass-panel" style={{ padding: '0.85rem', marginBottom: '1.25rem' }}>
         <div style={{ position: 'relative' }}>
-          <Search size={18} color="var(--text-faint)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={16} color="var(--text-faint)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             className="form-input"
-            style={{ paddingLeft: '2.5rem' }}
-            placeholder="Buscar por número de DNI, nombre, apellido o rol..."
+            style={{ paddingLeft: '2.3rem' }}
+            placeholder="Buscar por DNI, nombres o rol..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Tabla de Usuarios */}
-      <div className="glass-panel" style={{ padding: '1rem' }}>
+      {/* Tabla */}
+      <div className="glass-panel" style={{ padding: '0.75rem' }}>
         <div className="table-responsive">
           <table className="data-table">
             <thead>
@@ -203,18 +196,18 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
               {usuariosFiltrados.map((u) => (
                 <tr key={u.dni}>
                   <td>
-                    <span style={{ fontFamily: 'monospace', fontWeight: '800', color: 'var(--primary-light)', fontSize: '0.95rem' }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0f172a', fontSize: '0.9rem' }}>
                       {u.dni}
                     </span>
                   </td>
                   <td>
-                    <div style={{ fontWeight: '700', color: '#fff' }}>
+                    <div style={{ fontWeight: '600', color: '#0f172a' }}>
                       {u.nombres} {u.apellidos}
                     </div>
                   </td>
                   <td>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                      {u.correo || 'Sin correo'}
+                      {u.correo || '-'}
                     </div>
                     {u.telefono && (
                       <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
@@ -223,7 +216,7 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                     )}
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '0.3rem', flexWrap: 'wrap' }}>
                       {u.roles.map((r) => (
                         <span 
                           key={r} 
@@ -244,23 +237,22 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                     </span>
                   </td>
                   <td style={{ textAlign: 'right' }}>
-                    <div style={{ display: 'inline-flex', gap: '0.4rem' }}>
+                    <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
                       <button
                         onClick={() => handleOpenEdit(u)}
                         className="btn btn-secondary"
-                        style={{ padding: '0.4rem 0.75rem', fontSize: '0.8rem' }}
-                        title="Modificar datos o roles"
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                       >
-                        <Edit3 size={15} />
-                        <span>Editar Roles</span>
+                        <Edit3 size={14} />
+                        <span>Editar</span>
                       </button>
                       <button
                         onClick={() => onToggleActivo(u.dni)}
                         className={`btn ${u.activo ? 'btn-ghost' : 'btn-success'}`}
-                        style={{ padding: '0.4rem 0.6rem', fontSize: '0.8rem' }}
-                        title={u.activo ? 'Desactivar usuario' : 'Activar usuario'}
+                        style={{ padding: '0.35rem 0.55rem', fontSize: '0.78rem' }}
+                        title={u.activo ? 'Desactivar' : 'Activar'}
                       >
-                        <Power size={15} color={u.activo ? '#ef4444' : '#10b981'} />
+                        <Power size={14} color={u.activo ? '#dc2626' : '#059669'} />
                       </button>
                     </div>
                   </td>
@@ -271,25 +263,25 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
         </div>
       </div>
 
-      {/* Modal de Crear / Editar Usuario con Asignación de Roles */}
+      {/* Modal */}
       {showModal && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '580px' }}>
+          <div className="modal-content" style={{ maxWidth: '540px' }}>
             
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                <Users size={22} color="var(--primary-light)" />
-                <h3 style={{ fontSize: '1.3rem', color: '#fff' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Users size={20} color="#0f172a" />
+                <h3 style={{ fontSize: '1.2rem', color: '#0f172a' }}>
                   {editingUser ? `Editar Colaborador (${editingUser.dni})` : 'Registrar Colaborador en Maestro de DNI'}
                 </h3>
               </div>
               <button onClick={() => setShowModal(false)} className="btn btn-ghost btn-icon">
-                <X size={20} />
+                <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleSaveSubmit}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '0.85rem' }}>
                 <div className="form-group">
                   <label className="form-label">DNI *</label>
                   <input
@@ -305,11 +297,11 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Nombres Completos *</label>
+                  <label className="form-label">Nombres *</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Ej: Juan Carlos"
+                    placeholder="Nombres"
                     value={nombres}
                     onChange={(e) => setNombres(e.target.value)}
                     required
@@ -317,13 +309,13 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem' }}>
                 <div className="form-group">
                   <label className="form-label">Apellidos *</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Ej: Pérez Rodríguez"
+                    placeholder="Apellidos"
                     value={apellidos}
                     onChange={(e) => setApellidos(e.target.value)}
                     required
@@ -331,11 +323,11 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Teléfono / Móvil</label>
+                  <label className="form-label">Teléfono</label>
                   <input
                     type="text"
                     className="form-input"
-                    placeholder="Ej: 998877665"
+                    placeholder="Móvil"
                     value={telefono}
                     onChange={(e) => setTelefono(e.target.value)}
                   />
@@ -343,34 +335,34 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
               </div>
 
               <div className="form-group">
-                <label className="form-label">Correo Corporativo</label>
+                <label className="form-label">Correo Electrónico</label>
                 <input
                   type="email"
                   className="form-input"
-                  placeholder="ejemplo@empresa.com"
+                  placeholder="correo@empresa.com"
                   value={correo}
                   onChange={(e) => setCorreo(e.target.value)}
                 />
               </div>
 
-              {/* ASIGNACIÓN DE MÚLTIPLES ROLES */}
+              {/* ASIGNACIÓN DE ROLES */}
               <div style={{
-                background: 'rgba(15, 23, 42, 0.6)',
-                border: '1px solid var(--border-glass)',
+                background: '#f8fafc',
+                border: '1px solid #e2e8f0',
                 borderRadius: 'var(--radius-md)',
-                padding: '1.25rem',
-                margin: '1.25rem 0'
+                padding: '1rem',
+                margin: '1rem 0'
               }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                  <label className="form-label" style={{ marginBottom: 0, color: '#38bdf8' }}>
-                    Asignación de Roles (Permite Múltiples Roles) *
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.65rem' }}>
+                  <label className="form-label" style={{ marginBottom: 0, color: '#0f172a' }}>
+                    Asignación de Roles (Permite Múltiples) *
                   </label>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>
-                    {selectedRoles.length} rol(es) marcado(s)
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
+                    {selectedRoles.length} seleccionado(s)
                   </span>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.45rem' }}>
                   {TODOS_LOS_ROLES.map((rol) => {
                     const isChecked = selectedRoles.includes(rol.id);
                     return (
@@ -380,33 +372,33 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                         style={{
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.75rem',
-                          padding: '0.65rem 0.85rem',
+                          gap: '0.65rem',
+                          padding: '0.55rem 0.75rem',
                           borderRadius: 'var(--radius-sm)',
-                          background: isChecked ? 'rgba(2, 132, 199, 0.15)' : 'rgba(255, 255, 255, 0.02)',
-                          border: `1px solid ${isChecked ? 'var(--primary-light)' : 'var(--border-subtle)'}`,
+                          background: isChecked ? '#ffffff' : '#f8fafc',
+                          border: `1px solid ${isChecked ? '#0f172a' : '#e2e8f0'}`,
                           cursor: 'pointer',
                           transition: 'var(--transition)'
                         }}
                       >
                         <div style={{
-                          width: '20px',
-                          height: '20px',
-                          borderRadius: '4px',
-                          border: `2px solid ${isChecked ? 'var(--primary-light)' : 'var(--text-faint)'}`,
-                          background: isChecked ? 'var(--primary)' : 'transparent',
+                          width: '18px',
+                          height: '18px',
+                          borderRadius: '3px',
+                          border: `2px solid ${isChecked ? '#0f172a' : '#94a3b8'}`,
+                          background: isChecked ? '#0f172a' : 'transparent',
                           display: 'flex',
                           alignItems: 'center',
                           justifyContent: 'center',
                           flexShrink: 0
                         }}>
-                          {isChecked && <Check size={14} color="#fff" strokeWidth={3} />}
+                          {isChecked && <Check size={12} color="#fff" strokeWidth={3} />}
                         </div>
                         <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#fff' }}>
+                          <div style={{ fontWeight: '700', fontSize: '0.825rem', color: '#0f172a' }}>
                             {rol.label}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                             {rol.desc}
                           </div>
                         </div>
@@ -416,17 +408,16 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                 </div>
               </div>
 
-              {/* Estado Activo / Inactivo */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', marginBottom: '1.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
                 <input
                   type="checkbox"
                   id="chkActivo"
                   checked={activo}
                   onChange={(e) => setActivo(e.target.checked)}
-                  style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }}
+                  style={{ width: '16px', height: '16px', accentColor: '#0f172a' }}
                 />
-                <label htmlFor="chkActivo" style={{ fontSize: '0.875rem', color: '#fff', cursor: 'pointer' }}>
-                  Usuario Habilitado para inicio de sesión en Caja Chica
+                <label htmlFor="chkActivo" style={{ fontSize: '0.825rem', color: '#0f172a', cursor: 'pointer' }}>
+                  Usuario Habilitado para acceder al sistema
                 </label>
               </div>
 
@@ -434,26 +425,26 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                 <div style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.75rem',
+                  gap: '0.4rem',
+                  padding: '0.65rem',
                   background: 'var(--danger-bg)',
                   border: '1px solid var(--danger-border)',
                   borderRadius: 'var(--radius-md)',
-                  color: '#f87171',
-                  fontSize: '0.85rem',
+                  color: 'var(--danger-text)',
+                  fontSize: '0.8rem',
                   marginBottom: '1rem'
                 }}>
-                  <AlertCircle size={18} />
+                  <AlertCircle size={16} />
                   <span>{errorMsg}</span>
                 </div>
               )}
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem' }}>
                 <button type="button" onClick={() => setShowModal(false)} className="btn btn-secondary">
                   Cancelar
                 </button>
                 <button type="submit" className="btn btn-primary">
-                  <span>Guardar Colaborador</span>
+                  Guardar
                 </button>
               </div>
 

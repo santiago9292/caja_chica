@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Clock, CheckCircle2, XCircle, FileText, Receipt, Eye, Search, AlertCircle } from 'lucide-react';
+import { Clock, CheckCircle2, FileText, Eye, Search } from 'lucide-react';
 
 export function MisSolicitudes({ currentUser, solicitudes }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
 
-  // Filtrar solo las solicitudes del usuario logueado
   const misItems = solicitudes.filter(s => s.solicitante_dni === currentUser.dni);
 
   const itemsFiltrados = misItems.filter(s => {
@@ -28,11 +27,11 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
 
   return (
     <div>
-      {/* Resumen de Mis Solicitudes */}
+      {/* Métricas */}
       <div className="stats-grid">
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(2, 132, 199, 0.15)', color: '#38bdf8' }}>
-            <FileText size={24} />
+          <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
+            <FileText size={20} />
           </div>
           <div>
             <div className="stat-value">{misItems.length}</div>
@@ -41,54 +40,54 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(245, 158, 11, 0.15)', color: '#fbbf24' }}>
-            <Clock size={24} />
+          <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706' }}>
+            <Clock size={20} />
           </div>
           <div>
             <div className="stat-value">S/ {totalPendiente.toFixed(2)}</div>
-            <div className="stat-label">En Evaluación (Pendientes)</div>
+            <div className="stat-label">En Trámite (Pendientes)</div>
           </div>
         </div>
 
         <div className="stat-card">
-          <div className="stat-icon-wrapper" style={{ background: 'rgba(16, 185, 129, 0.15)', color: '#34d399' }}>
-            <CheckCircle2 size={24} />
+          <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669' }}>
+            <CheckCircle2 size={20} />
           </div>
           <div>
             <div className="stat-value">S/ {totalMontoAprobado.toFixed(2)}</div>
-            <div className="stat-label">Total Aprobado / Reembolsado</div>
+            <div className="stat-label">Total Aprobado / Rendido</div>
           </div>
         </div>
       </div>
 
       {/* Buscador */}
-      <div className="glass-panel" style={{ padding: '1rem', marginBottom: '1.25rem' }}>
+      <div className="glass-panel" style={{ padding: '0.85rem', marginBottom: '1.25rem' }}>
         <div style={{ position: 'relative' }}>
-          <Search size={18} color="var(--text-faint)" style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)' }} />
+          <Search size={16} color="var(--text-faint)" style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)' }} />
           <input
             type="text"
             className="form-input"
-            style={{ paddingLeft: '2.5rem' }}
-            placeholder="Buscar entre mis solicitudes por código, motivo o comprobante..."
+            style={{ paddingLeft: '2.3rem' }}
+            placeholder="Buscar entre mis solicitudes..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Tabla de Mis Solicitudes */}
+      {/* Tabla */}
       {itemsFiltrados.length === 0 ? (
         <div className="glass-panel" style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
-          <Clock size={40} color="var(--text-faint)" style={{ marginBottom: '1rem' }} />
-          <h3 style={{ color: '#fff', fontSize: '1.1rem', marginBottom: '0.4rem' }}>
-            No se encontraron solicitudes registradas
+          <Clock size={36} color="var(--text-faint)" style={{ marginBottom: '0.75rem' }} />
+          <h3 style={{ color: '#0f172a', fontSize: '1.05rem', marginBottom: '0.25rem' }}>
+            No se encontraron solicitudes
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem' }}>
-            Puedes registrar una nueva solicitud o rendición desde la pestaña "Ingreso de Solicitud".
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+            Registra una nueva solicitud desde la pestaña "Ingreso de Solicitud".
           </p>
         </div>
       ) : (
-        <div className="glass-panel" style={{ padding: '1rem' }}>
+        <div className="glass-panel" style={{ padding: '0.75rem' }}>
           <div className="table-responsive">
             <table className="data-table">
               <thead>
@@ -107,30 +106,30 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
                 {itemsFiltrados.map((item) => (
                   <tr key={item.id}>
                     <td>
-                      <span style={{ fontFamily: 'monospace', fontWeight: '700', color: 'var(--primary-light)' }}>
+                      <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0f172a' }}>
                         {item.codigo}
                       </span>
                     </td>
                     <td>{new Date(item.created_at).toLocaleDateString('es-PE')}</td>
                     <td>
                       <span style={{ fontSize: '0.8rem' }}>
-                        {item.tipo === 'ADELANTO_DINERO' ? '💵 Adelanto' : '🧾 Rendición'}
+                        {item.tipo === 'ADELANTO_DINERO' ? 'Adelanto' : 'Rendición'}
                       </span>
                     </td>
                     <td>
-                      <span className="badge" style={{ background: 'rgba(255,255,255,0.05)', color: '#cbd5e1' }}>
+                      <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
                         {item.categoria.replace(/_/g, ' ')}
                       </span>
                     </td>
                     <td>
-                      <div style={{ maxWidth: '280px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      <div style={{ maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {item.motivo}
                       </div>
                     </td>
                     <td>
-                      <span style={{ fontWeight: '800', color: '#fff' }}>
+                      <strong style={{ color: '#0f172a' }}>
                         S/ {Number(item.monto).toFixed(2)}
-                      </span>
+                      </strong>
                     </td>
                     <td>
                       <span className={`badge ${
@@ -144,9 +143,9 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
                       <button
                         onClick={() => setSelectedItem(item)}
                         className="btn btn-secondary"
-                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.8rem' }}
+                        style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
                       >
-                        <Eye size={15} />
+                        <Eye size={14} />
                         <span>Ver</span>
                       </button>
                     </td>
@@ -158,12 +157,12 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
         </div>
       )}
 
-      {/* Modal Detalle para el Solicitante */}
+      {/* Modal */}
       {selectedItem && (
         <div className="modal-overlay">
-          <div className="modal-content" style={{ maxWidth: '540px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.75rem' }}>
-              <h3 style={{ fontSize: '1.25rem', color: '#fff' }}>
+          <div className="modal-content" style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.65rem' }}>
+              <h3 style={{ fontSize: '1.15rem', color: '#0f172a' }}>
                 Solicitud {selectedItem.codigo}
               </h3>
               <button onClick={() => setSelectedItem(null)} className="btn btn-ghost btn-icon">
@@ -171,10 +170,10 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
               </button>
             </div>
 
-            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(15, 23, 42, 0.6)', padding: '0.85rem', borderRadius: 'var(--radius-md)' }}>
+            <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f8fafc', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
               <div>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Monto</span>
-                <div style={{ fontSize: '1.4rem', fontWeight: '800', color: '#38bdf8' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Monto</span>
+                <div style={{ fontSize: '1.3rem', fontWeight: '800', color: '#0f172a' }}>
                   S/ {Number(selectedItem.monto).toFixed(2)}
                 </div>
               </div>
@@ -182,7 +181,7 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
                 <span className={`badge ${
                   selectedItem.estado === 'APROBADO' ? 'badge-aprobado' :
                   selectedItem.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
-                }`} style={{ fontSize: '0.85rem' }}>
+                }`}>
                   {selectedItem.estado}
                 </span>
               </div>
@@ -190,7 +189,7 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
 
             <div style={{ marginBottom: '1rem' }}>
               <label className="form-label">Justificación</label>
-              <div style={{ background: 'rgba(15, 23, 42, 0.5)', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#cbd5e1', fontSize: '0.9rem' }}>
+              <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', color: '#334155', fontSize: '0.85rem', border: '1px solid #e2e8f0' }}>
                 {selectedItem.motivo}
               </div>
             </div>
@@ -199,17 +198,17 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
               <div style={{
                 background: selectedItem.estado === 'APROBADO' ? 'var(--success-bg)' : 'var(--danger-bg)',
                 border: `1px solid ${selectedItem.estado === 'APROBADO' ? 'var(--success-border)' : 'var(--danger-border)'}`,
-                padding: '0.85rem',
+                padding: '0.75rem',
                 borderRadius: 'var(--radius-md)',
                 marginBottom: '1rem',
-                fontSize: '0.85rem'
+                fontSize: '0.825rem'
               }}>
-                <div style={{ fontWeight: '700', marginBottom: '0.2rem' }}>
-                  Respuesta de Administración:
+                <div style={{ fontWeight: '700', marginBottom: '0.2rem', color: selectedItem.estado === 'APROBADO' ? 'var(--success-text)' : 'var(--danger-text)' }}>
+                  Observación de Administración:
                 </div>
                 <div>{selectedItem.observaciones_aprobador}</div>
                 {selectedItem.aprobado_por_nombre && (
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)', marginTop: '0.4rem' }}>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)', marginTop: '0.35rem' }}>
                     Por: {selectedItem.aprobado_por_nombre} el {new Date(selectedItem.aprobado_fecha).toLocaleString('es-PE')}
                   </div>
                 )}
@@ -222,12 +221,12 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
                 <img 
                   src={selectedItem.comprobante_archivo_url} 
                   alt="Comprobante" 
-                  style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: 'var(--radius-sm)', background: '#000' }} 
+                  style={{ width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: 'var(--radius-sm)', background: '#f8fafc', border: '1px solid #cbd5e1' }} 
                 />
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
               <button onClick={() => setSelectedItem(null)} className="btn btn-secondary">
                 Cerrar
               </button>

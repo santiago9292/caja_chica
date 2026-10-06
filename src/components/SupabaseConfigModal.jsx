@@ -4,13 +4,9 @@ import {
   Key, 
   Globe, 
   CheckCircle2, 
-  AlertCircle, 
   X, 
   Bell, 
-  RefreshCw, 
-  Radio, 
-  Copy,
-  ExternalLink
+  Radio
 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/store';
 
@@ -53,92 +49,89 @@ export function SupabaseConfigModal({ isOpen, onClose }) {
 
   return (
     <div className="modal-overlay">
-      <div className="modal-content" style={{ maxWidth: '600px' }}>
+      <div className="modal-content" style={{ maxWidth: '540px' }}>
         
         {/* Cabecera */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid var(--border-subtle)', paddingBottom: '0.85rem' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-            <Database size={24} color="#38bdf8" />
-            <h3 style={{ fontSize: '1.3rem', color: '#fff' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <Database size={20} color="#0f172a" />
+            <h3 style={{ fontSize: '1.2rem', color: '#0f172a' }}>
               Configuración de Supabase & PWA
             </h3>
           </div>
           <button onClick={onClose} className="btn btn-ghost btn-icon">
-            <X size={20} />
+            <X size={18} />
           </button>
         </div>
 
-        {/* Estado Actual */}
+        {/* Estado */}
         <div style={{
-          padding: '1rem',
+          padding: '0.85rem 1rem',
           borderRadius: 'var(--radius-md)',
-          background: isSupabaseConfigured ? 'rgba(16, 185, 129, 0.1)' : 'rgba(2, 132, 199, 0.1)',
-          border: `1px solid ${isSupabaseConfigured ? 'var(--success-border)' : 'var(--border-glass)'}`,
-          marginBottom: '1.5rem',
+          background: isSupabaseConfigured ? 'var(--success-bg)' : '#f8fafc',
+          border: `1px solid ${isSupabaseConfigured ? 'var(--success-border)' : '#e2e8f0'}`,
+          marginBottom: '1.25rem',
           display: 'flex',
           alignItems: 'center',
-          gap: '0.85rem'
+          gap: '0.75rem'
         }}>
           <div style={{
-            width: '36px',
-            height: '36px',
+            width: '32px',
+            height: '32px',
             borderRadius: '50%',
-            background: isSupabaseConfigured ? '#10b981' : '#0284c7',
+            background: isSupabaseConfigured ? '#059669' : '#0f172a',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center'
           }}>
-            <Radio size={20} color="#fff" />
+            <Radio size={16} color="#fff" />
           </div>
           <div>
-            <div style={{ fontWeight: '700', color: '#fff', fontSize: '0.9rem' }}>
-              {isSupabaseConfigured ? 'Conectado a Supabase Realtime' : 'Modo Reactivo Local / PWA Offline Activo'}
+            <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.85rem' }}>
+              {isSupabaseConfigured ? 'Conectado a Supabase Realtime' : 'Modo Reactivo Local / PWA'}
             </div>
-            <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               {isSupabaseConfigured 
-                ? 'Suscripción activa a postgres_changes para solicitudes y notificaciones.'
-                : 'Sincronización multi-pestaña inmediata activa mediante BroadcastChannel y LocalStorage.'}
+                ? 'Suscripción activa a postgres_changes.' 
+                : 'Sincronización multi-pestaña activa.'}
             </div>
           </div>
         </div>
 
-        {/* Notificaciones del Sistema Operativo / PWA */}
+        {/* Notificaciones */}
         <div style={{
-          padding: '1rem',
+          padding: '0.85rem 1rem',
           borderRadius: 'var(--radius-md)',
-          background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid var(--border-subtle)',
-          marginBottom: '1.5rem',
+          background: '#f8fafc',
+          border: '1px solid #e2e8f0',
+          marginBottom: '1.25rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between'
         }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Bell size={20} color="var(--primary-light)" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+            <Bell size={18} color="#475569" />
             <div>
-              <div style={{ fontWeight: '600', fontSize: '0.88rem', color: '#fff' }}>
-                Notificaciones Nativas del Navegador
+              <div style={{ fontWeight: '600', fontSize: '0.825rem', color: '#0f172a' }}>
+                Notificaciones del Navegador
               </div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Estado: {notifPermission === 'granted' ? '✅ Permitidas' : notifPermission === 'denied' ? '❌ Bloqueadas' : '⏳ Pendiente de permiso'}
+              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                Estado: {notifPermission === 'granted' ? 'Habilitadas' : notifPermission === 'denied' ? 'Bloqueadas' : 'Pendiente'}
               </div>
             </div>
           </div>
 
           {notifPermission !== 'granted' && (
-            <button onClick={handleRequestNotif} className="btn btn-secondary" style={{ fontSize: '0.8rem', padding: '0.4rem 0.8rem' }}>
+            <button onClick={handleRequestNotif} className="btn btn-secondary" style={{ fontSize: '0.75rem', padding: '0.35rem 0.7rem' }}>
               Permitir
             </button>
           )}
         </div>
 
-        {/* Formulario de Parámetros Supabase */}
+        {/* Formulario */}
         <form onSubmit={handleSaveConfig}>
           <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Globe size={15} color="var(--primary-light)" />
-              <span>Project URL de Supabase</span>
-            </label>
+            <label className="form-label">Project URL</label>
             <input
               type="url"
               className="form-input"
@@ -149,42 +142,39 @@ export function SupabaseConfigModal({ isOpen, onClose }) {
           </div>
 
           <div className="form-group">
-            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <Key size={15} color="var(--primary-light)" />
-              <span>Anon Public Key de Supabase</span>
-            </label>
+            <label className="form-label">Anon Public Key</label>
             <input
               type="password"
               className="form-input"
-              placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+              placeholder="eyJhbGci..."
               value={supabaseKey}
               onChange={(e) => setSupabaseKey(e.target.value)}
             />
           </div>
 
           {savedSuccess && (
-            <div style={{ color: '#34d399', fontSize: '0.85rem', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <CheckCircle2 size={16} />
-              <span>Configuración guardada. Recargando conexión...</span>
+            <div style={{ color: '#059669', fontSize: '0.8rem', marginBottom: '0.85rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+              <CheckCircle2 size={15} />
+              <span>Guardado. Recargando...</span>
             </div>
           )}
 
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.5rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.85rem' }}>
             <button
               type="button"
               onClick={handleClearConfig}
               className="btn btn-ghost"
-              style={{ fontSize: '0.8rem', color: '#ef4444' }}
+              style={{ fontSize: '0.75rem', color: '#dc2626' }}
             >
-              Restablecer Modo Local
+              Restablecer
             </button>
 
-            <div style={{ display: 'flex', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.4rem' }}>
               <button type="button" onClick={onClose} className="btn btn-secondary">
                 Cerrar
               </button>
               <button type="submit" className="btn btn-primary">
-                Guardar y Conectar
+                Guardar
               </button>
             </div>
           </div>
