@@ -449,9 +449,9 @@ class DataStore {
       }
     }
 
-    // Enviar notificación Push (OneSignal) a todos los Administradores
-    const adminDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR')).map(u => u.dni);
-    this.sendOneSignalPush('Nueva Solicitud Registrada', `${solData.solicitante_nombre} ha registrado un gasto por S/ ${Number(solData.monto).toFixed(2)}.`, adminDnis);
+    // Enviar notificación Push (OneSignal) a Administradores y Cajeros (USUARIO)
+    const adminYCajerosDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR') || u.roles?.includes('USUARIO')).map(u => u.dni);
+    this.sendOneSignalPush('Nueva Solicitud Registrada', `${solData.solicitante_nombre} ha registrado un gasto por S/ ${Number(solData.monto).toFixed(2)}.`, adminYCajerosDnis);
 
     this.broadcastSync({ type: 'SOLICITUD_CREATED', solicitud: newSolicitud });
     return newSolicitud;
@@ -525,11 +525,21 @@ class DataStore {
       }
     }
 
-    // Enviar notificación Push (OneSignal) al Solicitante
-    const msgPush = nuevoEstado === 'PAGADO' 
-      ? `Tu solicitud fue abonada en efectivo por el cajero.` 
-      : `La solicitud fue ${nuevoEstado.toLowerCase()} por el administrador.`;
-    this.sendOneSignalPush(`Solicitud ${nuevoEstado}: ${sol.codigo}`, msgPush, [sol.solicitante_dni]);
+    // Enviar notificación Push (OneSignal) al Solicitante (y al Cajero si es aprobado)
+    let msgPush = '';
+    let targetPushDnis = [sol.solicitante_dni];
+
+    if (nuevoEstado === 'PAGADO') {
+      msgPush = `Tu solicitud fue abonada en efectivo por el cajero.`;
+    } else if (nuevoEstado === 'APROBADO') {
+      msgPush = `La solicitud fue aprobada. Cajero, por favor proceda con el abono.`;
+      const cajerosDnis = this.usuarios.filter(u => u.roles?.includes('USUARIO')).map(u => u.dni);
+      targetPushDnis = [...targetPushDnis, ...cajerosDnis];
+    } else {
+      msgPush = `La solicitud fue ${nuevoEstado.toLowerCase()} por el administrador.`;
+    }
+
+    this.sendOneSignalPush(`Solicitud ${nuevoEstado}: ${sol.codigo}`, msgPush, targetPushDnis);
 
     this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     return sol;
