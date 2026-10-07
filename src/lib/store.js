@@ -471,6 +471,22 @@ class DataStore {
     if (supabase) {
       const { data, error } = await supabase.from('solicitudes').select('*').order('created_at', { ascending: false });
       if (!error && data) {
+        // Asegurar que si una solicitud ya está RENDIDO, su monto refleje el total de comprobantes rendidos
+        data.forEach(sol => {
+          if (sol.estado === 'RENDIDO' && sol.rendiciones) {
+            try {
+              const list = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
+              if (Array.isArray(list) && list.length > 0) {
+                const total = list.reduce((sum, c) => sum + Number(c.monto || 0), 0);
+                if (total > 0 && Number(sol.monto) !== total) {
+                  sol.monto = total;
+                  supabase.from('solicitudes').update({ monto: total }).eq('id', sol.id).then();
+                }
+              }
+            } catch (e) {}
+          }
+        });
+
         this.solicitudes = data;
         this.persist('caja_solicitudes', data);
         this.notifyListeners({ type: 'DATA_LOADED' });
@@ -574,6 +590,7 @@ class DataStore {
         sol.pagado_por_dni = adminUser.dni;
         sol.pagado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
         sol.pagado_fecha = new Date().toISOString();
+        sol.monto = totalRendido;
 
         if (supabase) {
           try {
@@ -614,6 +631,7 @@ class DataStore {
       try {
         await supabase.from('solicitudes').update({
           estado: sol.estado,
+          monto: Number(sol.monto || 0),
           aprobado_por_dni: sol.aprobado_por_dni,
           aprobado_por_nombre: sol.aprobado_por_nombre,
           aprobado_fecha: sol.aprobado_fecha,
@@ -672,6 +690,7 @@ class DataStore {
       const devolucion = Math.abs(diferencia);
       this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + devolucion);
       this.persist('caja_fondo', this.cajaFondo);
+      sol.monto = totalRendido;
       if (supabase) {
         try {
           await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
@@ -679,18 +698,25 @@ class DataStore {
           console.warn('Error reintegrando sobrante en Supabase:', e);
         }
       }
+    } else if (diferencia === 0) {
+      sol.monto = totalRendido;
     }
 
     this.persist('caja_solicitudes', this.solicitudes);
 
     if (supabase) {
       try {
+        const updatePayload = {
+          rendiciones: comprobantesArray,
+          estado: nuevoEstado
+        };
+        if (nuevoEstado === 'RENDIDO') {
+          updatePayload.monto = totalRendido;
+        }
+
         const { error } = await supabase
           .from('solicitudes')
-          .update({
-            rendiciones: comprobantesArray,
-            estado: nuevoEstado
-          })
+          .update(updatePayload)
           .eq('id', id);
 
         if (error) {

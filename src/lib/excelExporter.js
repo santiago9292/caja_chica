@@ -1,5 +1,18 @@
 import * as XLSX from 'xlsx';
 
+export function getMontoLiquidado(item) {
+  if (item.rendiciones) {
+    try {
+      const r = typeof item.rendiciones === 'string' ? JSON.parse(item.rendiciones) : item.rendiciones;
+      if (Array.isArray(r) && r.length > 0) {
+        const sum = r.reduce((acc, x) => acc + Number(x.monto || 0), 0);
+        if (sum > 0) return sum;
+      }
+    } catch {}
+  }
+  return Number(item.monto || 0);
+}
+
 export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador) {
   const wb = XLSX.utils.book_new();
 
@@ -22,6 +35,10 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
       } catch {}
     }
 
+    const montoFinal = getMontoLiquidado(item);
+    const adelantoInicial = item.tipo === 'ADELANTO_DINERO' ? Number(item.monto || 0) : null;
+    const diferenciaReembolso = adelantoInicial !== null && montoFinal !== adelantoInicial ? Number((montoFinal - adelantoInicial).toFixed(2)) : 0;
+
     return {
       'N°': index + 1,
       'Código': item.codigo,
@@ -36,7 +53,9 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
       'RUC Proveedor': compRuc,
       'Razón Social Proveedor': compRazon,
       'Concepto / Justificación': item.motivo,
-      'Monto (S/)': Number(item.monto || 0),
+      'Monto (S/)': montoFinal,
+      'Adelanto Inicial (S/)': adelantoInicial !== null ? adelantoInicial : '-',
+      'Reembolso / Ajuste (S/)': diferenciaReembolso !== 0 ? diferenciaReembolso : 0,
       'Estado': item.estado,
       'Aprobado Por': item.aprobado_por_nombre || '-',
       'Fecha Aprobación': item.aprobado_fecha ? new Date(item.aprobado_fecha).toLocaleDateString('es-PE') : '-',
@@ -62,6 +81,8 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
       { wch: 32 }, // Razón Social
       { wch: 38 }, // Concepto
       { wch: 14 }, // Monto S/
+      { wch: 18 }, // Adelanto Inicial
+      { wch: 20 }, // Reembolso / Ajuste
       { wch: 14 }, // Estado
       { wch: 26 }, // Aprobador
       { wch: 16 }, // Fecha Aprob
@@ -72,13 +93,13 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     const catTotales = {};
     solicitudes.forEach(s => {
       const cat = s.categoria.replace(/_/g, ' ') || 'OTROS';
-      const m = Number(s.monto || 0);
+      const m = getMontoLiquidado(s);
       if (!catTotales[cat]) {
         catTotales[cat] = { 'Categoría de Gasto': cat, 'Total S/': 0, 'Total Comprobantes': 0, 'Aprobados S/': 0 };
       }
       catTotales[cat]['Total S/'] += m;
       catTotales[cat]['Total Comprobantes'] += 1;
-      if (s.estado === 'APROBADO') {
+      if (['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)) {
         catTotales[cat]['Aprobados S/'] += m;
       }
     });
@@ -91,7 +112,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     solicitudes.forEach(s => {
       const dni = s.solicitante_dni;
       const nom = s.solicitante_nombre;
-      const m = Number(s.monto || 0);
+      const m = getMontoLiquidado(s);
       if (!solTotales[dni]) {
         solTotales[dni] = {
           'DNI': dni,
@@ -102,7 +123,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
         };
       }
       solTotales[dni]['Total Solicitado S/'] += m;
-      if (s.estado === 'APROBADO') {
+      if (['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)) {
         solTotales[dni]['Total Aprobado S/'] += m;
       }
       solTotales[dni]['Registros'] += 1;
@@ -112,9 +133,9 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     wsSol['!cols'] = [{ wch: 14 }, { wch: 32 }, { wch: 20 }, { wch: 20 }, { wch: 12 }];
 
     // 4. Hoja de Arqueo y Control General
-    const totalSolicitado = solicitudes.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
-    const totalAprobado = solicitudes.filter(s => s.estado === 'APROBADO').reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
-    const totalPendiente = solicitudes.filter(s => s.estado === 'PENDIENTE').reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
+    const totalSolicitado = solicitudes.reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
+    const totalAprobado = solicitudes.filter(s => ['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)).reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
+    const totalPendiente = solicitudes.filter(s => ['PENDIENTE', 'PENDIENTE_REEMBOLSO'].includes(s.estado)).reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
 
     const controlData = [
       { 'Parámetro': 'Empresa', 'Valor (S/)': 'DICAR LOGISTIC' },

@@ -40,10 +40,23 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
     return true;
   });
 
-  const totalFiltrado = solicitudesFiltradas.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
+  const getMontoReal = (s) => {
+    if (s.rendiciones) {
+      try {
+        const list = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
+        if (Array.isArray(list) && list.length > 0) {
+          const sum = list.reduce((acc, c) => acc + Number(c.monto || 0), 0);
+          if (sum > 0) return sum;
+        }
+      } catch (e) {}
+    }
+    return Number(s.monto || 0);
+  };
+
+  const totalFiltrado = solicitudesFiltradas.reduce((acc, cur) => acc + getMontoReal(cur), 0);
   const totalAprobadoFiltrado = solicitudesFiltradas
-    .filter(s => s.estado === 'APROBADO')
-    .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
+    .filter(s => ['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
+    .reduce((acc, cur) => acc + getMontoReal(cur), 0);
 
   const handleExportZip = async () => {
     setIsExporting(true);
@@ -151,8 +164,12 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
               onChange={(e) => setFiltroEstado(e.target.value)}
             >
               <option value="TODOS">Todos</option>
+              <option value="RENDIDO">Rendidos (Liquidados)</option>
               <option value="APROBADO">Aprobados</option>
+              <option value="POR_RENDIR">Por Rendir</option>
+              <option value="POR_REEMBOLSAR">Por Reembolsar</option>
               <option value="PENDIENTE">Pendientes</option>
+              <option value="PENDIENTE_REEMBOLSO">Reembolsos Pendientes</option>
               <option value="RECHAZADO">Rechazados</option>
             </select>
           </div>
@@ -262,14 +279,23 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                   <td style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {s.motivo}
                   </td>
-                  <td>
-                    <strong style={{ color: '#0f172a' }}>S/ {Number(s.monto).toFixed(2)}</strong>
+                  <td style={{ whiteSpace: 'nowrap' }}>
+                    <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>
+                      S/ {getMontoReal(s).toFixed(2)}
+                    </strong>
+                    {s.rendiciones && getMontoReal(s) !== Number(s.monto) && (
+                      <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                        Adelanto: S/ {Number(s.monto).toFixed(2)}
+                      </div>
+                    )}
                   </td>
                   <td>
                     <span className={`badge ${
                       s.estado === 'APROBADO' ? 'badge-aprobado' :
                       s.estado === 'RENDIDO' ? 'badge-aprobado' :
                       s.estado === 'POR_RENDIR' ? 'badge-pendiente' :
+                      s.estado === 'POR_REEMBOLSAR' ? 'badge-aprobado' :
+                      s.estado === 'PENDIENTE_REEMBOLSO' ? 'badge-pendiente' :
                       s.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
                     }`}>
                       {s.estado.replace('_', ' ')}
