@@ -1,5 +1,5 @@
 // Service Worker para PWA Caja Chica
-const CACHE_NAME = 'caja-chica-v1';
+const CACHE_NAME = 'caja-chica-v2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -31,13 +31,28 @@ self.addEventListener('activate', (event) => {
 });
 
 self.addEventListener('fetch', (event) => {
-  // Solo cachear peticiones GET y evitar APIs o Supabase
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
   if (url.pathname.startsWith('/api') || url.hostname.includes('supabase.co')) {
     return;
   }
 
+  // Estrategia Network First para HTML (navegación), asegura obtener el JS/CSS más reciente de Vercel
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request).then((networkResponse) => {
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
+      }).catch(() => {
+        return caches.match('/index.html');
+      })
+    );
+    return;
+  }
+
+  // Cache First para el resto de recursos estáticos (imágenes, CSS, JS)
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       return cachedResponse || fetch(event.request).then((networkResponse) => {
@@ -49,10 +64,7 @@ self.addEventListener('fetch', (event) => {
         }
         return networkResponse;
       }).catch(() => {
-        // Fallback offline para navegación
-        if (event.request.mode === 'navigate') {
-          return caches.match('/index.html');
-        }
+        // Fallback ignorado para no-HTML
       });
     })
   );
