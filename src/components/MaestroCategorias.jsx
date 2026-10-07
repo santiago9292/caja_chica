@@ -63,7 +63,7 @@ export function MaestroCategorias({
     setEditingCat(null);
     setNombre('');
     setId('');
-    setCentroCosto('CC-OPERACIONES');
+    setCentroCosto('TRANS');
     setDescripcion('');
     setActivo(true);
     setErrorMsg('');
@@ -377,12 +377,22 @@ export function MaestroCategorias({
                 <input
                   type="text"
                   className="form-input"
-                  placeholder="EJ: CC-OPERACIONES, ADM-101..."
+                  placeholder="EJ: TRANS, ALM 1, LAB..."
                   value={centroCosto}
                   onChange={(e) => setCentroCosto(e.target.value.toUpperCase())}
+                  list="ceco-suggestions"
                   style={{ textTransform: 'uppercase', fontFamily: 'monospace' }}
                   required
                 />
+                <datalist id="ceco-suggestions">
+                  <option value="TRANS" />
+                  <option value="ALM 1" />
+                  <option value="ALM 2" />
+                  <option value="ALM 3" />
+                  <option value="ALM 4" />
+                  <option value="LAB" />
+                  <option value="REFRI" />
+                </datalist>
               </div>
 
               <div className="form-group">

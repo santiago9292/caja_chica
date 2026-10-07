@@ -405,9 +405,16 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                       <td style={{ fontSize: '0.85rem' }}>
                         <div>{sol.motivo}</div>
                         {sol.categoria && (
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
-                            {sol.categoria.replace(/_/g, ' ')}
-                          </span>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.2rem' }}>
+                            <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
+                              {sol.categoria.replace(/_/g, ' ')}
+                            </span>
+                            {sol.centro_costo && (
+                              <span style={{ fontSize: '0.7rem', color: '#0369a1', fontFamily: 'monospace', fontWeight: '700' }}>
+                                [{sol.centro_costo}]
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>

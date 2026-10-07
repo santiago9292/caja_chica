@@ -33,11 +33,30 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
   const [fechaHasta, setFechaHasta] = useState('');
   const [estadosSeleccionados, setEstadosSeleccionados] = useState([]);
   const [filtroCategoria, setFiltroCategoria] = useState('TODAS');
+  const [filtroCentroCosto, setFiltroCentroCosto] = useState('TODOS');
   const [dropdownEstadoOpen, setDropdownEstadoOpen] = useState(false);
   const dropdownEstadoRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [successExport, setSuccessExport] = useState('');
+
+  // Centros de costo disponibles únicos
+  const centrosCostoDisponibles = Array.from(
+    new Set([
+      'TRANS', 'ALM 1', 'ALM 2', 'ALM 3', 'ALM 4', 'LAB', 'REFRI',
+      ...categorias.map(c => c.centro_costo).filter(Boolean),
+      ...solicitudes.map(s => s.centro_costo).filter(Boolean)
+    ])
+  );
+
+  // Categorías únicas
+  const categoriasNombresUnicos = Array.from(
+    new Set([
+      'ADMINISTRACIÓN', 'VENTAS', 'PRODUCCION',
+      ...categorias.map(c => c.nombre).filter(Boolean),
+      ...solicitudes.map(s => s.categoria).filter(Boolean)
+    ])
+  );
 
   // Cerrar dropdown al hacer click fuera
   useEffect(() => {
@@ -103,7 +122,13 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
       });
       if (!match) return false;
     }
-    if (filtroCategoria !== 'TODAS' && s.categoria !== filtroCategoria) return false;
+    if (filtroCentroCosto !== 'TODOS' && s.centro_costo !== filtroCentroCosto) return false;
+    if (filtroCategoria !== 'TODAS') {
+      const matchCat = s.categoria === filtroCategoria || 
+                       s.categoria_id === filtroCategoria ||
+                       (s.categoria && s.categoria.toLowerCase() === filtroCategoria.toLowerCase());
+      if (!matchCat) return false;
+    }
 
     if (fechaDesde) {
       const fechaSol = new Date(s.created_at).toISOString().slice(0, 10);
@@ -417,6 +442,22 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
+            <label className="form-label">Centro de Costo</label>
+            <select
+              className="form-select"
+              value={filtroCentroCosto}
+              onChange={(e) => setFiltroCentroCosto(e.target.value)}
+            >
+              <option value="TODOS">Todos</option>
+              {centrosCostoDisponibles.map((cc) => (
+                <option key={cc} value={cc}>
+                  {cc}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group" style={{ marginBottom: 0 }}>
             <label className="form-label">Categoría</label>
             <select
               className="form-select"
@@ -424,9 +465,9 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
               onChange={(e) => setFiltroCategoria(e.target.value)}
             >
               <option value="TODAS">Todas</option>
-              {categorias.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.nombre}
+              {categoriasNombresUnicos.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat.replace(/_/g, ' ')}
                 </option>
               ))}
             </select>
@@ -493,7 +534,16 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                   </td>
                   <td>{new Date(s.created_at).toLocaleDateString('es-PE')}</td>
                   <td>{s.solicitante_nombre}</td>
-                  <td>{s.categoria.replace(/_/g, ' ')}</td>
+                  <td>
+                    <div style={{ fontWeight: '600', color: '#0f172a' }}>
+                      {s.categoria ? s.categoria.replace(/_/g, ' ') : '-'}
+                    </div>
+                    {s.centro_costo && (
+                      <div style={{ fontSize: '0.72rem', color: '#0284c7', fontFamily: 'monospace', fontWeight: '700' }}>
+                        {s.centro_costo}
+                      </div>
+                    )}
+                  </td>
                   <td>
                     {(() => {
                       let compText = s.comprobante_tipo ? `${s.comprobante_tipo} ${s.comprobante_numero || ''}` : '-';

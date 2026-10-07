@@ -11,15 +11,32 @@ import { DEFAULT_CATEGORIAS } from '../lib/store';
 
 export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab, categorias = [] }) {
   const listaCategorias = (categorias && categorias.length > 0 ? categorias : DEFAULT_CATEGORIAS).filter(c => c.activo !== false);
-  const primeraCat = listaCategorias[0]?.id || 'TRANSPORTE';
+
+  // Centros de costo disponibles únicos
+  const centrosCostoDisponibles = Array.from(
+    new Set(listaCategorias.map(c => c.centro_costo).filter(Boolean))
+  );
+
+  const [centroCosto, setCentroCosto] = useState(() => centrosCostoDisponibles[0] || 'TRANS');
+  
+  // Categorías que pertenecen al centro de costo actual
+  const categoriasDelCentro = listaCategorias.filter(c => !c.centro_costo || c.centro_costo === centroCosto);
+  const [categoriaId, setCategoriaId] = useState(() => categoriasDelCentro[0]?.id || listaCategorias[0]?.id || '');
 
   const [monto, setMonto] = useState('');
   const [motivo, setMotivo] = useState('');
-  const [categoria, setCategoria] = useState(primeraCat);
   
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [successCode, setSuccessCode] = useState('');
+
+  const handleCentroCostoChange = (newCC) => {
+    setCentroCosto(newCC);
+    const sub = listaCategorias.filter(c => c.centro_costo === newCC);
+    if (sub.length > 0) {
+      setCategoriaId(sub[0].id);
+    }
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -38,14 +55,16 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
 
     setSubmitting(true);
     try {
+      const catObj = listaCategorias.find(c => c.id === categoriaId) || categoriasDelCentro[0];
       const data = {
         tipo: 'ADELANTO_DINERO',
         solicitante_dni: currentUser.dni,
         solicitante_nombre: `${currentUser.nombres} ${currentUser.apellidos}`,
         monto: montoNum,
         motivo: motivo.trim(),
-        categoria,
-        centro_costo: listaCategorias.find(c => c.id === categoria)?.centro_costo || 'CC-GENERAL',
+        categoria: catObj?.nombre || 'ADMINISTRACIÓN',
+        categoria_id: catObj?.id || categoriaId,
+        centro_costo: centroCosto || catObj?.centro_costo || 'TRANS',
         // Al ser un adelanto puro, nace sin comprobantes físicos
         comprobante_tipo: null,
         comprobante_numero: null,
@@ -164,32 +183,33 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
             </div>
 
             <div className="form-group">
-              <label className="form-label">Categoría del Gasto *</label>
+              <label className="form-label">Centro de Costo *</label>
               <select
                 className="form-select"
-                value={categoria}
-                onChange={(e) => setCategoria(e.target.value)}
+                value={centroCosto}
+                onChange={(e) => handleCentroCostoChange(e.target.value)}
               >
-                {listaCategorias.map((cat) => (
-                  <option key={cat.id} value={cat.id}>
-                    {cat.nombre || cat.label} {cat.centro_costo ? `(${cat.centro_costo})` : ''}
+                {centrosCostoDisponibles.map((cc) => (
+                  <option key={cc} value={cc}>
+                    {cc}
                   </option>
                 ))}
               </select>
-              {(() => {
-                const catObj = listaCategorias.find(c => c.id === categoria);
-                if (catObj?.centro_costo) {
-                  return (
-                    <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-                      <span>Centro de Costos:</span>
-                      <strong style={{ fontFamily: 'monospace', background: '#e0f2fe', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
-                        {catObj.centro_costo}
-                      </strong>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Categoría del Gasto *</label>
+              <select
+                className="form-select"
+                value={categoriaId}
+                onChange={(e) => setCategoriaId(e.target.value)}
+              >
+                {categoriasDelCentro.map((cat) => (
+                  <option key={cat.id} value={cat.id}>
+                    {cat.nombre}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
 

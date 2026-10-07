@@ -255,6 +255,11 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                     </div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
                       DNI: {sol.solicitante_dni} • <span style={{ textTransform: 'capitalize' }}>{sol.categoria.toLowerCase().replace(/_/g, ' ')}</span>
+                      {sol.centro_costo && (
+                        <span style={{ marginLeft: '0.4rem', color: '#0369a1', fontWeight: '700', fontFamily: 'monospace' }}>
+                          [{sol.centro_costo}]
+                        </span>
+                      )}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '0.35rem', background: '#f8fafc', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e2e8f0' }}>
                       {sol.motivo}
@@ -377,6 +382,11 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                           <span className="badge" style={{ background: '#f1f5f9', color: '#475569', whiteSpace: 'nowrap' }}>
                             {sol.categoria.replace(/_/g, ' ')}
                           </span>
+                          {sol.centro_costo && (
+                            <div style={{ fontSize: '0.7rem', color: '#0369a1', fontFamily: 'monospace', fontWeight: '700', marginTop: '2px' }}>
+                              {sol.centro_costo}
+                            </div>
+                          )}
                         </td>
                         <td>
                           {sol.comprobante_tipo ? (

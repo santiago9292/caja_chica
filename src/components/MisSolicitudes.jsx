@@ -141,6 +141,11 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                       <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
                         {item.categoria.replace(/_/g, ' ')}
                       </span>
+                      {item.centro_costo && (
+                        <div style={{ fontSize: '0.7rem', color: '#0369a1', fontFamily: 'monospace', fontWeight: '700', marginTop: '2px' }}>
+                          {item.centro_costo}
+                        </div>
+                      )}
                     </td>
                     <td>
                       <div style={{ maxWidth: '260px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

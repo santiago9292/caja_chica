@@ -99,13 +99,65 @@ export const DEFAULT_USUARIOS = [
   }
 ];
 
+export const CENTROS_COSTO_LISTA = [
+  'TRANS',
+  'ALM 1',
+  'ALM 2',
+  'ALM 3',
+  'ALM 4',
+  'LAB',
+  'REFRI'
+];
+
+export const CATEGORIAS_LISTA = [
+  'ADMINISTRACIÓN',
+  'VENTAS',
+  'PRODUCCION'
+];
+
 export const DEFAULT_CATEGORIAS = [
-  { id: 'TRANSPORTE', nombre: 'Transporte / Movilidad', centro_costo: 'CC-OPERACIONES', descripcion: 'Pasajes, taxis, traslados, combustible', activo: true, created_at: '2026-01-01T00:00:00Z' },
-  { id: 'ALIMENTACION', nombre: 'Alimentación / Refrigerios', centro_costo: 'CC-ADMINISTRACION', descripcion: 'Almuerzos, refrigerios y consumos laborales autorizados', activo: true, created_at: '2026-01-01T00:00:00Z' },
-  { id: 'MATERIALES_OFICINA', nombre: 'Materiales de Oficina', centro_costo: 'CC-ADMINISTRACION', descripcion: 'Papelería, útiles de escritorio y consumibles', activo: true, created_at: '2026-01-01T00:00:00Z' },
-  { id: 'SERVICIOS_URGENTES', nombre: 'Servicios Urgentes', centro_costo: 'CC-MANTENIMIENTO', descripcion: 'Cerrajería, plomería, envíos express y reparaciones menores', activo: true, created_at: '2026-01-01T00:00:00Z' },
-  { id: 'REPRESENTACION', nombre: 'Gastos de Representación', centro_costo: 'CC-GERENCIA', descripcion: 'Atención a clientes y gestiones institucionales', activo: true, created_at: '2026-01-01T00:00:00Z' },
-  { id: 'OTROS', nombre: 'Otros Gastos Operativos', centro_costo: 'CC-GENERAL', descripcion: 'Gastos menores imprevistos debidamente sustentados', activo: true, created_at: '2026-01-01T00:00:00Z' }
+  // TRANS
+  { id: 'TRANS_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'TRANS', descripcion: 'Administración (TRANS)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'TRANS_VENTAS', nombre: 'VENTAS', centro_costo: 'TRANS', descripcion: 'Ventas (TRANS)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'TRANS_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'TRANS', descripcion: 'Producción (TRANS)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  
+  // ALM 1
+  { id: 'ALM_1_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'ALM 1', descripcion: 'Administración (ALM 1)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_1_VENTAS', nombre: 'VENTAS', centro_costo: 'ALM 1', descripcion: 'Ventas (ALM 1)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_1_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'ALM 1', descripcion: 'Producción (ALM 1)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  
+  // ALM 2
+  { id: 'ALM_2_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'ALM 2', descripcion: 'Administración (ALM 2)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_2_VENTAS', nombre: 'VENTAS', centro_costo: 'ALM 2', descripcion: 'Ventas (ALM 2)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_2_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'ALM 2', descripcion: 'Producción (ALM 2)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  
+  // ALM 3
+  { id: 'ALM_3_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'ALM 3', descripcion: 'Administración (ALM 3)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_3_VENTAS', nombre: 'VENTAS', centro_costo: 'ALM 3', descripcion: 'Ventas (ALM 3)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_3_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'ALM 3', descripcion: 'Producción (ALM 3)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  
+  // ALM 4
+  { id: 'ALM_4_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'ALM 4', descripcion: 'Administración (ALM 4)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_4_VENTAS', nombre: 'VENTAS', centro_costo: 'ALM 4', descripcion: 'Ventas (ALM 4)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'ALM_4_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'ALM 4', descripcion: 'Producción (ALM 4)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  
+  // LAB
+  { id: 'LAB_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'LAB', descripcion: 'Administración (LAB)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'LAB_VENTAS', nombre: 'VENTAS', centro_costo: 'LAB', descripcion: 'Ventas (LAB)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'LAB_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'LAB', descripcion: 'Producción (LAB)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  
+  // REFRI
+  { id: 'REFRI_ADMINISTRACION', nombre: 'ADMINISTRACIÓN', centro_costo: 'REFRI', descripcion: 'Administración (REFRI)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'REFRI_VENTAS', nombre: 'VENTAS', centro_costo: 'REFRI', descripcion: 'Ventas (REFRI)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+  { id: 'REFRI_PRODUCCION', nombre: 'PRODUCCION', centro_costo: 'REFRI', descripcion: 'Producción (REFRI)', activo: true, created_at: '2026-10-07T00:00:00Z' },
+
+  // Antiguos (inactivos para compatibilidad con registros existentes)
+  { id: 'TRANSPORTE', nombre: 'Transporte / Movilidad', centro_costo: 'CC-OPERACIONES', descripcion: 'Pasajes, taxis, traslados, combustible', activo: false, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'ALIMENTACION', nombre: 'Alimentación / Refrigerios', centro_costo: 'CC-ADMINISTRACION', descripcion: 'Almuerzos, refrigerios y consumos laborales autorizados', activo: false, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'MATERIALES_OFICINA', nombre: 'Materiales de Oficina', centro_costo: 'CC-ADMINISTRACION', descripcion: 'Papelería, útiles de escritorio y consumibles', activo: false, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'SERVICIOS_URGENTES', nombre: 'Servicios Urgentes', centro_costo: 'CC-MANTENIMIENTO', descripcion: 'Cerrajería, plomería, envíos express y reparaciones menores', activo: false, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'REPRESENTACION', nombre: 'Gastos de Representación', centro_costo: 'CC-GERENCIA', descripcion: 'Atención a clientes y gestiones institucionales', activo: false, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'OTROS', nombre: 'Otros Gastos Operativos', centro_costo: 'CC-GENERAL', descripcion: 'Gastos menores imprevistos debidamente sustentados', activo: false, created_at: '2026-01-01T00:00:00Z' }
 ];
 
 export const DEFAULT_SOLICITUDES = [];
