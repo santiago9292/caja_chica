@@ -26,7 +26,13 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
   const [successExport, setSuccessExport] = useState('');
 
   const solicitudesFiltradas = solicitudes.filter(s => {
-    if (filtroEstado !== 'TODOS' && s.estado !== filtroEstado) return false;
+    if (filtroEstado !== 'TODOS') {
+      if (filtroEstado === 'POR_RENDIR') {
+        if (s.estado !== 'POR_RENDIR' && s.estado !== 'PAGADO') return false;
+      } else if (s.estado !== filtroEstado) {
+        return false;
+      }
+    }
     if (filtroCategoria !== 'TODAS' && s.categoria !== filtroCategoria) return false;
 
     if (fechaDesde) {
@@ -164,13 +170,12 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
               onChange={(e) => setFiltroEstado(e.target.value)}
             >
               <option value="TODOS">Todos</option>
-              <option value="RENDIDO">Rendidos (Liquidados)</option>
-              <option value="APROBADO">Aprobados</option>
+              <option value="RENDIDO">Rendido</option>
               <option value="POR_RENDIR">Por Rendir</option>
+              <option value="APROBADO">Aprobado</option>
+              <option value="PENDIENTE">Pendiente</option>
               <option value="POR_REEMBOLSAR">Por Reembolsar</option>
-              <option value="PENDIENTE">Pendientes</option>
-              <option value="PENDIENTE_REEMBOLSO">Reembolsos Pendientes</option>
-              <option value="RECHAZADO">Rechazados</option>
+              <option value="RECHAZADO">Rechazado</option>
             </select>
           </div>
 
@@ -227,7 +232,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
 
       {/* Tabla Previa */}
       <div className="glass-panel" style={{ padding: '0.75rem' }}>
-        <div className="table-responsive">
+        <div className="table-responsive sticky-page-scroll">
           <table className="data-table">
             <thead>
               <tr>
