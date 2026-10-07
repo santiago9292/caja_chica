@@ -537,7 +537,7 @@ class DataStore {
       sol.observaciones_aprobador = observaciones;
     }
 
-    // Si el Cajero/Usuario abona el dinero, descontar del fondo disponible
+    // Si el Cajero/Usuario abona el dinero inicial, descontar del fondo disponible
     if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
       const monto = Number(sol.monto || 0);
       this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_disponible - monto);
@@ -556,6 +556,35 @@ class DataStore {
       }
     }
 
+    // Si el Cajero entrega el reembolso por exceso (de POR_REEMBOLSAR pasa a RENDIDO final)
+    const estadoPrevio = sol.estado;
+    if (estadoPrevio === 'POR_REEMBOLSAR' && nuevoEstado === 'RENDIDO') {
+      let totalRendido = 0;
+      if (sol.rendiciones) {
+        const list = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
+        if (Array.isArray(list)) {
+          totalRendido = list.reduce((sum, c) => sum + Number(c.monto || 0), 0);
+        }
+      }
+      const montoReembolso = Math.max(0, Number((totalRendido - Number(sol.monto || 0)).toFixed(2)));
+      if (montoReembolso > 0) {
+        this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_disponible - montoReembolso);
+        this.persist('caja_fondo', this.cajaFondo);
+
+        sol.pagado_por_dni = adminUser.dni;
+        sol.pagado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
+        sol.pagado_fecha = new Date().toISOString();
+
+        if (supabase) {
+          try {
+            await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
+          } catch (e) {
+            console.warn('Error actualizando fondo en Supabase tras reembolso:', e);
+          }
+        }
+      }
+    }
+
     this.persist('caja_solicitudes', this.solicitudes);
 
     // Notificación al solicitante específico
@@ -564,13 +593,19 @@ class DataStore {
     let msg = `Tu solicitud por S/ ${Number(sol.monto).toFixed(2)} fue ${statusText.toLowerCase()} por ${adminUser.nombres}. ${observaciones ? 'Obs: ' + observaciones : ''}`;
 
     if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
-      msg = `Tu solicitud ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)} ha sido ABONADA/PAGADA por caja (${adminUser.nombres}). El dinero ya ha sido entregado.`;
+      msg = `Tu solicitud ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)} ha sido ABONADA por caja (${adminUser.nombres}). El dinero ya ha sido entregado.`;
+    } else if (nuevoEstado === 'POR_REEMBOLSAR') {
+      title = `Reembolso Aprobado: ${sol.codigo}`;
+      msg = `El Administrador (${adminUser.nombres}) aprobó el reembolso por tu gasto excedente. Pasa por Caja para cobrar tu saldo a favor.`;
+    } else if (nuevoEstado === 'RENDIDO' && estadoPrevio === 'POR_REEMBOLSAR') {
+      title = `Reembolso Pagado: ${sol.codigo}`;
+      msg = `Caja te ha entregado el efectivo correspondiente a tu reembolso por exceso. Rendición finalizada y conforme.`;
     }
 
     this.addNotification({
       titulo: title,
       mensaje: msg,
-      tipo: nuevoEstado === 'APROBADO' || nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR' || nuevoEstado === 'RENDIDO' ? 'SUCCESS' : 'DANGER',
+      tipo: nuevoEstado === 'APROBADO' || nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR' || nuevoEstado === 'RENDIDO' || nuevoEstado === 'POR_REEMBOLSAR' ? 'SUCCESS' : 'DANGER',
       usuario_dni: sol.solicitante_dni,
       referencia_id: sol.id
     });
@@ -592,18 +627,22 @@ class DataStore {
       }
     }
 
-    // Enviar notificación Push (OneSignal) al Solicitante (y al Cajero si es aprobado)
+    // Enviar notificación Push (OneSignal)
     let msgPush = '';
     let targetPushDnis = [sol.solicitante_dni];
 
     if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
-      msgPush = `${adminUser.nombres} entregó el efectivo de tu ${sol.operacion}.`;
+      msgPush = `${adminUser.nombres} entregó el efectivo de tu solicitud ${sol.codigo}.`;
     } else if (nuevoEstado === 'APROBADO') {
-      msgPush = `${adminUser.nombres} aprobó el ${sol.operacion} de ${sol.solicitante_nombre}. Cajero, proceda con el abono.`;
+      msgPush = `${adminUser.nombres} aprobó tu solicitud ${sol.codigo}. Cajero, proceda con la entrega.`;
+      const cajerosDnis = this.usuarios.filter(u => u.roles?.includes('USUARIO')).map(u => u.dni);
+      targetPushDnis = [...targetPushDnis, ...cajerosDnis];
+    } else if (nuevoEstado === 'POR_REEMBOLSAR') {
+      msgPush = `Reembolso autorizado para ${sol.codigo}. Cajero, proceda con el pago de la diferencia.`;
       const cajerosDnis = this.usuarios.filter(u => u.roles?.includes('USUARIO')).map(u => u.dni);
       targetPushDnis = [...targetPushDnis, ...cajerosDnis];
     } else {
-      msgPush = `Tu ${sol.operacion} fue ${nuevoEstado.toLowerCase()} por ${adminUser.nombres}.`;
+      msgPush = `Tu solicitud ${sol.codigo} fue actualizada a ${nuevoEstado}.`;
     }
 
     this.sendOneSignalPush(`Caja Chica: ${sol.codigo}`, msgPush, targetPushDnis);
@@ -617,8 +656,31 @@ class DataStore {
     if (idx === -1) throw new Error("Solicitud no encontrada");
 
     const sol = this.solicitudes[idx];
+    const totalRendido = comprobantesArray.reduce((acc, c) => acc + Number(c.monto || 0), 0);
+    const adelanto = Number(sol.monto || 0);
+    const diferencia = Number((totalRendido - adelanto).toFixed(2));
+
     sol.rendiciones = comprobantesArray;
-    sol.estado = 'RENDIDO';
+
+    // Si gastó más del adelanto (diferencia > 0): pasa a PENDIENTE_REEMBOLSO para visto bueno del Admin
+    // Si gastó exacto o menos: pasa a RENDIDO
+    const nuevoEstado = diferencia > 0 ? 'PENDIENTE_REEMBOLSO' : 'RENDIDO';
+    sol.estado = nuevoEstado;
+
+    // Si gastó menos (diferencia < 0), devolver el sobrante al fondo de Caja Chica
+    if (diferencia < 0) {
+      const devolucion = Math.abs(diferencia);
+      this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + devolucion);
+      this.persist('caja_fondo', this.cajaFondo);
+      if (supabase) {
+        try {
+          await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
+        } catch (e) {
+          console.warn('Error reintegrando sobrante en Supabase:', e);
+        }
+      }
+    }
+
     this.persist('caja_solicitudes', this.solicitudes);
 
     if (supabase) {
@@ -627,7 +689,7 @@ class DataStore {
           .from('solicitudes')
           .update({
             rendiciones: comprobantesArray,
-            estado: 'RENDIDO'
+            estado: nuevoEstado
           })
           .eq('id', id);
 
@@ -641,22 +703,28 @@ class DataStore {
       }
     }
 
-    // Notificación en la app para Administradores
-    this.addNotification({
-      titulo: `Rendición Recibida: ${sol.codigo}`,
-      mensaje: `${sol.solicitante_nombre} ha rendido sus comprobantes por el adelanto entregado.`,
-      tipo: 'SUCCESS',
-      usuario_dni: 'ADMINS',
-      referencia_id: sol.id
-    });
+    if (diferencia > 0) {
+      this.addNotification({
+        titulo: `Reembolso por Autorizar: ${sol.codigo}`,
+        mensaje: `${sol.solicitante_nombre} rindió S/ ${totalRendido.toFixed(2)} sobre adelanto de S/ ${adelanto.toFixed(2)}. Exceso a su favor por autorizar: S/ ${diferencia.toFixed(2)}.`,
+        tipo: 'WARNING',
+        usuario_dni: 'ADMINS',
+        referencia_id: sol.id
+      });
 
-    // Enviar notificación Push (OneSignal) a Administradores y Cajeros
-    const adminYCajerosDnis = this.usuarios
-      .filter(u => u.roles?.includes('ADMINISTRADOR') || u.roles?.includes('USUARIO'))
-      .map(u => u.dni);
-    this.sendOneSignalPush(`Caja Chica: ${sol.codigo} Rendido`, `${sol.solicitante_nombre} ha rendido los comprobantes del adelanto.`, adminYCajerosDnis);
+      const adminDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR')).map(u => u.dni);
+      this.sendOneSignalPush(`Reembolso ${sol.codigo}: S/ ${diferencia.toFixed(2)}`, `Rendición con exceso para autorizar a ${sol.solicitante_nombre}.`, adminDnis);
+    } else {
+      this.addNotification({
+        titulo: `Rendición Recibida: ${sol.codigo}`,
+        mensaje: `${sol.solicitante_nombre} ha completado la rendición de su adelanto exitosamente.`,
+        tipo: 'SUCCESS',
+        usuario_dni: 'ADMINS',
+        referencia_id: sol.id
+      });
+    }
 
-    this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: 'RENDIDO' });
+    this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     this.notifyListeners({ type: 'DATA_LOADED' });
     return sol;
   }

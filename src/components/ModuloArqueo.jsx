@@ -15,13 +15,31 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [processingId, setProcessingId] = useState(null);
   const [filtroBandeja, setFiltroBandeja] = useState('APROBADO'); // 'APROBADO' | 'PENDIENTE' | 'RECHAZADO' | 'HISTORIAL' | 'TODOS'
 
+  const getMontoEntrega = (sol) => {
+    if (sol.estado === 'POR_REEMBOLSAR') {
+      let lista = [];
+      try {
+        lista = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
+      } catch (e) {
+        lista = [];
+      }
+      if (Array.isArray(lista)) {
+        const totalRendido = lista.reduce((sum, c) => sum + Number(c.monto || 0), 0);
+        const adelanto = Number(sol.monto || 0);
+        return Math.max(0, Number((totalRendido - adelanto).toFixed(2)));
+      }
+      return 0;
+    }
+    return Number(sol.monto || 0);
+  };
+
   // Consideramos pagados los que están en estado PAGADO, POR_RENDIR o RENDIDO (para arqueo egresos)
   const totalPagado = solicitudes
     .filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendienteOAprobado = solicitudes
-    .filter(s => s.estado === 'PENDIENTE' || s.estado === 'APROBADO')
+    .filter(s => s.estado === 'PENDIENTE' || s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR' || s.estado === 'PENDIENTE_REEMBOLSO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
@@ -34,14 +52,14 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
     categoriasMap[cat].count += 1;
   });
 
-  const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO');
-  const solicitudesPendientes = solicitudes.filter(s => s.estado === 'PENDIENTE');
+  const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR');
+  const solicitudesPendientes = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO');
   const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'RECHAZADO');
   const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'PAGADO'].includes(s.estado));
 
   const solicitudesFiltradasBandeja = solicitudes.filter(s => {
-    if (filtroBandeja === 'APROBADO') return s.estado === 'APROBADO';
-    if (filtroBandeja === 'PENDIENTE') return s.estado === 'PENDIENTE';
+    if (filtroBandeja === 'APROBADO') return s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR';
+    if (filtroBandeja === 'PENDIENTE') return s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO';
     if (filtroBandeja === 'RECHAZADO') return s.estado === 'RECHAZADO';
     if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'PAGADO'].includes(s.estado);
     return true; // TODOS
@@ -66,18 +84,28 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   };
 
   const handleAbonar = async (sol) => {
-    if (montoDisponible < sol.monto) {
-      alert('⚠️ Fondos insuficientes en la Caja Chica para realizar este abono.');
+    const isReembolso = sol.estado === 'POR_REEMBOLSAR';
+    const montoAEntregar = getMontoEntrega(sol);
+
+    if (montoDisponible < montoAEntregar) {
+      alert('⚠️ Fondos insuficientes en la Caja Chica para realizar este desembolso.');
       return;
     }
-    if (!window.confirm(`¿Confirmas la entrega de S/ ${sol.monto.toFixed(2)} a ${sol.solicitante_nombre}?`)) return;
+
+    const confirmMsg = isReembolso
+      ? `¿Confirmas la entrega del REEMBOLSO de S/ ${montoAEntregar.toFixed(2)} a ${sol.solicitante_nombre}?`
+      : `¿Confirmas la entrega de S/ ${montoAEntregar.toFixed(2)} a ${sol.solicitante_nombre}?`;
+
+    if (!window.confirm(confirmMsg)) return;
 
     setProcessingId(sol.id);
     try {
-      await onUpdateEstado(sol.id, 'POR_RENDIR', '');
+      const nuevoEstado = isReembolso ? 'RENDIDO' : 'POR_RENDIR';
+      const obs = isReembolso ? 'Reembolso por exceso entregado en efectivo' : '';
+      await onUpdateEstado(sol.id, nuevoEstado, obs);
       playNotificationSound('success');
     } catch (err) {
-      alert('Error al abonar: ' + err.message);
+      alert('Error al entregar dinero: ' + err.message);
     } finally {
       setProcessingId(null);
     }
@@ -382,8 +410,30 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                           </span>
                         )}
                       </td>
-                      <td style={{ fontWeight: '800', color: '#0f172a', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
-                        S/ {Number(sol.monto).toFixed(2)}
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        {sol.estado === 'POR_REEMBOLSAR' ? (
+                          <div>
+                            <div style={{ fontWeight: '800', color: '#16a34a', fontSize: '1.1rem' }}>
+                              S/ {getMontoEntrega(sol).toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              Reembolso (Adelanto: S/ {Number(sol.monto).toFixed(2)})
+                            </div>
+                          </div>
+                        ) : sol.estado === 'PENDIENTE_REEMBOLSO' ? (
+                          <div>
+                            <div style={{ fontWeight: '800', color: '#b45309', fontSize: '1.05rem' }}>
+                              S/ {Number(sol.monto).toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#b45309' }}>
+                              Rendición con exceso
+                            </div>
+                          </div>
+                        ) : (
+                          <span style={{ fontWeight: '800', color: '#0f172a', fontSize: '1.1rem' }}>
+                            S/ {Number(sol.monto).toFixed(2)}
+                          </span>
+                        )}
                       </td>
                       <td>
                         {sol.estado === 'APROBADO' && (
@@ -391,9 +441,19 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             <CheckCircle2 size={13} /> Listo para Abonar
                           </span>
                         )}
+                        {sol.estado === 'POR_REEMBOLSAR' && (
+                          <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <CheckCircle2 size={13} /> Listo para Reembolso
+                          </span>
+                        )}
                         {sol.estado === 'PENDIENTE' && (
                           <span className="badge badge-pendiente" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                             <Clock size={13} /> Pendiente de Aprobación
+                          </span>
+                        )}
+                        {sol.estado === 'PENDIENTE_REEMBOLSO' && (
+                          <span className="badge" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Clock size={13} /> Reembolso en Revisión
                           </span>
                         )}
                         {sol.estado === 'RECHAZADO' && (
@@ -415,7 +475,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                         )}
                         {sol.estado === 'RENDIDO' && (
                           <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <CheckCircle2 size={13} /> Rendido
+                            <CheckCircle2 size={13} /> Rendido (Liquidado)
                           </span>
                         )}
                         {sol.estado === 'PAGADO' && (
@@ -425,16 +485,16 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        {sol.estado === 'APROBADO' ? (
+                        {(sol.estado === 'APROBADO' || sol.estado === 'POR_REEMBOLSAR') ? (
                           <button 
                             className="btn btn-primary" 
                             onClick={() => handleAbonar(sol)}
                             disabled={processingId === sol.id}
                             style={{ whiteSpace: 'nowrap' }}
                           >
-                            <Check size={16} /> Entregar Dinero
+                            <Check size={16} /> {sol.estado === 'POR_REEMBOLSAR' ? 'Entregar Reembolso' : 'Entregar Dinero'}
                           </button>
-                        ) : sol.estado === 'PENDIENTE' ? (
+                        ) : (sol.estado === 'PENDIENTE' || sol.estado === 'PENDIENTE_REEMBOLSO') ? (
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             Requiere visto bueno de Admin
                           </span>

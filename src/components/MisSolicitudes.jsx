@@ -19,12 +19,31 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
     );
   });
 
+  const renderBadgeEstado = (estado) => {
+    switch (estado) {
+      case 'APROBADO':
+        return <span className="badge badge-aprobado">Aprobado</span>;
+      case 'RENDIDO':
+        return <span className="badge badge-aprobado">Rendido (Liquidado)</span>;
+      case 'POR_RENDIR':
+        return <span className="badge badge-pendiente">Por Rendir</span>;
+      case 'PENDIENTE_REEMBOLSO':
+        return <span className="badge" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>Reembolso en Revisión</span>;
+      case 'POR_REEMBOLSAR':
+        return <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>Reembolso por Cobrar</span>;
+      case 'RECHAZADO':
+        return <span className="badge badge-rechazado">Rechazado</span>;
+      default:
+        return <span className="badge badge-pendiente">{estado?.replace(/_/g, ' ') || 'Pendiente'}</span>;
+    }
+  };
+
   const totalMontoAprobado = misItems
-    .filter(s => s.estado === 'APROBADO')
+    .filter(s => ['APROBADO', 'RENDIDO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendiente = misItems
-    .filter(s => s.estado === 'PENDIENTE')
+    .filter(s => ['PENDIENTE', 'PENDIENTE_REEMBOLSO'].includes(s.estado))
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   return (
@@ -134,14 +153,7 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                       </strong>
                     </td>
                     <td>
-                      <span className={`badge ${
-                        item.estado === 'APROBADO' ? 'badge-aprobado' :
-                        item.estado === 'RENDIDO' ? 'badge-aprobado' :
-                        item.estado === 'POR_RENDIR' ? 'badge-pendiente' :
-                        item.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
-                      }`}>
-                        {item.estado.replace('_', ' ')}
-                      </span>
+                      {renderBadgeEstado(item.estado)}
                     </td>
                     <td style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
                       {item.estado === 'POR_RENDIR' && (
@@ -192,16 +204,37 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                 </div>
               </div>
               <div>
-                <span className={`badge ${
-                  selectedItem.estado === 'APROBADO' ? 'badge-aprobado' :
-                  selectedItem.estado === 'RENDIDO' ? 'badge-aprobado' :
-                  selectedItem.estado === 'POR_RENDIR' ? 'badge-pendiente' :
-                  selectedItem.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
-                }`}>
-                  {selectedItem.estado.replace('_', ' ')}
-                </span>
+                {renderBadgeEstado(selectedItem.estado)}
               </div>
             </div>
+
+            {selectedItem.estado === 'POR_REEMBOLSAR' && (
+              <div style={{
+                background: '#ecfdf5',
+                border: '1px solid #a7f3d0',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.825rem',
+                color: '#065f46'
+              }}>
+                <strong>🎉 Reembolso Aprobado:</strong> Acércate a Caja para cobrar el efectivo adicional correspondiente al exceso de tus comprobantes.
+              </div>
+            )}
+
+            {selectedItem.estado === 'PENDIENTE_REEMBOLSO' && (
+              <div style={{
+                background: '#fffbeb',
+                border: '1px solid #fde68a',
+                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                marginBottom: '1rem',
+                fontSize: '0.825rem',
+                color: '#92400e'
+              }}>
+                <strong>⏳ Reembolso en Revisión:</strong> Has rendido un monto superior a tu adelanto. Administración está validando tus comprobantes para autorizar la entrega de tu dinero en Caja.
+              </div>
+            )}
 
             <div style={{ marginBottom: '1rem' }}>
               <label className="form-label">Justificación</label>

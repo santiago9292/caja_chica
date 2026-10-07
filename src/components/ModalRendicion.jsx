@@ -349,6 +349,55 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
           </div>
         </div>
 
+        {diferencia > 0 && (
+          <div style={{
+            background: '#eff6ff',
+            border: '1px solid #bfdbfe',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            marginBottom: '1rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem'
+          }}>
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              background: '#2563eb',
+              color: '#ffffff',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              flexShrink: 0
+            }}>
+              💰
+            </div>
+            <div>
+              <div style={{ fontWeight: '700', color: '#1e3a8a', fontSize: '0.85rem' }}>
+                Saldo a tu favor: S/ {diferencia.toFixed(2)}
+              </div>
+              <div style={{ fontSize: '0.78rem', color: '#3b82f6', marginTop: '0.15rem' }}>
+                El total de tus comprobantes (S/ {totalRendido.toFixed(2)}) supera el adelanto entregado (S/ {Number(solicitud.monto).toFixed(2)}). Al finalizar, se enviará una solicitud al Administrador para autorizar el reembolso de tus <strong>S/ {diferencia.toFixed(2)}</strong> en Caja.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {diferencia < 0 && comprobantes.length > 0 && (
+          <div style={{
+            background: '#fffbeb',
+            border: '1px solid #fef3c7',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.75rem 1rem',
+            marginBottom: '1rem',
+            fontSize: '0.82rem',
+            color: '#b45309'
+          }}>
+            ⚠️ <strong>Sobrante de efectivo: S/ {Math.abs(diferencia).toFixed(2)}</strong>. Recuerda entregar los S/ {Math.abs(diferencia).toFixed(2)} no utilizados al Cajero para reintegrarlos al fondo de Caja Chica.
+          </div>
+        )}
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
           <button onClick={onClose} className="btn btn-secondary" disabled={submitting}>
             Cancelar
@@ -356,10 +405,14 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
           <button 
             onClick={handleGuardar} 
             className="btn btn-primary" 
-            disabled={submitting || comprobantes.length === 0 || totalRendido < Number(solicitud.monto)}
-            title={totalRendido < Number(solicitud.monto) ? "Debe rendir por lo menos el total del adelanto entregado." : ""}
+            disabled={submitting || comprobantes.length === 0}
+            style={{ fontWeight: '700' }}
           >
-            {submitting ? 'Guardando...' : 'Finalizar Rendición'}
+            {submitting 
+              ? 'Guardando...' 
+              : diferencia > 0 
+                ? `Finalizar y Solicitar Reembolso (S/ ${diferencia.toFixed(2)})` 
+                : 'Finalizar Rendición'}
           </button>
         </div>
       </div>
