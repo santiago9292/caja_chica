@@ -165,10 +165,10 @@ export const DEFAULT_SOLICITUDES = [];
 export const DEFAULT_CAJA_FONDO = {
   id: 'fondo-principal',
   nombre: 'CAJA CHICA DICAR LOGISTIC',
-  monto_total: 5000.00,
-  monto_disponible: 4539.50,
+  monto_total: 500.00,
+  monto_disponible: 500.00,
   estado: 'ABIERTA',
-  responsable_dni: '45678901'
+  responsable_dni: '47361788'
 };
 
 // Canal Broadcast para sincronización cross-tab instantánea en caso de modo local
@@ -451,15 +451,56 @@ class DataStore {
     return true;
   }
 
-  // --- MÉTODOS DE USUARIOS / MAESTRO DNI ---
+  // --- MÉTODOS DE FONDO / SALDO DE CAJA CHICA ---
+  async syncCajaFondoToSupabase() {
+    if (!supabase) return;
+    try {
+      await supabase.from('caja_fondo').upsert({
+        id: this.cajaFondo.id || 'fondo-principal',
+        nombre: this.cajaFondo.nombre || 'CAJA CHICA DICAR LOGISTIC',
+        monto_total: Number(this.cajaFondo.monto_total || 500),
+        monto_disponible: Number(this.cajaFondo.monto_disponible || 0),
+        estado: this.cajaFondo.estado || 'ABIERTA',
+        responsable_dni: this.cajaFondo.responsable_dni || '47361788'
+      }, { onConflict: 'id' });
+    } catch (e) {
+      console.warn('Error sincronizando caja_fondo a Supabase:', e);
+    }
+  }
+
   async getCajaFondo() {
     if (supabase) {
-      const { data, error } = await supabase.from('caja_fondo').select('*').limit(1).single();
-      if (!error && data) {
-        this.cajaFondo = data;
-        this.persist('caja_fondo', data);
-        this.notifyListeners({ type: 'DATA_LOADED' });
-        return data;
+      try {
+        const { data, error } = await supabase.from('caja_fondo').select('*').limit(1);
+        if (!error && data && data.length > 0) {
+          this.cajaFondo = data[0];
+          this.persist('caja_fondo', this.cajaFondo);
+          this.notifyListeners({ type: 'DATA_LOADED' });
+          return this.cajaFondo;
+        } else if (!error && Array.isArray(data) && data.length === 0) {
+          // Si la tabla en Supabase está vacía (0 registros), sembrar automáticamente el fondo
+          const fondoInicial = {
+            id: 'fondo-principal',
+            nombre: 'CAJA CHICA DICAR LOGISTIC',
+            monto_total: Number(this.cajaFondo?.monto_total || 500),
+            monto_disponible: Number(this.cajaFondo?.monto_disponible || 500),
+            estado: 'ABIERTA',
+            responsable_dni: this.cajaFondo?.responsable_dni || '47361788'
+          };
+          const { data: inserted, error: insertErr } = await supabase
+            .from('caja_fondo')
+            .upsert(fondoInicial, { onConflict: 'id' })
+            .select()
+            .single();
+          if (!insertErr && inserted) {
+            this.cajaFondo = inserted;
+            this.persist('caja_fondo', inserted);
+            this.notifyListeners({ type: 'DATA_LOADED' });
+            return inserted;
+          }
+        }
+      } catch (err) {
+        console.warn('Error obteniendo/sembrando caja_fondo en Supabase:', err);
       }
     }
     return this.cajaFondo;
@@ -615,13 +656,7 @@ class DataStore {
       sol.pagado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
       sol.pagado_fecha = new Date().toISOString();
 
-      if (supabase) {
-        try {
-          await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
-        } catch (e) {
-          console.warn('Error actualizando fondo en Supabase:', e);
-        }
-      }
+      await this.syncCajaFondoToSupabase();
     }
 
     // Si el Cajero entrega el reembolso por exceso (de POR_REEMBOLSAR pasa a RENDIDO final)
@@ -644,13 +679,7 @@ class DataStore {
         sol.pagado_fecha = new Date().toISOString();
         sol.monto = totalRendido;
 
-        if (supabase) {
-          try {
-            await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
-          } catch (e) {
-            console.warn('Error actualizando fondo en Supabase tras reembolso:', e);
-          }
-        }
+        await this.syncCajaFondoToSupabase();
       }
     }
 
@@ -743,13 +772,7 @@ class DataStore {
       this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + devolucion);
       this.persist('caja_fondo', this.cajaFondo);
       sol.monto = totalRendido;
-      if (supabase) {
-        try {
-          await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
-        } catch (e) {
-          console.warn('Error reintegrando sobrante en Supabase:', e);
-        }
-      }
+      await this.syncCajaFondoToSupabase();
     } else if (diferencia === 0) {
       sol.monto = totalRendido;
     }
@@ -867,16 +890,7 @@ class DataStore {
     this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_total - gastado);
     this.persist('caja_fondo', this.cajaFondo);
 
-    if (supabase) {
-      try {
-        await supabase.from('caja_fondo').update({
-          monto_total: this.cajaFondo.monto_total,
-          monto_disponible: this.cajaFondo.monto_disponible
-        }).eq('id', this.cajaFondo.id);
-      } catch (e) {
-        console.warn('Error actualizando tope de fondo en Supabase:', e);
-      }
-    }
+    await this.syncCajaFondoToSupabase();
 
     this.broadcastSync({ type: 'FONDO_UPDATED', fondo: this.cajaFondo });
     return this.cajaFondo;
@@ -886,15 +900,7 @@ class DataStore {
     this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + Number(montoRepuesto));
     this.persist('caja_fondo', this.cajaFondo);
 
-    if (supabase) {
-      try {
-        await supabase.from('caja_fondo').update({
-          monto_disponible: this.cajaFondo.monto_disponible
-        }).eq('id', this.cajaFondo.id);
-      } catch (e) {
-        console.warn('Error reponiendo fondo en Supabase:', e);
-      }
-    }
+    await this.syncCajaFondoToSupabase();
 
     this.broadcastSync({ type: 'FONDO_UPDATED', fondo: this.cajaFondo });
     return this.cajaFondo;

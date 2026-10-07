@@ -3,7 +3,7 @@ import { Wallet, TrendingDown, Clock, CheckCircle2, Layers, DollarSign, Edit3, C
 import { playNotificationSound } from '../lib/audioNotifier';
 
 export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo }) {
-  const montoTotal = Number(cajaFondo?.monto_total || 5000);
+  const montoTotal = Number(cajaFondo?.monto_total || 500);
   const montoDisponible = Number(cajaFondo?.monto_disponible || 0);
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN');
   const isCajero = currentUser?.roles?.includes('USUARIO');

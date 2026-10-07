@@ -140,7 +140,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     const controlData = [
       { 'Parámetro': 'Empresa', 'Valor (S/)': 'DICAR LOGISTIC' },
       { 'Parámetro': 'Sistema', 'Valor (S/)': 'CAJA CHICA DICAR LOGISTIC' },
-      { 'Parámetro': 'Fondo Total Asignado', 'Valor (S/)': Number(cajaFondo?.monto_total || 5000).toFixed(2) },
+      { 'Parámetro': 'Fondo Total Asignado', 'Valor (S/)': Number(cajaFondo?.monto_total || 500).toFixed(2) },
       { 'Parámetro': 'Fondo Disponible Actual', 'Valor (S/)': Number(cajaFondo?.monto_disponible || 0).toFixed(2) },
       { 'Parámetro': 'Total Gastos Aprobados', 'Valor (S/)': totalAprobado.toFixed(2) },
       { 'Parámetro': 'Total Solicitudes en Evaluación (Pendientes)', 'Valor (S/)': totalPendiente.toFixed(2) },
