@@ -28,26 +28,78 @@ export function Navbar({
 }) {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
-  const [canInstallPwa, setCanInstallPwa] = useState(false);
+
+  // Validación de si la aplicación ya está instalada en el dispositivo
+  const checkIfInstalled = () => {
+    if (typeof window === 'undefined') return false;
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                         window.navigator.standalone === true ||
+                         (typeof document !== 'undefined' && document.referrer.includes('android-app://'));
+    return Boolean(isStandalone || localStorage.getItem('pwa_installed') === 'true');
+  };
+
+  const [isInstalled, setIsInstalled] = useState(checkIfInstalled);
 
   useEffect(() => {
+    const checkState = () => {
+      if (checkIfInstalled()) {
+        setIsInstalled(true);
+        localStorage.setItem('pwa_installed', 'true');
+      }
+    };
+    checkState();
+
+    const mediaQuery = window.matchMedia ? window.matchMedia('(display-mode: standalone)') : null;
+    const handleDisplayModeChange = (e) => {
+      if (e.matches) {
+        setIsInstalled(true);
+        localStorage.setItem('pwa_installed', 'true');
+      }
+    };
+    if (mediaQuery?.addEventListener) {
+      mediaQuery.addEventListener('change', handleDisplayModeChange);
+    }
+
     const handleBeforeInstall = (e) => {
       e.preventDefault();
       setDeferredPrompt(e);
-      setCanInstallPwa(true);
     };
+
+    const handleAppInstalled = () => {
+      setIsInstalled(true);
+      setDeferredPrompt(null);
+      localStorage.setItem('pwa_installed', 'true');
+    };
+
     window.addEventListener('beforeinstallprompt', handleBeforeInstall);
-    return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+    window.addEventListener('appinstalled', handleAppInstalled);
+
+    return () => {
+      if (mediaQuery?.removeEventListener) {
+        mediaQuery.removeEventListener('change', handleDisplayModeChange);
+      }
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstall);
+      window.removeEventListener('appinstalled', handleAppInstalled);
+    };
   }, []);
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt) return;
-    deferredPrompt.prompt();
-    const { outcome } = await deferredPrompt.userChoice;
-    if (outcome === 'accepted') {
-      setCanInstallPwa(false);
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        setIsInstalled(true);
+        localStorage.setItem('pwa_installed', 'true');
+      }
+      setDeferredPrompt(null);
+    } else {
+      const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+      if (isIos) {
+        alert("Para instalar en tu iPhone o iPad:\n1. Toca el botón 'Compartir' (icono con flecha hacia arriba) en Safari.\n2. Elige 'Agregar a pantalla de inicio'.");
+      } else {
+        alert("Para instalar esta aplicación:\n1. Toca el menú de tu navegador (⋮ en la esquina superior derecha).\n2. Elige 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
+      }
     }
-    setDeferredPrompt(null);
   };
 
   const userRoles = currentUser?.roles || [];
@@ -83,22 +135,35 @@ export function Navbar({
           />
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
             <div className="brand-title" style={{ flexWrap: 'nowrap', gap: '0.35rem', overflow: 'hidden', alignItems: 'center' }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '800', letterSpacing: '-0.01em' }}>
+              <span className={!isInstalled ? "desktop-only" : ""} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '800', letterSpacing: '-0.01em' }}>
                 CAJA CHICA
               </span>
-              <span style={{ 
-                color: '#1d4ed8', 
-                fontSize: '0.72rem', 
-                fontWeight: '800', 
-                letterSpacing: '0.04em',
-                background: '#eff6ff',
-                padding: '1px 6px',
-                borderRadius: '4px',
-                border: '1px solid #dbeafe',
-                flexShrink: 0 
-              }}>
-                DICAR LOGISTIC
-              </span>
+              {!isInstalled && (
+                <button
+                  type="button"
+                  onClick={handleInstallClick}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.3rem',
+                    background: '#2563eb',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '6px',
+                    padding: '0.22rem 0.55rem',
+                    fontSize: '0.72rem',
+                    fontWeight: '700',
+                    cursor: 'pointer',
+                    boxShadow: '0 1px 3px rgba(37, 99, 235, 0.3)',
+                    flexShrink: 0,
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Instalar CAJA CHICA en tu dispositivo"
+                >
+                  <Download size={13} strokeWidth={2.5} />
+                  <span>Instalar</span>
+                </button>
+              )}
               <span className="pulse-indicator" title="En tiempo real" style={{ flexShrink: 0 }} />
             </div>
             <div className="brand-subtitle desktop-only" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
@@ -109,18 +174,6 @@ export function Navbar({
 
         {/* Acciones a la derecha */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flexShrink: 0 }}>
-          
-          {canInstallPwa && (
-            <button 
-              className="btn btn-secondary desktop-only" 
-              onClick={handleInstallClick} 
-              style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
-              title="Instalar Aplicación"
-            >
-              <Download size={14} color="#0f172a" />
-              <span>Instalar</span>
-            </button>
-          )}
 
           {/* Configuración */}
           <button 
