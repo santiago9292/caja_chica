@@ -84,39 +84,46 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
               <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Asigna el tope máximo del fondo fijo para el Cajero.</p>
             </div>
             {isEditingFondo ? (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <div className="input-group" style={{ margin: 0, width: '150px' }}>
-                  <span className="input-group-text">S/</span>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: '600' }}>Nuevo Tope:</span>
+                <div style={{ position: 'relative', width: '130px' }}>
+                  <span style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#475569', fontSize: '0.9rem' }}>
+                    S/
+                  </span>
                   <input
                     type="number"
                     className="form-input"
+                    style={{ paddingLeft: '2rem', paddingRight: '0.5rem', height: '36px', margin: 0 }}
                     value={nuevoFondo}
                     onChange={(e) => setNuevoFondo(e.target.value)}
                   />
                 </div>
-                <button className="btn btn-success" onClick={handleGuardarFondo} style={{ padding: '0.5rem 1rem' }}>
+                <button className="btn btn-success" onClick={handleGuardarFondo} style={{ padding: '0 1rem', height: '36px' }}>
                   Guardar Tope
                 </button>
-                <button className="btn btn-ghost" onClick={() => { setIsEditingFondo(false); setNuevoFondo(montoTotal); }}>
+                <button className="btn btn-ghost" onClick={() => { setIsEditingFondo(false); setNuevoFondo(montoTotal); }} style={{ padding: '0 0.75rem', height: '36px' }}>
                   Cancelar
                 </button>
               </div>
             ) : isReponiendo ? (
-              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Monto a Reponer:</span>
-                <div className="input-group" style={{ margin: 0, width: '130px' }}>
-                  <span className="input-group-text">S/</span>
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.85rem', color: '#0f172a', fontWeight: '600' }}>Monto a Reponer:</span>
+                <div style={{ position: 'relative', width: '130px' }}>
+                  <span style={{ position: 'absolute', left: '0.65rem', top: '50%', transform: 'translateY(-50%)', fontWeight: '600', color: '#475569', fontSize: '0.9rem' }}>
+                    S/
+                  </span>
                   <input
                     type="number"
                     className="form-input"
+                    style={{ paddingLeft: '2rem', paddingRight: '0.5rem', height: '36px', margin: 0 }}
                     value={montoReponer}
                     onChange={(e) => setMontoReponer(e.target.value)}
                   />
                 </div>
-                <button className="btn btn-primary" onClick={handleGuardarRepocision} style={{ padding: '0.5rem 1rem' }}>
+                <button className="btn btn-primary" onClick={handleGuardarRepocision} style={{ padding: '0 1rem', height: '36px' }}>
                   Confirmar Reposición
                 </button>
-                <button className="btn btn-ghost" onClick={() => setIsReponiendo(false)}>
+                <button className="btn btn-ghost" onClick={() => setIsReponiendo(false)} style={{ padding: '0 0.75rem', height: '36px' }}>
                   Cancelar
                 </button>
               </div>
