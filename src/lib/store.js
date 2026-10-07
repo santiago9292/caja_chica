@@ -18,73 +18,84 @@ if (isSupabaseConfigured) {
   }
 }
 
-// Datos semilla de usuarios por defecto (con todas las combinaciones de roles solicitadas)
+// Usuarios registrados autorizados (sincronizados con base de datos de Supabase)
 export const DEFAULT_USUARIOS = [
   {
     id: 'usr-1',
-    dni: '10203040',
-    nombres: 'Carlos Alberto',
-    apellidos: 'Méndez Ríos',
-    correo: 'carlos.mendez@empresa.com',
-    telefono: '987654321',
+    dni: '00000000',
+    nombres: 'PERCY',
+    apellidos: '-',
+    correo: 'percy@empresa.com',
+    telefono: '',
     roles: ['SYSADMIN', 'ADMINISTRADOR'],
     activo: true,
-    created_at: '2026-01-10T10:00:00Z'
+    created_at: '2026-01-01T00:00:00Z'
   },
   {
     id: 'usr-2',
-    dni: '45678901',
-    nombres: 'Ana María',
-    apellidos: 'Torres Delgado',
-    correo: 'ana.torres@empresa.com',
-    telefono: '976543210',
+    dni: '12345678',
+    nombres: 'Claudia',
+    apellidos: 'Cadillo',
+    correo: 'claudia.cadillo@empresa.com',
+    telefono: '',
     roles: ['ADMINISTRADOR'],
     activo: true,
-    created_at: '2026-01-12T11:00:00Z'
+    created_at: '2026-01-01T00:00:00Z'
   },
   {
     id: 'usr-3',
-    dni: '78901234',
-    nombres: 'Javier Alonso',
-    apellidos: 'Morales Silva',
-    correo: 'javier.morales@empresa.com',
-    telefono: '965432109',
+    dni: '87654321',
+    nombres: 'Jorge',
+    apellidos: '-',
+    correo: 'jorge@empresa.com',
+    telefono: '',
     roles: ['SOLICITANTE'],
     activo: true,
-    created_at: '2026-01-15T09:30:00Z'
+    created_at: '2026-01-01T00:00:00Z'
   },
   {
     id: 'usr-4',
-    dni: '11223344',
-    nombres: 'Lucía Fernanda',
-    apellidos: 'Vargas Paredes',
-    correo: 'lucia.vargas@empresa.com',
-    telefono: '954321098',
+    dni: '10203040',
+    nombres: 'Maria',
+    apellidos: '-',
+    correo: 'maria@empresa.com',
+    telefono: '',
     roles: ['SOLICITANTE', 'USUARIO'],
     activo: true,
-    created_at: '2026-01-18T14:20:00Z'
+    created_at: '2026-01-01T00:00:00Z'
   },
   {
     id: 'usr-5',
     dni: '99887766',
-    nombres: 'Roberto Andrés',
-    apellidos: 'Campos Núñez',
-    correo: 'roberto.campos@empresa.com',
-    telefono: '943210987',
+    nombres: 'Andrea',
+    apellidos: '-',
+    correo: 'andrea@empresa.com',
+    telefono: '',
     roles: ['USUARIO'],
     activo: true,
-    created_at: '2026-01-20T16:00:00Z'
+    created_at: '2026-01-01T00:00:00Z'
   },
   {
     id: 'usr-6',
-    dni: '00112233',
-    nombres: 'Diana Sofía',
-    apellidos: 'Castro Miranda',
-    correo: 'diana.castro@empresa.com',
-    telefono: '932109876',
+    dni: '47361788',
+    nombres: 'Santiago',
+    apellidos: 'Pazos',
+    correo: 'santiago.pazos@empresa.com',
+    telefono: '',
     roles: ['SYSADMIN', 'ADMINISTRADOR', 'SOLICITANTE', 'USUARIO'],
     activo: true,
-    created_at: '2026-01-05T08:00:00Z'
+    created_at: '2026-01-01T00:00:00Z'
+  },
+  {
+    id: 'usr-7',
+    dni: '00000001',
+    nombres: 'NATALI',
+    apellidos: 'RAMOS',
+    correo: '',
+    telefono: '',
+    roles: ['SOLICITANTE'],
+    activo: true,
+    created_at: '2026-01-01T00:00:00Z'
   }
 ];
 
@@ -97,77 +108,7 @@ export const DEFAULT_CATEGORIAS = [
   { id: 'OTROS', nombre: 'Otros Gastos Operativos', centro_costo: 'CC-GENERAL', descripcion: 'Gastos menores imprevistos debidamente sustentados', activo: true, created_at: '2026-01-01T00:00:00Z' }
 ];
 
-export const DEFAULT_SOLICITUDES = [
-  {
-    id: 'sol-001',
-    codigo: 'SOL-2026-001',
-    tipo: 'RENDICION_GASTO',
-    solicitante_dni: '78901234',
-    solicitante_nombre: 'Javier Alonso Morales Silva',
-    monto: 125.50,
-    moneda: 'PEN',
-    motivo: 'Traslado en taxi para entrega y firma de escrituras notariales en Notaría Tambini',
-    categoria: 'TRANSPORTE',
-    comprobante_tipo: 'FACTURA',
-    comprobante_numero: 'F001-0004523',
-    comprobante_ruc_emisor: '20556789123',
-    comprobante_razon_social: 'TAXI SEGURO METROPOLITANO S.A.C.',
-    comprobante_fecha: '2026-10-05',
-    comprobante_archivo_url: '',
-    estado: 'PENDIENTE',
-    aprobado_por_dni: null,
-    aprobado_por_nombre: null,
-    aprobado_fecha: null,
-    observaciones_aprobador: null,
-    created_at: new Date(Date.now() - 3600000 * 2.5).toISOString()
-  },
-  {
-    id: 'sol-002',
-    codigo: 'SOL-2026-002',
-    tipo: 'ADELANTO_DINERO',
-    solicitante_dni: '11223344',
-    solicitante_nombre: 'Lucía Fernanda Vargas Paredes',
-    monto: 250.00,
-    moneda: 'PEN',
-    motivo: 'Fondo adelantado para compra urgente de refrigerios y coffee break para visita de clientes clave',
-    categoria: 'ALIMENTACION',
-    comprobante_tipo: 'DECLARACION_JURADA',
-    comprobante_numero: '',
-    comprobante_ruc_emisor: '',
-    comprobante_razon_social: '',
-    comprobante_fecha: '2026-10-06',
-    comprobante_archivo_url: '',
-    estado: 'PENDIENTE',
-    aprobado_por_dni: null,
-    aprobado_por_nombre: null,
-    aprobado_fecha: null,
-    observaciones_aprobador: null,
-    created_at: new Date(Date.now() - 3600000 * 1).toISOString()
-  },
-  {
-    id: 'sol-003',
-    codigo: 'SOL-2026-003',
-    tipo: 'RENDICION_GASTO',
-    solicitante_dni: '78901234',
-    solicitante_nombre: 'Javier Alonso Morales Silva',
-    monto: 85.00,
-    moneda: 'PEN',
-    motivo: 'Compra de 2 millares de papel bond A4 y 10 archivadores palanca para auditoría',
-    categoria: 'MATERIALES_OFICINA',
-    comprobante_tipo: 'BOLETA',
-    comprobante_numero: 'B002-0012894',
-    comprobante_ruc_emisor: '20100458921',
-    comprobante_razon_social: 'LIBRERIA CONTINENTAL S.A.C.',
-    comprobante_fecha: '2026-10-03',
-    comprobante_archivo_url: '',
-    estado: 'APROBADO',
-    aprobado_por_dni: '45678901',
-    aprobado_por_nombre: 'Ana María Torres Delgado',
-    aprobado_fecha: new Date(Date.now() - 86400000).toISOString(),
-    observaciones_aprobador: 'Conforme con comprobante físico verificado.',
-    created_at: new Date(Date.now() - 86400000 * 2).toISOString()
-  }
-];
+export const DEFAULT_SOLICITUDES = [];
 
 export const DEFAULT_CAJA_FONDO = {
   id: 'fondo-principal',
@@ -191,17 +132,7 @@ class DataStore {
     this.categorias = this.loadInitial('caja_categorias', DEFAULT_CATEGORIAS);
     this.solicitudes = this.loadInitial('caja_solicitudes', DEFAULT_SOLICITUDES);
     this.cajaFondo = this.loadInitial('caja_fondo', DEFAULT_CAJA_FONDO);
-    this.notificaciones = this.loadInitial('caja_notificaciones', [
-      {
-        id: 'notif-1',
-        titulo: 'Sistema Inicializado',
-        mensaje: 'Bienvenido al sistema PWA de Caja Chica en tiempo real.',
-        tipo: 'INFO',
-        created_at: new Date().toISOString(),
-        leido: false,
-        usuario_dni: 'TODOS'
-      }
-    ]);
+    this.notificaciones = this.loadInitial('caja_notificaciones', []);
 
     if (broadcast) {
       broadcast.onmessage = (event) => {
