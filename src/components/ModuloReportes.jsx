@@ -18,9 +18,11 @@ import {
   descargarSustentosSolicitud, 
   getSustentosDeSolicitud 
 } from '../lib/zipExporter';
+import { ModalLiquidacion } from './ModalLiquidacion';
 
 const OPCIONES_ESTADO = [
-  { value: 'RENDIDO', label: 'Rendido', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
+  { value: 'LIQUIDADO', label: 'Liquidado', color: '#166534', bg: '#dcfce7', border: '#86efac' },
+  { value: 'RENDIDO', label: 'Rendido (Por Liquidar)', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
   { value: 'POR_RENDIR', label: 'Por Rendir', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   { value: 'APROBADO', label: 'Aprobado', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
   { value: 'PENDIENTE', label: 'Pendiente', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
@@ -28,7 +30,7 @@ const OPCIONES_ESTADO = [
   { value: 'RECHAZADO', label: 'Rechazado', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' }
 ];
 
-export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [] }) {
+export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [], onLiquidarSolicitudes }) {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [estadosSeleccionados, setEstadosSeleccionados] = useState([]);
@@ -39,6 +41,9 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
   const [isExporting, setIsExporting] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [successExport, setSuccessExport] = useState('');
+  const [isModalLiquidacionOpen, setIsModalLiquidacionOpen] = useState(false);
+
+  const rendidosPorLiquidarCount = solicitudes.filter(s => s.estado === 'RENDIDO').length;
 
   // Centros de costo disponibles únicos
   const centrosCostoDisponibles = Array.from(
@@ -156,7 +161,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
 
   const totalFiltrado = solicitudesFiltradas.reduce((acc, cur) => acc + getMontoReal(cur), 0);
   const totalAprobadoFiltrado = solicitudesFiltradas
-    .filter(s => ['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
+    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
     .reduce((acc, cur) => acc + getMontoReal(cur), 0);
 
   const handleExportZip = async () => {
@@ -197,16 +202,47 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
           </p>
         </div>
 
-        <button
-          onClick={handleExportZip}
-          disabled={isExporting || solicitudesFiltradas.length === 0}
-          className="btn btn-excel"
-          style={{ padding: '0.65rem 1.25rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
-          title="Descarga un ZIP con el Excel de datos filtrados y todos los comprobantes adjuntos"
-        >
-          {isExporting ? <Download size={16} className="animate-spin" /> : <Archive size={16} />}
-          <span>{isExporting ? 'Empaquetando ZIP...' : 'Descargar Excel + Sustentos (.zip)'}</span>
-        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem', flexWrap: 'wrap' }}>
+          <button
+            onClick={() => setIsModalLiquidacionOpen(true)}
+            className="btn btn-excel"
+            style={{ 
+              padding: '0.65rem 1.25rem', 
+              fontSize: '0.875rem', 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '0.5rem',
+              boxShadow: '0 4px 12px rgba(21, 128, 61, 0.25)'
+            }}
+            title="Abre la ventana para procesar el corte contable de gastos rendidos"
+          >
+            <Archive size={17} />
+            <span>Liquidación de Gastos Rendidos</span>
+            {rendidosPorLiquidarCount > 0 && (
+              <span style={{
+                background: '#ffffff',
+                color: '#15803d',
+                borderRadius: '999px',
+                padding: '0.1rem 0.5rem',
+                fontSize: '0.72rem',
+                fontWeight: '800'
+              }}>
+                {rendidosPorLiquidarCount} listos
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={handleExportZip}
+            disabled={isExporting || solicitudesFiltradas.length === 0}
+            className="btn btn-secondary"
+            style={{ padding: '0.65rem 1rem', fontSize: '0.825rem', display: 'flex', alignItems: 'center', gap: '0.45rem' }}
+            title="Descarga un ZIP con los datos filtrados en la tabla actual sin modificar estados"
+          >
+            {isExporting ? <Download size={14} className="animate-spin" /> : <FileDown size={14} />}
+            <span>Exportar Vista Actual</span>
+          </button>
+        </div>
       </div>
 
       {successExport && (
@@ -583,6 +619,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                   </td>
                   <td>
                     <span className={`badge ${
+                      s.estado === 'LIQUIDADO' ? 'badge-liquidado' :
                       s.estado === 'APROBADO' ? 'badge-aprobado' :
                       s.estado === 'RENDIDO' ? 'badge-aprobado' :
                       s.estado === 'POR_RENDIR' ? 'badge-pendiente' :
@@ -638,6 +675,22 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
           </table>
         </div>
       </div>
+
+      {/* Modal de Liquidación Contable de Gastos Rendidos */}
+      <ModalLiquidacion
+        isOpen={isModalLiquidacionOpen}
+        onClose={() => setIsModalLiquidacionOpen(false)}
+        solicitudes={solicitudes}
+        cajaFondo={cajaFondo}
+        currentUser={currentUser}
+        onLiquidar={async (data) => {
+          if (onLiquidarSolicitudes) {
+            await onLiquidarSolicitudes(data);
+          }
+          setSuccessExport(`Liquidación ${data.codigoLiquidacion} procesada exitosamente. Los gastos pasaron a LIQUIDADO.`);
+          setTimeout(() => setSuccessExport(''), 7000);
+        }}
+      />
 
     </div>
   );

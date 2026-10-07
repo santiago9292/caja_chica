@@ -807,6 +807,58 @@ class DataStore {
     return sol;
   }
 
+  async liquidarSolicitudesBatch({ solicitudIds, adminUser, codigoLiquidacion }) {
+    if (!solicitudIds || solicitudIds.length === 0) return { count: 0, solicitudes: [] };
+
+    const fechaLiq = new Date().toISOString();
+    const adminNombre = adminUser ? `${adminUser.nombres} ${adminUser.apellidos}` : 'Administrador';
+    const adminDni = adminUser?.dni || '';
+    const actualizadas = [];
+
+    for (const id of solicitudIds) {
+      const sol = this.solicitudes.find(s => s.id === id);
+      if (sol) {
+        sol.estado = 'LIQUIDADO';
+        sol.liquidado_fecha = fechaLiq;
+        sol.liquidado_por_dni = adminDni;
+        sol.liquidado_por_nombre = adminNombre;
+        sol.liquidacion_codigo = codigoLiquidacion || '';
+
+        const obsLiq = `[Liquidado ${codigoLiquidacion ? codigoLiquidacion + ' ' : ''}${new Date().toLocaleDateString('es-PE')} por ${adminNombre}]`;
+        sol.observaciones_aprobador = sol.observaciones_aprobador 
+          ? `${sol.observaciones_aprobador} | ${obsLiq}`
+          : obsLiq;
+
+        actualizadas.push(sol);
+
+        if (supabase) {
+          try {
+            await supabase.from('solicitudes').update({
+              estado: 'LIQUIDADO',
+              observaciones_aprobador: sol.observaciones_aprobador
+            }).eq('id', id);
+          } catch (e) {
+            console.warn('Error actualizando estado LIQUIDADO en Supabase:', e);
+          }
+        }
+      }
+    }
+
+    this.persist('caja_solicitudes', this.solicitudes);
+
+    this.addNotification({
+      titulo: `Liquidación Procesada: ${codigoLiquidacion || 'Caja Chica'}`,
+      mensaje: `${adminNombre} completó la liquidación de ${actualizadas.length} gastos rendidos de Caja Chica.`,
+      tipo: 'SUCCESS',
+      usuario_dni: adminDni
+    });
+
+    this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', liquidacionCodigo: codigoLiquidacion, count: actualizadas.length });
+    this.notifyListeners({ type: 'DATA_LOADED' });
+
+    return { count: actualizadas.length, solicitudes: actualizadas };
+  }
+
   // --- ASIGNACIÓN DE FONDOS (ADMIN) ---
   async updateFondoAsignado(nuevoMonto) {
     // Calculamos el monto gastado histórico o recalculamos en base a la diferencia

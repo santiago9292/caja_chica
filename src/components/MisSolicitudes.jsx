@@ -23,8 +23,10 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
     switch (estado) {
       case 'APROBADO':
         return <span className="badge badge-aprobado">Aprobado</span>;
+      case 'LIQUIDADO':
+        return <span className="badge badge-liquidado">Liquidado</span>;
       case 'RENDIDO':
-        return <span className="badge badge-aprobado">Rendido (Liquidado)</span>;
+        return <span className="badge badge-aprobado">Rendido</span>;
       case 'POR_RENDIR':
         return <span className="badge badge-pendiente">Por Rendir</span>;
       case 'PENDIENTE_REEMBOLSO':
@@ -39,7 +41,7 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
   };
 
   const totalMontoAprobado = misItems
-    .filter(s => ['APROBADO', 'RENDIDO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
+    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendiente = misItems

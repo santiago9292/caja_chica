@@ -33,9 +33,9 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
     return Number(sol.monto || 0);
   };
 
-  // Consideramos pagados los que están en estado PAGADO, POR_RENDIR o RENDIDO (para arqueo egresos)
+  // Consideramos pagados los que están en estado PAGADO, POR_RENDIR, RENDIDO o LIQUIDADO (para arqueo egresos)
   const totalPagado = solicitudes
-    .filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO')
+    .filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO' || s.estado === 'LIQUIDADO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendienteOAprobado = solicitudes
@@ -45,7 +45,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
 
   const categoriasMap = {};
-  solicitudes.filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO').forEach(s => {
+  solicitudes.filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO' || s.estado === 'LIQUIDADO').forEach(s => {
     const cat = s.categoria.replace(/_/g, ' ');
     if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, count: 0 };
     categoriasMap[cat].total += Number(s.monto || 0);
@@ -55,13 +55,13 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR');
   const solicitudesPendientes = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO');
   const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'RECHAZADO');
-  const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'PAGADO'].includes(s.estado));
+  const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado));
 
   const solicitudesFiltradasBandeja = solicitudes.filter(s => {
     if (filtroBandeja === 'APROBADO') return s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR';
     if (filtroBandeja === 'PENDIENTE') return s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO';
     if (filtroBandeja === 'RECHAZADO') return s.estado === 'RECHAZADO';
-    if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'PAGADO'].includes(s.estado);
+    if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado);
     return true; // TODOS
   });
 
@@ -480,9 +480,14 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             <History size={13} /> Dinero Entregado
                           </span>
                         )}
+                        {sol.estado === 'LIQUIDADO' && (
+                          <span className="badge badge-liquidado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <CheckCircle2 size={13} /> Liquidado Contable
+                          </span>
+                        )}
                         {sol.estado === 'RENDIDO' && (
                           <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <CheckCircle2 size={13} /> Rendido (Liquidado)
+                            <CheckCircle2 size={13} /> Rendido (Por Liquidar)
                           </span>
                         )}
                         {sol.estado === 'PAGADO' && (

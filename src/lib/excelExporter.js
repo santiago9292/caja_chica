@@ -13,7 +13,7 @@ export function getMontoLiquidado(item) {
   return Number(item.monto || 0);
 }
 
-export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador) {
+export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador, customFileName = null) {
   const wb = XLSX.utils.book_new();
 
   // 1. Hoja Principal de Movimientos
@@ -99,7 +99,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
       }
       catTotales[cat]['Total S/'] += m;
       catTotales[cat]['Total Comprobantes'] += 1;
-      if (['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)) {
+      if (['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)) {
         catTotales[cat]['Aprobados S/'] += m;
       }
     });
@@ -123,7 +123,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
         };
       }
       solTotales[dni]['Total Solicitado S/'] += m;
-      if (['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)) {
+      if (['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)) {
         solTotales[dni]['Total Aprobado S/'] += m;
       }
       solTotales[dni]['Registros'] += 1;
@@ -134,7 +134,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
 
     // 4. Hoja de Arqueo y Control General
     const totalSolicitado = solicitudes.reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
-    const totalAprobado = solicitudes.filter(s => ['APROBADO', 'RENDIDO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)).reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
+    const totalAprobado = solicitudes.filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado)).reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
     const totalPendiente = solicitudes.filter(s => ['PENDIENTE', 'PENDIENTE_REEMBOLSO'].includes(s.estado)).reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
 
     const controlData = [
@@ -159,7 +159,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     XLSX.utils.book_append_sheet(wb, wsSol, 'Por Solicitante');
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const fileName = `Reporte_Caja_Chica_DICAR_LOGISTIC_${timestamp}.xlsx`;
+    const fileName = customFileName ? `${customFileName}.xlsx` : `Reporte_Caja_Chica_DICAR_LOGISTIC_${timestamp}.xlsx`;
 
     return { wb, fileName };
 }

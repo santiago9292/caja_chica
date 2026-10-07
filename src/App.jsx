@@ -327,6 +327,7 @@ export function App() {
                 solicitudes={solicitudes}
                 cajaFondo={cajaFondo}
                 categorias={categorias}
+                onLiquidarSolicitudes={async (data) => await store.liquidarSolicitudesBatch(data)}
               />
             )}
           </main>

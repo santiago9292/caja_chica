@@ -112,12 +112,13 @@ export async function descargarSustentosSolicitud(sol) {
  * 1. El Excel filtrado con los datos activos.
  * 2. Una carpeta 'sustentos/' con todas las imágenes de rendiciones adjuntas.
  */
-export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuarioGenerador) {
+export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuarioGenerador, customName = null) {
   const zip = new JSZip();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 
   // 1. Generar Excel y escribirlo en buffer
-  const { wb, fileName: excelName } = generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador);
+  const excelCustomName = customName ? `${customName}` : null;
+  const { wb, fileName: excelName } = generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador, excelCustomName);
   const excelBuffer = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
   zip.file(excelName, excelBuffer);
 
@@ -143,7 +144,7 @@ export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuario
     compressionOptions: { level: 6 }
   });
 
-  const zipFileName = `Liquidacion_Caja_Chica_DICAR_LOGISTIC_${timestamp}.zip`;
+  const zipFileName = customName ? `${customName}.zip` : `Liquidacion_Caja_Chica_DICAR_LOGISTIC_${timestamp}.zip`;
   downloadBlob(zipBlob, zipFileName);
 
   return {
