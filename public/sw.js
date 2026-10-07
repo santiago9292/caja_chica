@@ -1,9 +1,17 @@
-// Service Worker para PWA Caja Chica
-const CACHE_NAME = 'caja-chica-v4';
+// Importar OneSignal Web SDK en el Service Worker raíz para compatibilidad y evitar error [WM]
+try {
+  importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
+} catch (e) {
+  // Ignorar si se ejecuta offline o sin OneSignal
+}
+
+// Service Worker para PWA Caja Chica DICAR LOGISTIC
+const CACHE_NAME = 'caja-chica-v5';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
   '/manifest.json',
+  '/logo-dicar.png',
   '/icon-192.svg',
   '/icon-512.svg'
 ];
@@ -40,29 +48,22 @@ self.addEventListener('message', (event) => {
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   const url = new URL(event.request.url);
-  if (url.pathname.startsWith('/api') || url.hostname.includes('supabase.co')) {
+
+  // No interceptar peticiones a Supabase, OneSignal ni APIs dinámicas
+  if (
+    url.pathname.startsWith('/api') || 
+    url.hostname.includes('supabase.co') ||
+    url.hostname.includes('onesignal.com')
+  ) {
     return;
   }
 
-  // Estrategia Network First para HTML (navegación), asegura obtener el JS/CSS más reciente de Vercel
-  if (event.request.mode === 'navigate') {
-    event.respondWith(
-      fetch(event.request).then((networkResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, networkResponse.clone());
-          return networkResponse;
-        });
-      }).catch(() => {
-        return caches.match('/index.html');
-      })
-    );
-    return;
-  }
-
-  // Cache First para el resto de recursos estáticos (imágenes, CSS, JS)
+  // Estrategia Network First para TODOS los recursos (HTML, JS, CSS, assets)
+  // Esto garantiza que los usuarios SIEMPRE reciban la última versión desplegada en Vercel
+  // y solo se recurra a la caché si la red falla o están desconectados.
   event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      return cachedResponse || fetch(event.request).then((networkResponse) => {
+    fetch(event.request)
+      .then((networkResponse) => {
         if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const responseToCache = networkResponse.clone();
           caches.open(CACHE_NAME).then((cache) => {
@@ -70,29 +71,40 @@ self.addEventListener('fetch', (event) => {
           });
         }
         return networkResponse;
-      }).catch(() => {
-        // Fallback ignorado para no-HTML
-      });
-    })
+      })
+      .catch(() => {
+        return caches.match(event.request).then((cachedResponse) => {
+          if (cachedResponse) return cachedResponse;
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+        });
+      })
   );
 });
 
-// Listener para notificaciones push en tiempo real
+// Listener para notificaciones push en segundo plano
 self.addEventListener('push', (event) => {
   if (event.data) {
-    const data = event.data.json();
-    const options = {
-      body: data.mensaje || 'Nueva actividad en Caja Chica',
-      icon: '/icon-192.svg',
-      badge: '/icon-192.svg',
-      vibrate: [100, 50, 100],
-      data: {
-        url: data.url || '/'
-      }
-    };
-    event.waitUntil(
-      self.registration.showNotification(data.titulo || 'Caja Chica Notificación', options)
-    );
+    try {
+      const data = event.data.json();
+      const options = {
+        body: data.mensaje || data.body || 'Nueva actividad en Caja Chica DICAR',
+        icon: '/logo-dicar.png',
+        badge: '/icon-192.svg',
+        vibrate: [150, 50, 150],
+        tag: 'caja-chica-push-' + Date.now(),
+        renotify: true,
+        data: {
+          url: data.url || '/'
+        }
+      };
+      event.waitUntil(
+        self.registration.showNotification(data.titulo || data.title || 'Caja Chica DICAR LOGISTIC', options)
+      );
+    } catch (e) {
+      console.warn('Error parseando push data:', e);
+    }
   }
 });
 

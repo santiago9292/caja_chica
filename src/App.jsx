@@ -49,6 +49,8 @@ export function App() {
         await OneSignal.init({
           appId: "c50fba12-7b4e-45e9-8bc5-63d9639a2b53",
           allowLocalhostAsSecureOrigin: true,
+          serviceWorkerPath: "sw.js",
+          serviceWorkerParam: { scope: "/" },
           notifyButton: {
             enable: true,
           },
