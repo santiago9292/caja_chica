@@ -117,13 +117,15 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     const totalPendiente = solicitudes.filter(s => s.estado === 'PENDIENTE').reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
     const controlData = [
+      { 'Parámetro': 'Empresa', 'Valor (S/)': 'DICAR LOGISTIC' },
+      { 'Parámetro': 'Sistema', 'Valor (S/)': 'CAJA CHICA DICAR LOGISTIC' },
       { 'Parámetro': 'Fondo Total Asignado', 'Valor (S/)': Number(cajaFondo?.monto_total || 5000).toFixed(2) },
       { 'Parámetro': 'Fondo Disponible Actual', 'Valor (S/)': Number(cajaFondo?.monto_disponible || 0).toFixed(2) },
       { 'Parámetro': 'Total Gastos Aprobados', 'Valor (S/)': totalAprobado.toFixed(2) },
       { 'Parámetro': 'Total Solicitudes en Evaluación (Pendientes)', 'Valor (S/)': totalPendiente.toFixed(2) },
       { 'Parámetro': 'Total Bruto Solicitado', 'Valor (S/)': totalSolicitado.toFixed(2) },
       { 'Parámetro': 'Fecha de Emisión del Reporte', 'Valor (S/)': new Date().toLocaleString('es-PE') },
-      { 'Parámetro': 'Generado Por', 'Valor (S/)': usuarioGenerador ? `${usuarioGenerador.nombres} ${usuarioGenerador.apellidos} (${usuarioGenerador.dni})` : 'Sistema PWA' }
+      { 'Parámetro': 'Generado Por', 'Valor (S/)': usuarioGenerador ? `${usuarioGenerador.nombres} ${usuarioGenerador.apellidos} (${usuarioGenerador.dni})` : 'Sistema en tiempo real' }
     ];
 
     const wsControl = XLSX.utils.json_to_sheet(controlData);
@@ -136,7 +138,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     XLSX.utils.book_append_sheet(wb, wsSol, 'Por Solicitante');
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const fileName = `Reporte_Caja_Chica_${timestamp}.xlsx`;
+    const fileName = `Reporte_Caja_Chica_DICAR_LOGISTIC_${timestamp}.xlsx`;
 
     return { wb, fileName };
 }

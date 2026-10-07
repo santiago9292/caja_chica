@@ -112,7 +112,7 @@ export const DEFAULT_SOLICITUDES = [];
 
 export const DEFAULT_CAJA_FONDO = {
   id: 'fondo-principal',
-  nombre: 'Caja Chica Sede Central 2026',
+  nombre: 'CAJA CHICA DICAR LOGISTIC',
   monto_total: 5000.00,
   monto_disponible: 4539.50,
   estado: 'ABIERTA',

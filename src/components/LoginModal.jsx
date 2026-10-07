@@ -53,35 +53,40 @@ export function LoginModal({ onLogin, usuarios }) {
         
         {/* Logo / Cabecera */}
         <div style={{
-          width: '64px',
-          height: '64px',
-          borderRadius: '18px',
-          background: 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)',
-          display: 'inline-flex',
-          alignItems: 'center',
+          display: 'flex',
           justifyContent: 'center',
-          marginBottom: '1.25rem',
-          boxShadow: '0 10px 20px -5px rgba(37, 99, 235, 0.4)'
+          alignItems: 'center',
+          marginBottom: '1.25rem'
         }}>
-          <Building2 size={32} color="#ffffff" />
+          <img 
+            src="/logo-dicar.png" 
+            alt="DICAR LOGISTIC" 
+            style={{ 
+              maxHeight: '80px', 
+              maxWidth: '260px', 
+              width: 'auto',
+              objectFit: 'contain'
+            }} 
+          />
         </div>
 
         <h1 style={{
-          fontSize: '1.65rem',
+          fontSize: '1.45rem',
           color: '#0f172a',
-          margin: '0 0 0.4rem 0',
+          margin: '0 0 0.35rem 0',
           fontWeight: '800',
-          fontFamily: "'Outfit', sans-serif"
+          fontFamily: "'Outfit', sans-serif",
+          letterSpacing: '-0.01em'
         }}>
-          Caja Chica Corporativa
+          CAJA CHICA DICAR LOGISTIC
         </h1>
 
         <p style={{
           color: '#64748b',
-          fontSize: '0.9rem',
-          margin: '0 0 2rem 0'
+          fontSize: '0.88rem',
+          margin: '0 0 1.75rem 0'
         }}>
-          Ingresa tu número de DNI para acceder al sistema
+          Control y rendición de gastos en tiempo real
         </p>
 
         {/* Formulario */}

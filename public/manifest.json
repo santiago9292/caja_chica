@@ -1,13 +1,19 @@
 {
-  "name": "Caja Chica Empresarial",
-  "short_name": "CajaChica",
-  "description": "Sistema PWA en tiempo real para gestión, aprobación y rendición de Caja Chica corporativa.",
+  "name": "CAJA CHICA DICAR LOGISTIC",
+  "short_name": "CAJA CHICA DICAR",
+  "description": "Sistema en tiempo real para gestión, aprobación y rendición de CAJA CHICA DICAR LOGISTIC.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#0f172a",
   "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "/logo-dicar.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
     {
       "src": "/icon-192.svg",
       "sizes": "192x192",

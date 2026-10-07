@@ -143,7 +143,7 @@ export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuario
     compressionOptions: { level: 6 }
   });
 
-  const zipFileName = `Liquidacion_Caja_Chica_${timestamp}.zip`;
+  const zipFileName = `Liquidacion_Caja_Chica_DICAR_LOGISTIC_${timestamp}.zip`;
   downloadBlob(zipBlob, zipFileName);
 
   return {

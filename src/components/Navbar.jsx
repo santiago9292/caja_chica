@@ -70,18 +70,39 @@ export function Navbar({
     <>
       <header className="header-bar">
         {/* Marca a la izquierda */}
-        <div className="brand-section" style={{ minWidth: 0, flexShrink: 1 }}>
-          <div className="brand-logo" style={{ flexShrink: 0 }}>
-            <Building2 size={18} color="#ffffff" />
-          </div>
+        <div className="brand-section" style={{ minWidth: 0, flexShrink: 1, display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+          <img 
+            src="/logo-dicar.png" 
+            alt="DICAR LOGISTIC" 
+            style={{ 
+              height: '34px', 
+              width: 'auto', 
+              objectFit: 'contain',
+              flexShrink: 0
+            }} 
+          />
           <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
-            <div className="brand-title" style={{ flexWrap: 'nowrap', gap: '0.3rem', overflow: 'hidden' }}>
-              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>CajaChica</span>
-              <span style={{ color: '#2563eb', fontSize: '0.7rem', fontWeight: '700', flexShrink: 0 }}>CORP</span>
-              <span className="pulse-indicator" title="Tiempo Real Activo" style={{ flexShrink: 0 }} />
+            <div className="brand-title" style={{ flexWrap: 'nowrap', gap: '0.35rem', overflow: 'hidden', alignItems: 'center' }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: '800', letterSpacing: '-0.01em' }}>
+                CAJA CHICA
+              </span>
+              <span style={{ 
+                color: '#1d4ed8', 
+                fontSize: '0.72rem', 
+                fontWeight: '800', 
+                letterSpacing: '0.04em',
+                background: '#eff6ff',
+                padding: '1px 6px',
+                borderRadius: '4px',
+                border: '1px solid #dbeafe',
+                flexShrink: 0 
+              }}>
+                DICAR LOGISTIC
+              </span>
+              <span className="pulse-indicator" title="En tiempo real" style={{ flexShrink: 0 }} />
             </div>
-            <div className="brand-subtitle desktop-only" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              <span>{isSupabaseConfigured ? 'Supabase Realtime' : 'Modo Sincronizado'}</span>
+            <div className="brand-subtitle desktop-only" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              <span>En tiempo real</span>
             </div>
           </div>
         </div>
@@ -94,7 +115,7 @@ export function Navbar({
               className="btn btn-secondary desktop-only" 
               onClick={handleInstallClick} 
               style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
-              title="Instalar App PWA"
+              title="Instalar Aplicación"
             >
               <Download size={14} color="#0f172a" />
               <span>Instalar</span>

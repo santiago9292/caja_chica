@@ -34,7 +34,7 @@ export function SupabaseConfigModal({ isOpen, onClose }) {
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <Database size={20} color="#0f172a" />
             <h3 style={{ fontSize: '1.2rem', color: '#0f172a' }}>
-              Estado del Sistema & PWA
+              Estado del Sistema en tiempo real
             </h3>
           </div>
           <button onClick={onClose} className="btn btn-ghost btn-icon">
@@ -66,7 +66,7 @@ export function SupabaseConfigModal({ isOpen, onClose }) {
           </div>
           <div>
             <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.85rem' }}>
-              {isSupabaseConfigured ? 'Conectado a Supabase Realtime' : 'Modo Reactivo Local / PWA'}
+              {isSupabaseConfigured ? 'Conectado a Supabase Realtime' : 'Modo sincronizado en tiempo real'}
             </div>
             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
               {isSupabaseConfigured 
