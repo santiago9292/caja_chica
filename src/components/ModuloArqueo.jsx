@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Wallet, TrendingDown, Clock, CheckCircle2, Layers, DollarSign, Edit3, Check, Eye } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 
-export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo }) {
+export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo }) {
   const montoTotal = Number(cajaFondo?.monto_total || 5000);
   const montoDisponible = Number(cajaFondo?.monto_disponible || 0);
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN');
@@ -10,6 +10,8 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   
   const [isEditingFondo, setIsEditingFondo] = useState(false);
   const [nuevoFondo, setNuevoFondo] = useState(montoTotal);
+  const [isReponiendo, setIsReponiendo] = useState(false);
+  const [montoReponer, setMontoReponer] = useState(0);
   const [processingId, setProcessingId] = useState(null);
 
   // Consideramos pagados los que están en estado PAGADO, POR_RENDIR o RENDIDO (para arqueo egresos)
@@ -38,6 +40,17 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
     await onAsignarFondo(nuevoFondo);
     setIsEditingFondo(false);
     playNotificationSound('success');
+  };
+
+  const handleGuardarRepocision = async () => {
+    try {
+      if (montoReponer <= 0) return alert('El monto a reponer debe ser mayor a 0');
+      await onReponerFondo(montoReponer);
+      setIsReponiendo(false);
+      playNotificationSound('success');
+    } catch (e) {
+      alert('Error reponiendo fondo');
+    }
   };
 
   const handleAbonar = async (sol) => {
@@ -82,16 +95,40 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                   />
                 </div>
                 <button className="btn btn-success" onClick={handleGuardarFondo} style={{ padding: '0.5rem 1rem' }}>
-                  Guardar
+                  Guardar Tope
                 </button>
                 <button className="btn btn-ghost" onClick={() => { setIsEditingFondo(false); setNuevoFondo(montoTotal); }}>
                   Cancelar
                 </button>
               </div>
+            ) : isReponiendo ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Monto a Reponer:</span>
+                <div className="input-group" style={{ margin: 0, width: '130px' }}>
+                  <span className="input-group-text">S/</span>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={montoReponer}
+                    onChange={(e) => setMontoReponer(e.target.value)}
+                  />
+                </div>
+                <button className="btn btn-primary" onClick={handleGuardarRepocision} style={{ padding: '0.5rem 1rem' }}>
+                  Confirmar Reposición
+                </button>
+                <button className="btn btn-ghost" onClick={() => setIsReponiendo(false)}>
+                  Cancelar
+                </button>
+              </div>
             ) : (
-              <button className="btn btn-secondary" onClick={() => setIsEditingFondo(true)}>
-                <Edit3 size={16} /> Modificar Tope de Caja
-              </button>
+              <div style={{ display: 'flex', gap: '0.75rem' }}>
+                <button className="btn btn-primary" onClick={() => { setMontoReponer((montoTotal - montoDisponible).toFixed(2)); setIsReponiendo(true); }}>
+                  Reponer Saldo
+                </button>
+                <button className="btn btn-secondary" onClick={() => setIsEditingFondo(true)}>
+                  <Edit3 size={16} /> Modificar Tope de Caja
+                </button>
+              </div>
             )}
           </div>
         </div>

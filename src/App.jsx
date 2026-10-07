@@ -269,6 +269,7 @@ export function App() {
                 solicitudes={solicitudes}
                 onUpdateEstado={handleUpdateEstado}
                 onAsignarFondo={async (monto) => await store.updateFondoAsignado(monto)}
+                onReponerFondo={async (monto) => await store.reponerFondo(monto)}
               />
             )}
 

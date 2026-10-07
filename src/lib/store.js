@@ -597,6 +597,24 @@ class DataStore {
     return this.cajaFondo;
   }
 
+  async reponerFondo(montoRepuesto) {
+    this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + Number(montoRepuesto));
+    this.persist('caja_fondo', this.cajaFondo);
+    
+    if (supabase) {
+      try {
+        await supabase.from('caja_fondo').update({
+          monto_disponible: this.cajaFondo.monto_disponible
+        }).eq('id', this.cajaFondo.id);
+      } catch (e) {
+        console.warn('Error reponiendo fondo en Supabase:', e);
+      }
+    }
+
+    this.broadcastSync({ type: 'FONDO_UPDATED', fondo: this.cajaFondo });
+    return this.cajaFondo;
+  }
+
   // --- NOTIFICACIONES ---
   addNotification(notifData) {
     const notif = {
