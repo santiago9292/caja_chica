@@ -36,7 +36,15 @@ export function App() {
   const fireNativeNotification = (title, body) => {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
       try {
-        new Notification(title, { body, icon: '/icon-192.svg' });
+        if (navigator.serviceWorker) {
+          navigator.serviceWorker.ready.then((registration) => {
+            registration.showNotification(title, { body, icon: '/icon-192.svg' });
+          }).catch(() => {
+            new Notification(title, { body, icon: '/icon-192.svg' });
+          });
+        } else {
+          new Notification(title, { body, icon: '/icon-192.svg' });
+        }
       } catch (e) {
         console.warn('Error mostrando notificación nativa:', e);
       }
@@ -73,8 +81,11 @@ export function App() {
       else if (meta?.type === 'SOLICITUD_STATUS_CHANGED' && meta.solicitud) {
         if (currentUser.dni === meta.solicitud.solicitante_dni) {
           const title = `Solicitud ${meta.estado}: ${meta.solicitud.codigo}`;
-          const msg = `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
-          showToast({ title, message: msg, type: meta.estado === 'APROBADO' ? 'success' : 'danger' });
+          const isPagado = meta.estado === 'PAGADO';
+          const msg = isPagado 
+            ? `Tu solicitud fue abonada por el cajero ${meta.solicitud.pagado_por_nombre}`
+            : `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
+          showToast({ title, message: msg, type: meta.estado === 'APROBADO' || isPagado ? 'success' : 'danger' });
           fireNativeNotification(title, msg);
         }
       }
