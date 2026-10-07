@@ -194,9 +194,11 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
               <div>
                 <span className={`badge ${
                   selectedItem.estado === 'APROBADO' ? 'badge-aprobado' :
+                  selectedItem.estado === 'RENDIDO' ? 'badge-aprobado' :
+                  selectedItem.estado === 'POR_RENDIR' ? 'badge-pendiente' :
                   selectedItem.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
                 }`}>
-                  {selectedItem.estado}
+                  {selectedItem.estado.replace('_', ' ')}
                 </span>
               </div>
             </div>
@@ -231,7 +233,7 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
 
             {selectedItem.comprobante_archivo_url && (
               <div style={{ marginBottom: '1rem' }}>
-                <label className="form-label">Comprobante Adjunto</label>
+                <label className="form-label">Comprobante Original</label>
                 <img 
                   src={selectedItem.comprobante_archivo_url} 
                   alt="Comprobante" 
@@ -239,6 +241,42 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                 />
               </div>
             )}
+
+            {(() => {
+              let rends = [];
+              try {
+                if (selectedItem.rendiciones) {
+                  rends = typeof selectedItem.rendiciones === 'string' ? JSON.parse(selectedItem.rendiciones) : selectedItem.rendiciones;
+                }
+              } catch (e) {
+                console.error("Error parseando rendiciones", e);
+              }
+
+              if (rends.length > 0) {
+                return (
+                  <div style={{ marginBottom: '1rem' }}>
+                    <label className="form-label">Comprobantes Rendidos ({rends.length})</label>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+                      {rends.map((r, i) => (
+                        <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '0.65rem', background: '#f8fafc' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{r.tipo} {r.numero}</div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#0f172a' }}>S/ {Number(r.monto).toFixed(2)}</div>
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                            {r.razonSocial} | RUC: {r.ruc} | {r.fecha}
+                          </div>
+                          {r.archivo && (
+                            <img src={r.archivo} alt={`Rendicion ${i}`} style={{ width: '100%', maxHeight: '140px', objectFit: 'contain', border: '1px solid #cbd5e1', borderRadius: 'var(--radius-sm)' }} />
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              }
+              return null;
+            })()}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.85rem' }}>
               <button onClick={() => setSelectedItem(null)} className="btn btn-secondary">

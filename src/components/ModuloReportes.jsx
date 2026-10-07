@@ -215,8 +215,30 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
                   <td>{new Date(s.created_at).toLocaleDateString('es-PE')}</td>
                   <td>{s.solicitante_nombre}</td>
                   <td>{s.categoria.replace(/_/g, ' ')}</td>
-                  <td>{s.comprobante_tipo ? `${s.comprobante_tipo} ${s.comprobante_numero || ''}` : '-'}</td>
-                  <td>{s.comprobante_ruc_emisor || '-'}</td>
+                  <td>
+                    {(() => {
+                      let compText = s.comprobante_tipo ? `${s.comprobante_tipo} ${s.comprobante_numero || ''}` : '-';
+                      if (s.rendiciones) {
+                        try {
+                          let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
+                          if (r.length > 0) compText = r.length === 1 ? `${r[0].tipo} ${r[0].numero}` : `${r.length} Comprobantes`;
+                        } catch(e) {}
+                      }
+                      return compText;
+                    })()}
+                  </td>
+                  <td>
+                    {(() => {
+                      let rucText = s.comprobante_ruc_emisor || '-';
+                      if (s.rendiciones) {
+                        try {
+                          let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
+                          if (r.length > 0) rucText = r.length === 1 ? r[0].ruc : 'Varios';
+                        } catch(e) {}
+                      }
+                      return rucText;
+                    })()}
+                  </td>
                   <td style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {s.motivo}
                   </td>
@@ -226,9 +248,11 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
                   <td>
                     <span className={`badge ${
                       s.estado === 'APROBADO' ? 'badge-aprobado' :
+                      s.estado === 'RENDIDO' ? 'badge-aprobado' :
+                      s.estado === 'POR_RENDIR' ? 'badge-pendiente' :
                       s.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
                     }`}>
-                      {s.estado}
+                      {s.estado.replace('_', ' ')}
                     </span>
                   </td>
                 </tr>

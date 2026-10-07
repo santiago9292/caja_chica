@@ -196,7 +196,12 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
           <button onClick={onClose} className="btn btn-secondary" disabled={submitting}>
             Cancelar
           </button>
-          <button onClick={handleGuardar} className="btn btn-primary" disabled={submitting || comprobantes.length === 0}>
+          <button 
+            onClick={handleGuardar} 
+            className="btn btn-primary" 
+            disabled={submitting || comprobantes.length === 0 || totalRendido < Number(solicitud.monto)}
+            title={totalRendido < Number(solicitud.monto) ? "Debe rendir por lo menos el total del adelanto entregado." : ""}
+          >
             {submitting ? 'Guardando...' : 'Finalizar Rendición'}
           </button>
         </div>
