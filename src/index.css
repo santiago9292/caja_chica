@@ -626,3 +626,19 @@ h1, h2, h3, h4, .font-heading {
   gap: 0.65rem;
   color: #0f172a;
 }
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+.update-toast {
+  position: relative;
+  overflow: hidden;
+  border-left: 4px solid #2563eb !important;
+}
+

@@ -1,5 +1,5 @@
 // Service Worker para PWA Caja Chica
-const CACHE_NAME = 'caja-chica-v2';
+const CACHE_NAME = 'caja-chica-v3';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -28,6 +28,13 @@ self.addEventListener('activate', (event) => {
       );
     }).then(() => self.clients.claim())
   );
+});
+
+// Listener para forzar activación inmediata cuando el usuario hace clic en actualizar
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
 });
 
 self.addEventListener('fetch', (event) => {
