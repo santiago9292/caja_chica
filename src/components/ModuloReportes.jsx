@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   FileSpreadsheet, 
   Download, 
@@ -7,7 +7,10 @@ import {
   CheckCircle2, 
   Layers,
   FileDown,
-  Archive
+  Archive,
+  ChevronDown,
+  Check,
+  RotateCcw
 } from 'lucide-react';
 import { exportarCajaChicaExcel } from '../lib/excelExporter';
 import { 
@@ -16,22 +19,89 @@ import {
   getSustentosDeSolicitud 
 } from '../lib/zipExporter';
 
+const OPCIONES_ESTADO = [
+  { value: 'RENDIDO', label: 'Rendido', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
+  { value: 'POR_RENDIR', label: 'Por Rendir', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+  { value: 'APROBADO', label: 'Aprobado', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
+  { value: 'PENDIENTE', label: 'Pendiente', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+  { value: 'POR_REEMBOLSAR', label: 'Por Reembolsar', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+  { value: 'RECHAZADO', label: 'Rechazado', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' }
+];
+
 export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [] }) {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
-  const [filtroEstado, setFiltroEstado] = useState('TODOS');
+  const [estadosSeleccionados, setEstadosSeleccionados] = useState([]);
   const [filtroCategoria, setFiltroCategoria] = useState('TODAS');
+  const [dropdownEstadoOpen, setDropdownEstadoOpen] = useState(false);
+  const dropdownEstadoRef = useRef(null);
   const [isExporting, setIsExporting] = useState(false);
   const [downloadingId, setDownloadingId] = useState(null);
   const [successExport, setSuccessExport] = useState('');
 
-  const solicitudesFiltradas = solicitudes.filter(s => {
-    if (filtroEstado !== 'TODOS') {
-      if (filtroEstado === 'POR_RENDIR') {
-        if (s.estado !== 'POR_RENDIR' && s.estado !== 'PAGADO') return false;
-      } else if (s.estado !== filtroEstado) {
-        return false;
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (dropdownEstadoRef.current && !dropdownEstadoRef.current.contains(e.target)) {
+        setDropdownEstadoOpen(false);
       }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  const toggleEstado = (val) => {
+    setEstadosSeleccionados(prev => {
+      if (prev.includes(val)) {
+        return prev.filter(v => v !== val);
+      } else {
+        return [...prev, val];
+      }
+    });
+  };
+
+  const seleccionarTodos = () => {
+    setEstadosSeleccionados(OPCIONES_ESTADO.map(o => o.value));
+  };
+
+  const limpiarSeleccion = () => {
+    setEstadosSeleccionados([]);
+  };
+
+  const contarPorEstado = (estadoVal) => {
+    return solicitudes.filter(s => {
+      if (estadoVal === 'POR_RENDIR') {
+        return s.estado === 'POR_RENDIR' || s.estado === 'PAGADO';
+      }
+      return s.estado === estadoVal;
+    }).length;
+  };
+
+  const getLabelEstadoButton = () => {
+    if (estadosSeleccionados.length === 0 || estadosSeleccionados.length === OPCIONES_ESTADO.length) {
+      return 'Todos';
+    }
+    if (estadosSeleccionados.length === 1) {
+      const op = OPCIONES_ESTADO.find(o => o.value === estadosSeleccionados[0]);
+      return op ? op.label : estadosSeleccionados[0];
+    }
+    if (estadosSeleccionados.length === 2) {
+      return estadosSeleccionados
+        .map(val => OPCIONES_ESTADO.find(o => o.value === val)?.label || val)
+        .join(', ');
+    }
+    return `${estadosSeleccionados.length} seleccionados`;
+  };
+
+  const solicitudesFiltradas = solicitudes.filter(s => {
+    if (estadosSeleccionados.length > 0 && estadosSeleccionados.length < OPCIONES_ESTADO.length) {
+      const match = estadosSeleccionados.some(est => {
+        if (est === 'POR_RENDIR') {
+          return s.estado === 'POR_RENDIR' || s.estado === 'PAGADO';
+        }
+        return s.estado === est;
+      });
+      if (!match) return false;
     }
     if (filtroCategoria !== 'TODAS' && s.categoria !== filtroCategoria) return false;
 
@@ -162,21 +232,188 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
             />
           </div>
 
-          <div className="form-group" style={{ marginBottom: 0 }}>
-            <label className="form-label">Estado</label>
-            <select
+          <div className="form-group" style={{ marginBottom: 0, position: 'relative' }} ref={dropdownEstadoRef}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <label className="form-label">Estado</label>
+              {estadosSeleccionados.length > 0 && estadosSeleccionados.length < OPCIONES_ESTADO.length && (
+                <button
+                  type="button"
+                  onClick={limpiarSeleccion}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#2563eb',
+                    fontSize: '0.72rem',
+                    cursor: 'pointer',
+                    padding: '0 2px',
+                    fontWeight: '600'
+                  }}
+                  title="Mostrar todos los estados"
+                >
+                  Restablecer
+                </button>
+              )}
+            </div>
+
+            {/* Botón Disparador del Desplegable */}
+            <button
+              type="button"
               className="form-select"
-              value={filtroEstado}
-              onChange={(e) => setFiltroEstado(e.target.value)}
+              onClick={() => setDropdownEstadoOpen(!dropdownEstadoOpen)}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                cursor: 'pointer',
+                textAlign: 'left',
+                background: '#ffffff',
+                userSelect: 'none',
+                padding: '0.65rem 0.85rem'
+              }}
             >
-              <option value="TODOS">Todos</option>
-              <option value="RENDIDO">Rendido</option>
-              <option value="POR_RENDIR">Por Rendir</option>
-              <option value="APROBADO">Aprobado</option>
-              <option value="PENDIENTE">Pendiente</option>
-              <option value="POR_REEMBOLSAR">Por Reembolsar</option>
-              <option value="RECHAZADO">Rechazado</option>
-            </select>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.875rem' }}>
+                  {getLabelEstadoButton()}
+                </span>
+                {estadosSeleccionados.length > 0 && estadosSeleccionados.length < OPCIONES_ESTADO.length && (
+                  <span className="badge badge-admin" style={{ fontSize: '0.68rem', padding: '0.1rem 0.4rem' }}>
+                    {estadosSeleccionados.length}
+                  </span>
+                )}
+              </div>
+              <ChevronDown 
+                size={16} 
+                color="#64748b" 
+                style={{ 
+                  transform: dropdownEstadoOpen ? 'rotate(180deg)' : 'none', 
+                  transition: 'transform 0.2s', 
+                  flexShrink: 0 
+                }} 
+              />
+            </button>
+
+            {/* Menú Desplegable con Checkboxes */}
+            {dropdownEstadoOpen && (
+              <div
+                style={{
+                  position: 'absolute',
+                  top: 'calc(100% + 4px)',
+                  left: 0,
+                  minWidth: '240px',
+                  width: '100%',
+                  background: '#ffffff',
+                  border: '1px solid #cbd5e1',
+                  borderRadius: 'var(--radius-md)',
+                  boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                  zIndex: 100,
+                  padding: '0.5rem',
+                  animation: 'fadeIn 0.15s ease-out'
+                }}
+              >
+                {/* Acciones Rápidas */}
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  padding: '0.2rem 0.35rem 0.45rem 0.35rem',
+                  borderBottom: '1px solid #f1f5f9',
+                  marginBottom: '0.35rem'
+                }}>
+                  <button
+                    type="button"
+                    onClick={seleccionarTodos}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '0.73rem',
+                      color: '#2563eb',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    Marcar todos
+                  </button>
+                  <button
+                    type="button"
+                    onClick={limpiarSeleccion}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      fontSize: '0.73rem',
+                      color: '#64748b',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      padding: '2px 4px',
+                      borderRadius: '4px'
+                    }}
+                  >
+                    Limpiar
+                  </button>
+                </div>
+
+                {/* Lista de Estados */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.15rem' }}>
+                  {OPCIONES_ESTADO.map(op => {
+                    const isChecked = estadosSeleccionados.includes(op.value);
+                    const count = contarPorEstado(op.value);
+                    return (
+                      <label
+                        key={op.value}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.45rem 0.55rem',
+                          borderRadius: 'var(--radius-sm)',
+                          cursor: 'pointer',
+                          background: isChecked ? '#f8fafc' : 'transparent',
+                          transition: 'background 0.15s',
+                          userSelect: 'none'
+                        }}
+                        onMouseEnter={(e) => e.currentTarget.style.background = isChecked ? '#f1f5f9' : '#f8fafc'}
+                        onMouseLeave={(e) => e.currentTarget.style.background = isChecked ? '#f8fafc' : 'transparent'}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={() => toggleEstado(op.value)}
+                            style={{
+                              width: '16px',
+                              height: '16px',
+                              cursor: 'pointer',
+                              accentColor: '#0f172a'
+                            }}
+                          />
+                          <span style={{
+                            fontSize: '0.84rem',
+                            fontWeight: isChecked ? '600' : '400',
+                            color: isChecked ? '#0f172a' : '#334155'
+                          }}>
+                            {op.label}
+                          </span>
+                        </div>
+
+                        <span style={{
+                          fontSize: '0.7rem',
+                          padding: '0.1rem 0.45rem',
+                          borderRadius: '999px',
+                          background: op.bg,
+                          color: op.color,
+                          border: `1px solid ${op.border}`,
+                          fontWeight: '700',
+                          lineHeight: 1.2
+                        }}>
+                          {count}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
           </div>
 
           <div className="form-group" style={{ marginBottom: 0 }}>
