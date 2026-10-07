@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 /**
  * Hook para detección de nueva versión en PWA mediante ciclo de vida
  * del Service Worker (updatefound) y reactivación de pestaña (visibilitychange).
+ * NUNCA recarga solo: únicamente recarga cuando el usuario presiona el botón.
  */
 export function usePwaUpdate() {
   const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -15,23 +16,26 @@ export function usePwaUpdate() {
       return;
     }
 
+    const checkWaitingWorker = (reg) => {
+      if (reg && reg.waiting && navigator.serviceWorker.controller) {
+        setWaitingWorker(reg.waiting);
+        setUpdateAvailable(true);
+      }
+    };
+
     const attachRegistration = (reg) => {
       if (!reg) return;
       registrationRef.current = reg;
 
-      // 1. Si ya hay un worker esperando en segundo plano (waiting)
-      if (reg.waiting && navigator.serviceWorker.controller) {
-        setWaitingWorker(reg.waiting);
-        setUpdateAvailable(true);
-      }
+      // 1. Si ya hay un worker esperando en segundo plano
+      checkWaitingWorker(reg);
 
-      // 2. Escuchar updatefound para detectar nueva versión en proceso de instalación
+      // 2. Escuchar updatefound para detectar nueva versión cuando se instala
       reg.addEventListener('updatefound', () => {
         const newWorker = reg.installing;
         if (!newWorker) return;
 
         newWorker.addEventListener('statechange', () => {
-          // Cuando se completa la instalación del nuevo worker y ya había una versión activa
           if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
             setWaitingWorker(newWorker);
             setUpdateAvailable(true);
@@ -40,90 +44,60 @@ export function usePwaUpdate() {
       });
     };
 
-    // Verificar si ya existe registro activo o registrar el Service Worker
-    navigator.serviceWorker.getRegistration().then((existingReg) => {
-      if (existingReg) {
-        attachRegistration(existingReg);
-      }
-    });
-
+    // Registrar o asociar el Service Worker
     navigator.serviceWorker.register('/sw.js').then((reg) => {
       attachRegistration(reg);
     }).catch((err) => {
       console.warn('Error registrando Service Worker:', err);
     });
 
-    // 3. Detectar cuando el usuario retoma la pestaña o aplicación (visibilitychange)
+    // 3. Al volver a la pestaña (visibilitychange), consultar a Vercel si hay nueva versión
     const handleVisibilityOrFocus = () => {
-      if (document.visibilityState === 'visible') {
-        if (registrationRef.current) {
-          registrationRef.current.update().catch((err) => {
-            console.debug('Error al verificar actualización de SW:', err);
-          });
-        } else {
-          navigator.serviceWorker.getRegistration().then((reg) => {
-            if (reg) {
-              registrationRef.current = reg;
-              reg.update().catch(() => {});
-            }
-          });
-        }
+      if (document.visibilityState === 'visible' && registrationRef.current) {
+        registrationRef.current.update().catch(() => {});
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityOrFocus);
     window.addEventListener('focus', handleVisibilityOrFocus);
 
-    // 4. Si el controller cambia después de activar el nuevo SW, recargar limpiamente
-    let refreshing = false;
-    const handleControllerChange = () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
-    };
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+    // IMPORTANTE: NO escuchar controllerchange para recargar automáticamente,
+    // para evitar bucles de recarga continua. La recarga solo se dispara
+    // explícitamente cuando el usuario pulsa en "Clic para actualizar".
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityOrFocus);
       window.removeEventListener('focus', handleVisibilityOrFocus);
-      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
     };
   }, []);
 
   /**
-   * Aplica la actualización: activa el nuevo Service Worker, limpia la caché
-   * de red (CacheStorage) sin tocar localStorage ni sessionStorage (no cierra sesión)
-   * y recarga la página para cargar la versión más reciente de Vercel.
+   * Solo recarga cuando el usuario hace clic en el botón de actualizar.
+   * Limpia CacheStorage (sin tocar sesión ni localStorage) y recarga la página.
    */
   const applyUpdate = useCallback(async () => {
+    if (isUpdating) return;
     setIsUpdating(true);
     try {
-      // 1. Indicar al nuevo Service Worker que tome el control inmediato
       if (waitingWorker) {
         waitingWorker.postMessage({ type: 'SKIP_WAITING' });
       }
 
-      // 2. Limpiar todos los cachés HTTP (CacheStorage)
+      // Limpiar caché de Service Worker (CacheStorage)
       if ('caches' in window) {
         const cacheKeys = await caches.keys();
         await Promise.all(cacheKeys.map((key) => caches.delete(key)));
       }
 
-      // 3. Forzar actualización en todos los registros
-      if (navigator.serviceWorker) {
-        const regs = await navigator.serviceWorker.getRegistrations();
-        for (const r of regs) {
-          await r.update().catch(() => {});
-        }
-      }
+      // Pequeña pausa para permitir que el nuevo SW active sus hooks
+      await new Promise((r) => setTimeout(r, 300));
     } catch (e) {
       console.warn('Error limpiando caché de SW:', e);
     } finally {
-      // 4. Recargar la página fresca
+      // Recargar una única vez de forma intencional por acción del usuario
       window.location.reload();
     }
-  }, [waitingWorker]);
+  }, [waitingWorker, isUpdating]);
 
   const dismissUpdate = useCallback(() => {
     setUpdateAvailable(false);

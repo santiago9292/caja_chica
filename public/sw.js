@@ -1,5 +1,5 @@
 // Service Worker para PWA Caja Chica
-const CACHE_NAME = 'caja-chica-v3';
+const CACHE_NAME = 'caja-chica-v4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -12,7 +12,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(ASSETS_TO_CACHE);
-    }).then(() => self.skipWaiting())
+    })
   );
 });
 
