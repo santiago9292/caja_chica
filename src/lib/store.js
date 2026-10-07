@@ -230,7 +230,7 @@ class DataStore {
         contents: { en: message, es: message },
         target_channel: 'push',
       };
-      
+
       if (targetDnis && targetDnis.length > 0) {
         body.include_aliases = { external_id: targetDnis };
       } else {
@@ -401,11 +401,11 @@ class DataStore {
     let updated;
     const cCosto = (catData.centro_costo || 'CC-GENERAL').trim().toUpperCase();
     if (existingIdx >= 0) {
-      updated = { 
-        ...this.categorias[existingIdx], 
-        ...catData, 
+      updated = {
+        ...this.categorias[existingIdx],
+        ...catData,
         centro_costo: cCosto,
-        updated_at: new Date().toISOString() 
+        updated_at: new Date().toISOString()
       };
       this.categorias[existingIdx] = updated;
     } else {
@@ -611,7 +611,7 @@ class DataStore {
       const monto = Number(sol.monto || 0);
       this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_disponible - monto);
       this.persist('caja_fondo', this.cajaFondo);
-      
+
       sol.pagado_por_dni = adminUser.dni;
       sol.pagado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
       sol.pagado_fecha = new Date().toISOString();
@@ -631,7 +631,7 @@ class DataStore {
     let statusText = nuevoEstado;
     let title = `Solicitud ${statusText}: ${sol.codigo}`;
     let msg = `Tu solicitud por S/ ${Number(sol.monto).toFixed(2)} fue ${statusText.toLowerCase()} por ${adminUser.nombres}. ${observaciones ? 'Obs: ' + observaciones : ''}`;
-    
+
     if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
       msg = `Tu solicitud ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)} ha sido ABONADA/PAGADA por caja (${adminUser.nombres}). El dinero ya ha sido entregado.`;
     }
@@ -694,7 +694,7 @@ class DataStore {
       try {
         const { error } = await supabase
           .from('solicitudes')
-          .update({ 
+          .update({
             rendiciones: comprobantesArray,
             estado: 'RENDIDO'
           })
@@ -737,7 +737,7 @@ class DataStore {
     this.cajaFondo.monto_total = Number(nuevoMonto);
     this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_total - gastado);
     this.persist('caja_fondo', this.cajaFondo);
-    
+
     if (supabase) {
       try {
         await supabase.from('caja_fondo').update({
@@ -756,7 +756,7 @@ class DataStore {
   async reponerFondo(montoRepuesto) {
     this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + Number(montoRepuesto));
     this.persist('caja_fondo', this.cajaFondo);
-    
+
     if (supabase) {
       try {
         await supabase.from('caja_fondo').update({

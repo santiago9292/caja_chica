@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Wallet, TrendingDown, Clock, CheckCircle2, Layers, DollarSign, Edit3, Check, Eye } from 'lucide-react';
+import { Wallet, TrendingDown, Clock, CheckCircle2, Layers, DollarSign, Edit3, Check, Eye, XCircle, AlertCircle, History } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 
 export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo }) {
@@ -13,6 +13,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [isReponiendo, setIsReponiendo] = useState(false);
   const [montoReponer, setMontoReponer] = useState(0);
   const [processingId, setProcessingId] = useState(null);
+  const [filtroBandeja, setFiltroBandeja] = useState('APROBADO'); // 'APROBADO' | 'PENDIENTE' | 'RECHAZADO' | 'HISTORIAL' | 'TODOS'
 
   // Consideramos pagados los que están en estado PAGADO, POR_RENDIR o RENDIDO (para arqueo egresos)
   const totalPagado = solicitudes
@@ -34,6 +35,17 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   });
 
   const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO');
+  const solicitudesPendientes = solicitudes.filter(s => s.estado === 'PENDIENTE');
+  const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'RECHAZADO');
+  const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'PAGADO'].includes(s.estado));
+
+  const solicitudesFiltradasBandeja = solicitudes.filter(s => {
+    if (filtroBandeja === 'APROBADO') return s.estado === 'APROBADO';
+    if (filtroBandeja === 'PENDIENTE') return s.estado === 'PENDIENTE';
+    if (filtroBandeja === 'RECHAZADO') return s.estado === 'RECHAZADO';
+    if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'PAGADO'].includes(s.estado);
+    return true; // TODOS
+  });
 
   const handleGuardarFondo = async () => {
     if (nuevoFondo < 0) return alert('El monto no puede ser negativo.');
@@ -221,20 +233,121 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
         </div>
       </div>
 
-      {/* Bandeja de Pagos (Solo para Cajero/Usuario) */}
-      {isCajero && (
+      {/* Bandeja de Entregas y Abonos (Para Cajero y Administrativos) */}
+      {(isCajero || isAdmin) && (
         <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem', border: '1px solid #10b981' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-            <DollarSign size={20} color="#10b981" />
-            <h3 style={{ fontSize: '1.1rem', color: '#0f172a' }}>Bandeja de Entregas y Abonos</h3>
-            <span className="badge badge-aprobado" style={{ marginLeft: 'auto' }}>
-              {solicitudesAprobadas.length} Por Abonar
-            </span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <DollarSign size={20} color="#10b981" />
+              <h3 style={{ fontSize: '1.1rem', color: '#0f172a', margin: 0 }}>Bandeja de Entregas y Abonos</h3>
+            </div>
+
+            {/* Pestañas de Filtro */}
+            <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className={`btn btn-sm ${filtroBandeja === 'APROBADO' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('APROBADO')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>Por Abonar</span>
+                <span style={{ 
+                  background: filtroBandeja === 'APROBADO' ? 'rgba(255,255,255,0.25)' : '#ecfdf5', 
+                  color: filtroBandeja === 'APROBADO' ? '#fff' : '#059669',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {solicitudesAprobadas.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-sm ${filtroBandeja === 'PENDIENTE' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('PENDIENTE')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>Pendientes</span>
+                <span style={{ 
+                  background: filtroBandeja === 'PENDIENTE' ? 'rgba(255,255,255,0.25)' : '#fffbeb', 
+                  color: filtroBandeja === 'PENDIENTE' ? '#fff' : '#d97706',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {solicitudesPendientes.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-sm ${filtroBandeja === 'RECHAZADO' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('RECHAZADO')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>Rechazados</span>
+                <span style={{ 
+                  background: filtroBandeja === 'RECHAZADO' ? 'rgba(255,255,255,0.25)' : '#fef2f2', 
+                  color: filtroBandeja === 'RECHAZADO' ? '#fff' : '#dc2626',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {solicitudesRechazadas.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-sm ${filtroBandeja === 'HISTORIAL' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('HISTORIAL')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>Historial Entregados</span>
+                <span style={{ 
+                  background: filtroBandeja === 'HISTORIAL' ? 'rgba(255,255,255,0.25)' : '#f1f5f9', 
+                  color: filtroBandeja === 'HISTORIAL' ? '#fff' : '#475569',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {solicitudesHistorial.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                className={`btn btn-sm ${filtroBandeja === 'TODOS' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('TODOS')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>Todos</span>
+                <span style={{ 
+                  background: filtroBandeja === 'TODOS' ? 'rgba(255,255,255,0.25)' : '#f1f5f9', 
+                  color: filtroBandeja === 'TODOS' ? '#fff' : '#475569',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {solicitudes.length}
+                </span>
+              </button>
+            </div>
           </div>
 
-          {solicitudesAprobadas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
-              No hay solicitudes aprobadas pendientes de pago.
+          {solicitudesFiltradasBandeja.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
+              {filtroBandeja === 'APROBADO' && 'No hay solicitudes aprobadas pendientes de pago o entrega de dinero.'}
+              {filtroBandeja === 'PENDIENTE' && 'No hay solicitudes pendientes de aprobación.'}
+              {filtroBandeja === 'RECHAZADO' && 'No hay solicitudes rechazadas.'}
+              {filtroBandeja === 'HISTORIAL' && 'No hay entregas registradas en el historial.'}
+              {filtroBandeja === 'TODOS' && 'No se encontraron solicitudes.'}
             </div>
           ) : (
             <div className="table-responsive">
@@ -244,28 +357,96 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                     <th>Código</th>
                     <th>Solicitante</th>
                     <th>Concepto</th>
-                    <th>Monto a Entregar</th>
+                    <th>Monto</th>
+                    <th>Estado</th>
                     <th style={{ textAlign: 'right' }}>Acción</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {solicitudesAprobadas.map(sol => (
+                  {solicitudesFiltradasBandeja.map(sol => (
                     <tr key={sol.id}>
                       <td style={{ fontWeight: '700', fontFamily: 'monospace' }}>{sol.codigo}</td>
                       <td>
                         <div style={{ fontWeight: '600' }}>{sol.solicitante_nombre}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>Aprobado por: {sol.aprobado_por_nombre}</div>
+                        {sol.aprobado_por_nombre ? (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>Aprobado por: {sol.aprobado_por_nombre}</div>
+                        ) : (
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>Fecha: {sol.fecha || new Date(sol.created_at).toLocaleDateString()}</div>
+                        )}
                       </td>
-                      <td style={{ fontSize: '0.85rem' }}>{sol.motivo}</td>
-                      <td style={{ fontWeight: '800', color: '#0f172a', fontSize: '1.1rem' }}>S/ {Number(sol.monto).toFixed(2)}</td>
+                      <td style={{ fontSize: '0.85rem' }}>
+                        <div>{sol.motivo}</div>
+                        {sol.categoria && (
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', background: '#f1f5f9', padding: '1px 6px', borderRadius: '4px' }}>
+                            {sol.categoria.replace(/_/g, ' ')}
+                          </span>
+                        )}
+                      </td>
+                      <td style={{ fontWeight: '800', color: '#0f172a', fontSize: '1.1rem', whiteSpace: 'nowrap' }}>
+                        S/ {Number(sol.monto).toFixed(2)}
+                      </td>
+                      <td>
+                        {sol.estado === 'APROBADO' && (
+                          <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <CheckCircle2 size={13} /> Listo para Abonar
+                          </span>
+                        )}
+                        {sol.estado === 'PENDIENTE' && (
+                          <span className="badge badge-pendiente" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Clock size={13} /> Pendiente de Aprobación
+                          </span>
+                        )}
+                        {sol.estado === 'RECHAZADO' && (
+                          <div>
+                            <span className="badge badge-rechazado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <XCircle size={13} /> Rechazado
+                            </span>
+                            {sol.observaciones_aprobador && (
+                              <div style={{ fontSize: '0.75rem', color: '#dc2626', marginTop: '0.25rem', maxWidth: '240px', wordBreak: 'break-word', background: '#fef2f2', padding: '3px 6px', borderRadius: '4px', border: '1px solid #fee2e2' }}>
+                                <strong>Motivo:</strong> {sol.observaciones_aprobador}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {sol.estado === 'POR_RENDIR' && (
+                          <span className="badge badge-aprobado" style={{ background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <History size={13} /> Dinero Entregado
+                          </span>
+                        )}
+                        {sol.estado === 'RENDIDO' && (
+                          <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <CheckCircle2 size={13} /> Rendido
+                          </span>
+                        )}
+                        {sol.estado === 'PAGADO' && (
+                          <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Check size={13} /> Pagado
+                          </span>
+                        )}
+                      </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button 
-                          className="btn btn-primary" 
-                          onClick={() => handleAbonar(sol)}
-                          disabled={processingId === sol.id}
-                        >
-                          <Check size={16} /> Entregar Dinero
-                        </button>
+                        {sol.estado === 'APROBADO' ? (
+                          <button 
+                            className="btn btn-primary" 
+                            onClick={() => handleAbonar(sol)}
+                            disabled={processingId === sol.id}
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            <Check size={16} /> Entregar Dinero
+                          </button>
+                        ) : sol.estado === 'PENDIENTE' ? (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
+                            Requiere visto bueno de Admin
+                          </span>
+                        ) : sol.estado === 'RECHAZADO' ? (
+                          <span style={{ fontSize: '0.75rem', color: '#dc2626', fontWeight: '500' }}>
+                            Denegado
+                          </span>
+                        ) : (
+                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            Completado
+                          </span>
+                        )}
                       </td>
                     </tr>
                   ))}

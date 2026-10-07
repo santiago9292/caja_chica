@@ -39,8 +39,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
     setSubmitting(true);
     try {
       const data = {
-        tipo: 'Adelanto',
-        operacion: 'Adelanto', // Asegurar compatibilidad
+        tipo: 'ADELANTO_DINERO',
         solicitante_dni: currentUser.dni,
         solicitante_nombre: `${currentUser.nombres} ${currentUser.apellidos}`,
         monto: montoNum,

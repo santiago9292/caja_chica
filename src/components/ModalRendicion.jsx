@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Upload, X, Receipt, CheckCircle, Plus } from 'lucide-react';
+import { Upload, X, Receipt, CheckCircle, Plus, Search, Loader2 } from 'lucide-react';
+import { consultarRuc } from '../lib/factilizaService';
 
 const TIPOS_COMPROBANTE = [
   { id: 'FACTURA', label: 'Factura Electrónica' },
@@ -22,6 +23,10 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
   const [razonSocial, setRazonSocial] = useState('');
   const [monto, setMonto] = useState('');
   const [archivo, setArchivo] = useState('');
+
+  // Estado de consulta RUC
+  const [isSearchingRuc, setIsSearchingRuc] = useState(false);
+  const [rucStatus, setRucStatus] = useState(null);
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
@@ -67,6 +72,33 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     reader.readAsDataURL(file);
   };
 
+  const ejecutarBusquedaRuc = async (rucQuery) => {
+    const clean = (rucQuery || '').toString().trim().replace(/\D/g, '');
+    if (clean.length !== 11) {
+      setRucStatus({ error: 'El RUC debe contener exactamente 11 dígitos' });
+      return;
+    }
+
+    setIsSearchingRuc(true);
+    setRucStatus(null);
+
+    const res = await consultarRuc(clean);
+    setIsSearchingRuc(false);
+
+    if (res.success && res.data) {
+      if (res.data.razonSocial) {
+        setRazonSocial(res.data.razonSocial.toUpperCase());
+      }
+      setRucStatus({
+        estado: res.data.estado,
+        condicion: res.data.condicion,
+        direccion: res.data.direccion
+      });
+    } else {
+      setRucStatus({ error: res.error || 'No se encontró información' });
+    }
+  };
+
   const agregarComprobante = () => {
     if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
       alert("Ingrese un monto válido para el comprobante.");
@@ -88,6 +120,7 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     setRazonSocial('');
     setMonto('');
     setArchivo('');
+    setRucStatus(null);
   };
 
   const quitarComprobante = (idx) => {
@@ -190,13 +223,83 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
             </div>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">RUC Proveedor</label>
-              <input type="text" maxLength={11} className="form-input" placeholder="11 dígitos" value={ruc} onChange={(e) => setRuc(e.target.value.replace(/\D/g, ''))} />
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>RUC Proveedor</label>
+                {isSearchingRuc && (
+                  <span style={{ fontSize: '0.7rem', color: '#2563eb', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    <Loader2 size={12} className="animate-spin" /> Buscando...
+                  </span>
+                )}
+              </div>
+              <div style={{ position: 'relative' }}>
+                <input 
+                  type="text" 
+                  maxLength={11} 
+                  className="form-input" 
+                  placeholder="11 dígitos" 
+                  value={ruc} 
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 11);
+                    setRuc(val);
+                    setRucStatus(null);
+                    if (val.length === 11) {
+                      ejecutarBusquedaRuc(val);
+                    }
+                  }} 
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      ejecutarBusquedaRuc(ruc);
+                    }
+                  }}
+                  style={{ paddingRight: '2.5rem', letterSpacing: '0.5px', fontWeight: '600' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => ejecutarBusquedaRuc(ruc)}
+                  disabled={isSearchingRuc || ruc.length !== 11}
+                  title="Consultar en SUNAT vía Factiliza"
+                  style={{
+                    position: 'absolute',
+                    right: '6px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: ruc.length === 11 ? '#eff6ff' : 'transparent',
+                    border: 'none',
+                    borderRadius: '4px',
+                    color: ruc.length === 11 ? '#2563eb' : '#94a3b8',
+                    cursor: ruc.length === 11 ? 'pointer' : 'default',
+                    padding: '0.35rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease'
+                  }}
+                >
+                  {isSearchingRuc ? <Loader2 size={16} className="animate-spin" /> : <Search size={16} />}
+                </button>
+              </div>
             </div>
+
             <div className="form-group" style={{ marginBottom: 0 }}>
-              <label className="form-label">Razón Social</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+                <label className="form-label" style={{ margin: 0 }}>Razón Social</label>
+                {rucStatus && !rucStatus.error && (
+                  <span style={{ 
+                    fontSize: '0.68rem', 
+                    fontWeight: '700',
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: rucStatus.estado === 'ACTIVO' && rucStatus.condicion === 'HABIDO' ? '#ecfdf5' : '#fef2f2',
+                    color: rucStatus.estado === 'ACTIVO' && rucStatus.condicion === 'HABIDO' ? '#059669' : '#dc2626',
+                    border: `1px solid ${rucStatus.estado === 'ACTIVO' && rucStatus.condicion === 'HABIDO' ? '#a7f3d0' : '#fecaca'}`
+                  }}>
+                    {rucStatus.estado || 'ACTIVO'} • {rucStatus.condicion || 'HABIDO'}
+                  </span>
+                )}
+              </div>
               <input 
                 type="text" 
                 className="form-input" 
@@ -205,7 +308,18 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
                 onChange={(e) => setRazonSocial(e.target.value.toUpperCase())} 
                 style={{ textTransform: 'uppercase' }}
               />
+              {rucStatus?.error && (
+                <div style={{ fontSize: '0.72rem', color: '#dc2626', marginTop: '0.25rem' }}>
+                  ⚠️ {rucStatus.error}
+                </div>
+              )}
+              {rucStatus?.direccion && (
+                <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', marginTop: '0.25rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={rucStatus.direccion}>
+                  📍 {rucStatus.direccion}
+                </div>
+              )}
             </div>
+
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Monto (S/) *</label>
               <input type="number" step="0.01" min="0.10" className="form-input" placeholder="0.00" value={monto} onChange={(e) => setMonto(e.target.value)} />
