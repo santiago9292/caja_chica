@@ -33,32 +33,55 @@ export function App() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
 
+  const fireNativeNotification = (title, body) => {
+    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+      try {
+        new Notification(title, { body, icon: '/icon-192.svg' });
+      } catch (e) {
+        console.warn('Error mostrando notificación nativa:', e);
+      }
+    }
+  };
+
   // Suscripción al store reactivo en tiempo real
   useEffect(() => {
+    // Descargar datos iniciales desde Supabase al abrir la PWA
+    store.getCajaFondo();
+    store.getUsuarios();
+    store.getSolicitudes();
+
     const unsubscribe = store.subscribe((meta) => {
       setUsuarios([...store.usuarios]);
       setSolicitudes([...store.solicitudes]);
       setCajaFondo({ ...store.cajaFondo });
       setNotificaciones([...store.notificaciones]);
 
-      // Si hay un nuevo evento en tiempo real, mostrar Toast flotante
+      if (!currentUser) return; // No mostrar alertas si no hay sesión activa
+
+      const isAdmin = currentUser.roles?.includes('ADMINISTRADOR') || currentUser.roles?.includes('SYSADMIN');
+
+      // Nueva Solicitud -> Solo notificar a los Administradores
       if (meta?.type === 'SOLICITUD_CREATED' && meta.solicitud) {
-        showToast({
-          title: 'Nueva Solicitud Registrada',
-          message: `${meta.solicitud.solicitante_nombre} registró ${meta.solicitud.codigo} por S/ ${Number(meta.solicitud.monto).toFixed(2)}`,
-          type: 'warning'
-        });
-      } else if (meta?.type === 'SOLICITUD_STATUS_CHANGED' && meta.solicitud) {
-        showToast({
-          title: `Solicitud ${meta.estado}: ${meta.solicitud.codigo}`,
-          message: `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`,
-          type: meta.estado === 'APROBADO' ? 'success' : 'danger'
-        });
+        if (isAdmin) {
+          const title = 'Nueva Solicitud Registrada';
+          const msg = `${meta.solicitud.solicitante_nombre} registró ${meta.solicitud.codigo} por S/ ${Number(meta.solicitud.monto).toFixed(2)}`;
+          showToast({ title, message: msg, type: 'warning' });
+          fireNativeNotification(title, msg);
+        }
+      } 
+      // Cambio de estado -> Solo notificar al Solicitante original
+      else if (meta?.type === 'SOLICITUD_STATUS_CHANGED' && meta.solicitud) {
+        if (currentUser.dni === meta.solicitud.solicitante_dni) {
+          const title = `Solicitud ${meta.estado}: ${meta.solicitud.codigo}`;
+          const msg = `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
+          showToast({ title, message: msg, type: meta.estado === 'APROBADO' ? 'success' : 'danger' });
+          fireNativeNotification(title, msg);
+        }
       }
     });
 
     return () => unsubscribe();
-  }, []);
+  }, [currentUser]);
 
   // Actualizar usuario en sesión si sus datos o roles cambiaron en el maestro
   useEffect(() => {
@@ -150,7 +173,11 @@ export function App() {
             currentTab={currentTab}
             setCurrentTab={setCurrentTab}
             pendientesCount={pendientesCount}
-            notificaciones={notificaciones}
+            notificaciones={notificaciones.filter(n => 
+              n.usuario_dni === 'TODOS' || 
+              (n.usuario_dni === 'ADMINS' && (currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN'))) || 
+              n.usuario_dni === currentUser?.dni
+            )}
             onMarcarLeidas={handleMarcarLeidas}
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
@@ -182,8 +209,11 @@ export function App() {
 
             {currentTab === 'arqueo' && (
               <ModuloArqueo
+                currentUser={currentUser}
                 cajaFondo={cajaFondo}
                 solicitudes={solicitudes}
+                onUpdateEstado={handleUpdateEstado}
+                onAsignarFondo={async (monto) => await store.updateFondoAsignado(monto)}
               />
             )}
 

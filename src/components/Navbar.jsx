@@ -69,24 +69,24 @@ export function Navbar({
     <>
       <header className="header-bar">
         {/* Marca a la izquierda */}
-        <div className="brand-section">
-          <div className="brand-logo">
+        <div className="brand-section" style={{ minWidth: 0, flexShrink: 1 }}>
+          <div className="brand-logo" style={{ flexShrink: 0 }}>
             <Building2 size={18} color="#ffffff" />
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            <div className="brand-title">
-              <span>CajaChica</span>
-              <span style={{ color: '#2563eb', fontSize: '0.7rem', fontWeight: '700' }}>CORP</span>
-              <span className="pulse-indicator" title="Tiempo Real Activo" />
+          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
+            <div className="brand-title" style={{ flexWrap: 'nowrap', gap: '0.3rem', overflow: 'hidden' }}>
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>CajaChica</span>
+              <span style={{ color: '#2563eb', fontSize: '0.7rem', fontWeight: '700', flexShrink: 0 }}>CORP</span>
+              <span className="pulse-indicator" title="Tiempo Real Activo" style={{ flexShrink: 0 }} />
             </div>
-            <div className="brand-subtitle desktop-only">
+            <div className="brand-subtitle desktop-only" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
               <span>{isSupabaseConfigured ? 'Supabase Realtime' : 'Modo Sincronizado'}</span>
             </div>
           </div>
         </div>
 
         {/* Acciones a la derecha */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flexShrink: 0 }}>
           
           {canInstallPwa && (
             <button 
@@ -203,8 +203,8 @@ export function Navbar({
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.4rem',
-            padding: '0.25rem 0.45rem',
+            gap: '0.2rem',
+            padding: '0.2rem',
             background: '#f8fafc',
             borderRadius: 'var(--radius-md)',
             border: '1px solid #e2e8f0'
@@ -212,8 +212,8 @@ export function Navbar({
             {/* Avatar con Iniciales */}
             <div 
               style={{
-                width: '28px',
-                height: '28px',
+                width: '26px',
+                height: '26px',
                 borderRadius: '50%',
                 background: '#0f172a',
                 color: '#ffffff',
@@ -243,7 +243,7 @@ export function Navbar({
             <button 
               onClick={onLogout}
               className="btn btn-ghost btn-icon"
-              style={{ width: '28px', height: '28px' }}
+              style={{ width: '26px', height: '26px', minWidth: '26px' }}
               title="Cerrar sesión"
             >
               <LogOut size={14} color="#dc2626" />

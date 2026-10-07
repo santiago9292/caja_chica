@@ -254,7 +254,7 @@ class DataStore {
 
   async initSupabaseRealtime() {
     try {
-      // Suscribirse a cambios en tabla 'solicitudes'
+      // Suscribirse a cambios en tablas
       supabase
         .channel('realtime-solicitudes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, (payload) => {
@@ -263,9 +263,21 @@ class DataStore {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'usuarios' }, (payload) => {
           this.handleSupabaseUsuarioEvent(payload);
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'caja_fondo' }, (payload) => {
+          this.handleSupabaseCajaFondoEvent(payload);
+        })
         .subscribe();
     } catch (e) {
       console.warn('Error suscribiendo a Supabase Realtime:', e);
+    }
+  }
+
+  handleSupabaseCajaFondoEvent(payload) {
+    const { eventType, new: newRec } = payload;
+    if (eventType === 'UPDATE' || eventType === 'INSERT') {
+      this.cajaFondo = newRec;
+      this.persist('caja_fondo', this.cajaFondo);
+      this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'caja_fondo', eventType });
     }
   }
 
@@ -297,12 +309,26 @@ class DataStore {
   }
 
   // --- MÉTODOS DE USUARIOS / MAESTRO DNI ---
+  async getCajaFondo() {
+    if (supabase) {
+      const { data, error } = await supabase.from('caja_fondo').select('*').limit(1).single();
+      if (!error && data) {
+        this.cajaFondo = data;
+        this.persist('caja_fondo', data);
+        this.notifyListeners({ type: 'DATA_LOADED' });
+        return data;
+      }
+    }
+    return this.cajaFondo;
+  }
+
   async getUsuarios() {
     if (supabase) {
       const { data, error } = await supabase.from('usuarios').select('*').order('created_at', { ascending: false });
       if (!error && data && data.length > 0) {
         this.usuarios = data;
         this.persist('caja_usuarios', data);
+        this.notifyListeners({ type: 'DATA_LOADED' });
         return data;
       }
     }
@@ -356,6 +382,7 @@ class DataStore {
       if (!error && data) {
         this.solicitudes = data;
         this.persist('caja_solicitudes', data);
+        this.notifyListeners({ type: 'DATA_LOADED' });
         return data;
       }
     }
@@ -403,26 +430,48 @@ class DataStore {
     if (!sol) throw new Error('Solicitud no encontrada');
 
     sol.estado = nuevoEstado;
-    sol.aprobado_por_dni = adminUser.dni;
-    sol.aprobado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
-    sol.aprobado_fecha = new Date().toISOString();
-    sol.observaciones_aprobador = observaciones;
 
-    // Si fue aprobada, descontar del fondo disponible de caja
-    if (nuevoEstado === 'APROBADO') {
+    if (nuevoEstado === 'APROBADO' || nuevoEstado === 'RECHAZADO') {
+      sol.aprobado_por_dni = adminUser.dni;
+      sol.aprobado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
+      sol.aprobado_fecha = new Date().toISOString();
+      sol.observaciones_aprobador = observaciones;
+    }
+
+    // Si el Cajero/Usuario abona el dinero, descontar del fondo disponible
+    if (nuevoEstado === 'PAGADO') {
       const monto = Number(sol.monto || 0);
       this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_disponible - monto);
       this.persist('caja_fondo', this.cajaFondo);
+      
+      sol.pagado_por_dni = adminUser.dni;
+      sol.pagado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
+      sol.pagado_fecha = new Date().toISOString();
+
+      if (supabase) {
+        try {
+          await supabase.from('caja_fondo').update({ monto_disponible: this.cajaFondo.monto_disponible }).eq('id', this.cajaFondo.id);
+        } catch (e) {
+          console.warn('Error actualizando fondo en Supabase:', e);
+        }
+      }
     }
 
     this.persist('caja_solicitudes', this.solicitudes);
 
     // Notificación al solicitante específico
-    const statusText = nuevoEstado === 'APROBADO' ? 'APROBADA' : 'RECHAZADA';
+    let statusText = nuevoEstado;
+    let title = `Solicitud ${statusText}: ${sol.codigo}`;
+    let msg = `Tu solicitud por S/ ${Number(sol.monto).toFixed(2)} fue ${statusText.toLowerCase()} por ${adminUser.nombres}. ${observaciones ? 'Obs: ' + observaciones : ''}`;
+    
+    if (nuevoEstado === 'PAGADO') {
+      msg = `Tu solicitud ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)} ha sido ABONADA/PAGADA por caja (${adminUser.nombres}). El dinero ya ha sido entregado.`;
+    }
+
     this.addNotification({
-      titulo: `Solicitud ${statusText}: ${sol.codigo}`,
-      mensaje: `Tu solicitud por S/ ${Number(sol.monto).toFixed(2)} fue ${statusText.toLowerCase()} por ${adminUser.nombres}. ${observaciones ? 'Obs: ' + observaciones : ''}`,
-      tipo: nuevoEstado === 'APROBADO' ? 'SUCCESS' : 'DANGER',
+      titulo: title,
+      mensaje: msg,
+      tipo: nuevoEstado === 'APROBADO' || nuevoEstado === 'PAGADO' ? 'SUCCESS' : 'DANGER',
       usuario_dni: sol.solicitante_dni,
       referencia_id: sol.id
     });
@@ -434,7 +483,10 @@ class DataStore {
           aprobado_por_dni: sol.aprobado_por_dni,
           aprobado_por_nombre: sol.aprobado_por_nombre,
           aprobado_fecha: sol.aprobado_fecha,
-          observaciones_aprobador: sol.observaciones_aprobador
+          observaciones_aprobador: sol.observaciones_aprobador,
+          pagado_por_dni: sol.pagado_por_dni,
+          pagado_por_nombre: sol.pagado_por_nombre,
+          pagado_fecha: sol.pagado_fecha
         }).eq('id', id);
       } catch (e) {
         console.warn('Error actualizando en Supabase:', e);
@@ -443,6 +495,29 @@ class DataStore {
 
     this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     return sol;
+  }
+
+  // --- ASIGNACIÓN DE FONDOS (ADMIN) ---
+  async updateFondoAsignado(nuevoMonto) {
+    // Calculamos el monto gastado histórico o recalculamos en base a la diferencia
+    const gastado = this.cajaFondo.monto_total - this.cajaFondo.monto_disponible;
+    this.cajaFondo.monto_total = Number(nuevoMonto);
+    this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_total - gastado);
+    this.persist('caja_fondo', this.cajaFondo);
+    
+    if (supabase) {
+      try {
+        await supabase.from('caja_fondo').update({
+          monto_total: this.cajaFondo.monto_total,
+          monto_disponible: this.cajaFondo.monto_disponible
+        }).eq('id', this.cajaFondo.id);
+      } catch (e) {
+        console.warn('Error actualizando tope de fondo en Supabase:', e);
+      }
+    }
+
+    this.broadcastSync({ type: 'FONDO_UPDATED', fondo: this.cajaFondo });
+    return this.cajaFondo;
   }
 
   // --- NOTIFICACIONES ---
@@ -456,18 +531,6 @@ class DataStore {
     this.notificaciones.unshift(notif);
     if (this.notificaciones.length > 50) this.notificaciones.pop();
     this.persist('caja_notificaciones', this.notificaciones);
-
-    // Intentar disparar notificación nativa del navegador si tiene permiso
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
-      try {
-        new Notification(notif.titulo, {
-          body: notif.mensaje,
-          icon: '/icon-192.svg'
-        });
-      } catch (e) {
-        console.warn('Error mostrando notificación del navegador:', e);
-      }
-    }
 
     return notif;
   }

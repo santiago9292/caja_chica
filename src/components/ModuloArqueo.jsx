@@ -1,30 +1,102 @@
-import React from 'react';
-import { Wallet, TrendingDown, Clock, CheckCircle2, Layers } from 'lucide-react';
+import React, { useState } from 'react';
+import { Wallet, TrendingDown, Clock, CheckCircle2, Layers, DollarSign, Edit3, Check, Eye } from 'lucide-react';
+import { playNotificationSound } from '../lib/audioNotifier';
 
-export function ModuloArqueo({ cajaFondo, solicitudes }) {
+export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo }) {
   const montoTotal = Number(cajaFondo?.monto_total || 5000);
   const montoDisponible = Number(cajaFondo?.monto_disponible || 0);
+  const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN');
+  const isCajero = currentUser?.roles?.includes('USUARIO');
   
-  const totalAprobado = solicitudes
-    .filter(s => s.estado === 'APROBADO')
+  const [isEditingFondo, setIsEditingFondo] = useState(false);
+  const [nuevoFondo, setNuevoFondo] = useState(montoTotal);
+  const [processingId, setProcessingId] = useState(null);
+
+  // Consideramos pagados los que están en estado PAGADO (para arqueo egresos)
+  const totalPagado = solicitudes
+    .filter(s => s.estado === 'PAGADO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
-  const totalPendiente = solicitudes
-    .filter(s => s.estado === 'PENDIENTE')
+  const totalPendienteOAprobado = solicitudes
+    .filter(s => s.estado === 'PENDIENTE' || s.estado === 'APROBADO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
 
   const categoriasMap = {};
-  solicitudes.forEach(s => {
+  solicitudes.filter(s => s.estado === 'PAGADO').forEach(s => {
     const cat = s.categoria.replace(/_/g, ' ');
     if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, count: 0 };
     categoriasMap[cat].total += Number(s.monto || 0);
     categoriasMap[cat].count += 1;
   });
 
+  const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO');
+
+  const handleGuardarFondo = async () => {
+    if (nuevoFondo < 0) return alert('El monto no puede ser negativo.');
+    await onAsignarFondo(nuevoFondo);
+    setIsEditingFondo(false);
+    playNotificationSound('success');
+  };
+
+  const handleAbonar = async (sol) => {
+    if (montoDisponible < sol.monto) {
+      alert('⚠️ Fondos insuficientes en la Caja Chica para realizar este abono.');
+      return;
+    }
+    if (!window.confirm(`¿Confirmas la entrega de S/ ${sol.monto.toFixed(2)} a ${sol.solicitante_nombre}?`)) return;
+
+    setProcessingId(sol.id);
+    try {
+      await onUpdateEstado(sol.id, 'PAGADO', '');
+      playNotificationSound('success');
+    } catch (err) {
+      alert('Error al abonar: ' + err.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
   return (
     <div>
+      {/* Asignación de Fondos (Solo Admin) */}
+      {isAdmin && (
+        <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem', background: '#f8fafc', border: '1px solid var(--primary-border)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+            <div>
+              <h3 style={{ fontSize: '1.1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <Wallet size={18} /> Gestión de Presupuesto Asignado
+              </h3>
+              <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Asigna el tope máximo del fondo fijo para el Cajero.</p>
+            </div>
+            {isEditingFondo ? (
+              <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                <div className="input-group" style={{ margin: 0, width: '150px' }}>
+                  <span className="input-group-text">S/</span>
+                  <input
+                    type="number"
+                    className="form-input"
+                    value={nuevoFondo}
+                    onChange={(e) => setNuevoFondo(e.target.value)}
+                  />
+                </div>
+                <button className="btn btn-success" onClick={handleGuardarFondo} style={{ padding: '0.5rem 1rem' }}>
+                  Guardar
+                </button>
+                <button className="btn btn-ghost" onClick={() => { setIsEditingFondo(false); setNuevoFondo(montoTotal); }}>
+                  Cancelar
+                </button>
+              </div>
+            ) : (
+              <button className="btn btn-secondary" onClick={() => setIsEditingFondo(true)}>
+                <Edit3 size={16} /> Modificar Tope de Caja
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Tarjetas Métricas */}
       <div className="stats-grid">
         <div className="stat-card">
@@ -52,8 +124,8 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
             <TrendingDown size={22} />
           </div>
           <div>
-            <div className="stat-value">S/ {totalAprobado.toFixed(2)}</div>
-            <div className="stat-label">Gastos Egresados / Rendidos</div>
+            <div className="stat-value">S/ {totalPagado.toFixed(2)}</div>
+            <div className="stat-label">Gastos Pagados / Entregados</div>
           </div>
         </div>
 
@@ -62,8 +134,8 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
             <Clock size={22} />
           </div>
           <div>
-            <div className="stat-value">S/ {totalPendiente.toFixed(2)}</div>
-            <div className="stat-label">En Trámite de Aprobación</div>
+            <div className="stat-value">S/ {totalPendienteOAprobado.toFixed(2)}</div>
+            <div className="stat-label">Comprometido (Pendiente/Aprob.)</div>
           </div>
         </div>
       </div>
@@ -105,38 +177,99 @@ export function ModuloArqueo({ cajaFondo, solicitudes }) {
         </div>
       </div>
 
+      {/* Bandeja de Pagos (Solo para Cajero/Usuario) */}
+      {isCajero && (
+        <div className="glass-panel" style={{ padding: '1.25rem 1.5rem', marginBottom: '1.25rem', border: '1px solid #10b981' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <DollarSign size={20} color="#10b981" />
+            <h3 style={{ fontSize: '1.1rem', color: '#0f172a' }}>Bandeja de Entregas y Abonos</h3>
+            <span className="badge badge-aprobado" style={{ marginLeft: 'auto' }}>
+              {solicitudesAprobadas.length} Por Abonar
+            </span>
+          </div>
+
+          {solicitudesAprobadas.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '2rem 1rem', color: 'var(--text-muted)' }}>
+              No hay solicitudes aprobadas pendientes de pago.
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <table className="data-table">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Solicitante</th>
+                    <th>Concepto</th>
+                    <th>Monto a Entregar</th>
+                    <th style={{ textAlign: 'right' }}>Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {solicitudesAprobadas.map(sol => (
+                    <tr key={sol.id}>
+                      <td style={{ fontWeight: '700', fontFamily: 'monospace' }}>{sol.codigo}</td>
+                      <td>
+                        <div style={{ fontWeight: '600' }}>{sol.solicitante_nombre}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-faint)' }}>Aprobado por: {sol.aprobado_por_nombre}</div>
+                      </td>
+                      <td style={{ fontSize: '0.85rem' }}>{sol.motivo}</td>
+                      <td style={{ fontWeight: '800', color: '#0f172a', fontSize: '1.1rem' }}>S/ {Number(sol.monto).toFixed(2)}</td>
+                      <td style={{ textAlign: 'right' }}>
+                        <button 
+                          className="btn btn-primary" 
+                          onClick={() => handleAbonar(sol)}
+                          disabled={processingId === sol.id}
+                        >
+                          <Check size={16} /> Entregar Dinero
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Desglose por Categorías */}
       <div className="glass-panel" style={{ padding: '1.25rem 1.5rem' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginBottom: '1rem' }}>
           <Layers size={18} color="#0f172a" />
           <h3 style={{ fontSize: '1.05rem', color: '#0f172a' }}>
-            Distribución de Gastos por Categoría
+            Distribución de Gastos (Pagados)
           </h3>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
-          {Object.entries(categoriasMap).map(([cat, data]) => (
-            <div 
-              key={cat}
-              style={{
-                background: '#f8fafc',
-                border: '1px solid #e2e8f0',
-                borderRadius: 'var(--radius-md)',
-                padding: '0.85rem'
-              }}
-            >
-              <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
-                {cat}
+        {Object.keys(categoriasMap).length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '1.5rem', color: 'var(--text-faint)' }}>
+            Sin movimientos registrados aún.
+          </div>
+        ) : (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '0.85rem' }}>
+            {Object.entries(categoriasMap).map(([cat, data]) => (
+              <div 
+                key={cat}
+                style={{
+                  background: '#f8fafc',
+                  border: '1px solid #e2e8f0',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.85rem'
+                }}
+              >
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginBottom: '0.25rem' }}>
+                  {cat}
+                </div>
+                <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.15rem' }}>
+                  S/ {data.total.toFixed(2)}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
+                  {data.count} movimiento(s)
+                </div>
               </div>
-              <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a', marginBottom: '0.15rem' }}>
-                S/ {data.total.toFixed(2)}
-              </div>
-              <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
-                {data.count} movimiento(s)
-              </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
     </div>
