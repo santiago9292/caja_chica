@@ -36,14 +36,21 @@ export function App() {
 
   // Inicializar OneSignal
   useEffect(() => {
-    try {
-      OneSignal.init({
-        appId: "c50fba12-7b4e-45e9-8bc5-63d9639a2b53",
-        allowLocalhostAsSecureOrigin: true,
-      });
-    } catch (e) {
-      console.warn("OneSignal init error:", e);
-    }
+    const initOneSignal = async () => {
+      try {
+        await OneSignal.init({
+          appId: "c50fba12-7b4e-45e9-8bc5-63d9639a2b53",
+          allowLocalhostAsSecureOrigin: true,
+          notifyButton: {
+            enable: true,
+          },
+        });
+        OneSignal.Slidedown.promptPush();
+      } catch (e) {
+        console.warn("OneSignal init error:", e);
+      }
+    };
+    initOneSignal();
   }, []);
 
   // Vincular el dispositivo al DNI del usuario
