@@ -211,6 +211,34 @@ class DataStore {
     }
   }
 
+  async sendOneSignalPush(title, message, targetDnis = null) {
+    try {
+      const body = {
+        app_id: 'c50fba12-7b4e-45e9-8bc5-63d9639a2b53',
+        headings: { en: title, es: title },
+        contents: { en: message, es: message },
+        target_channel: 'push',
+      };
+      
+      if (targetDnis && targetDnis.length > 0) {
+        body.include_aliases = { external_id: targetDnis };
+      } else {
+        body.included_segments = ["Total Subscriptions"];
+      }
+
+      await fetch('https://onesignal.com/api/v1/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${import.meta.env.VITE_ONESIGNAL_REST_KEY}`
+        },
+        body: JSON.stringify(body)
+      });
+    } catch (e) {
+      console.warn("OneSignal push error:", e);
+    }
+  }
+
   loadInitial(key, fallback) {
     if (typeof window === 'undefined') return fallback;
     try {
@@ -421,6 +449,10 @@ class DataStore {
       }
     }
 
+    // Enviar notificación Push (OneSignal) a todos los Administradores
+    const adminDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR')).map(u => u.dni);
+    this.sendOneSignalPush('Nueva Solicitud Registrada', `${solData.solicitante_nombre} ha registrado un gasto por S/ ${Number(solData.monto).toFixed(2)}.`, adminDnis);
+
     this.broadcastSync({ type: 'SOLICITUD_CREATED', solicitud: newSolicitud });
     return newSolicitud;
   }
@@ -492,6 +524,12 @@ class DataStore {
         console.warn('Error actualizando en Supabase:', e);
       }
     }
+
+    // Enviar notificación Push (OneSignal) al Solicitante
+    const msgPush = nuevoEstado === 'PAGADO' 
+      ? `Tu solicitud fue abonada en efectivo por el cajero.` 
+      : `La solicitud fue ${nuevoEstado.toLowerCase()} por el administrador.`;
+    this.sendOneSignalPush(`Solicitud ${nuevoEstado}: ${sol.codigo}`, msgPush, [sol.solicitante_dni]);
 
     this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     return sol;

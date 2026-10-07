@@ -11,6 +11,7 @@ import { MisSolicitudes } from './components/MisSolicitudes';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { Bell, CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 import { playNotificationSound } from './lib/audioNotifier';
+import OneSignal from 'react-onesignal';
 
 export function App() {
   const [usuarios, setUsuarios] = useState(store.usuarios);
@@ -32,6 +33,33 @@ export function App() {
   const [currentTab, setCurrentTab] = useState('nuevo');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+
+  // Inicializar OneSignal
+  useEffect(() => {
+    try {
+      OneSignal.init({
+        appId: "c50fba12-7b4e-45e9-8bc5-63d9639a2b53",
+        allowLocalhostAsSecureOrigin: true,
+      });
+    } catch (e) {
+      console.warn("OneSignal init error:", e);
+    }
+  }, []);
+
+  // Vincular el dispositivo al DNI del usuario
+  useEffect(() => {
+    if (currentUser && currentUser.dni) {
+      try {
+        OneSignal.login(currentUser.dni);
+      } catch (e) {
+        console.warn("OneSignal login error:", e);
+      }
+    } else {
+      try {
+        OneSignal.logout();
+      } catch (e) {}
+    }
+  }, [currentUser]);
 
   const fireNativeNotification = (title, body) => {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
