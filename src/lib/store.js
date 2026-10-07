@@ -530,16 +530,16 @@ class DataStore {
     let targetPushDnis = [sol.solicitante_dni];
 
     if (nuevoEstado === 'PAGADO') {
-      msgPush = `Tu solicitud fue abonada en efectivo por el cajero.`;
+      msgPush = `${adminUser.nombres} entregó el efectivo de tu ${sol.operacion}.`;
     } else if (nuevoEstado === 'APROBADO') {
-      msgPush = `La solicitud fue aprobada. Cajero, por favor proceda con el abono.`;
+      msgPush = `${adminUser.nombres} aprobó el ${sol.operacion} de ${sol.solicitante_nombre}. Cajero, proceda con el abono.`;
       const cajerosDnis = this.usuarios.filter(u => u.roles?.includes('USUARIO')).map(u => u.dni);
       targetPushDnis = [...targetPushDnis, ...cajerosDnis];
     } else {
-      msgPush = `La solicitud fue ${nuevoEstado.toLowerCase()} por el administrador.`;
+      msgPush = `Tu ${sol.operacion} fue ${nuevoEstado.toLowerCase()} por ${adminUser.nombres}.`;
     }
 
-    this.sendOneSignalPush(`Solicitud ${nuevoEstado}: ${sol.codigo}`, msgPush, targetPushDnis);
+    this.sendOneSignalPush(`Caja Chica: ${sol.codigo}`, msgPush, targetPushDnis);
 
     this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     return sol;
