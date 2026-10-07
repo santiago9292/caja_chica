@@ -107,18 +107,35 @@ BEGIN
   END IF;
 END $$;
 
+-- 6. Tabla de Categorías de Gastos
+CREATE TABLE IF NOT EXISTS public.categorias_gastos (
+    id VARCHAR(50) PRIMARY KEY,
+    nombre VARCHAR(100) NOT NULL,
+    centro_costo VARCHAR(50) NOT NULL DEFAULT 'CC-GENERAL',
+    descripcion TEXT,
+    activo BOOLEAN NOT NULL DEFAULT true,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Migraciones seguras para bases de datos existentes:
+ALTER TABLE public.categorias_gastos ADD COLUMN IF NOT EXISTS centro_costo VARCHAR(50) DEFAULT 'CC-GENERAL';
+ALTER TABLE public.solicitudes ADD COLUMN IF NOT EXISTS centro_costo VARCHAR(50) DEFAULT 'CC-GENERAL';
+
 -- Permitir lectura y escritura abierta para desarrollo / RLS según conveniencia
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.caja_fondos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.solicitudes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notificaciones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.auditoria_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.categorias_gastos ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY "Acceso total usuarios" ON public.usuarios FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso total caja_fondos" ON public.caja_fondos FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso total solicitudes" ON public.solicitudes FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso total notificaciones" ON public.notificaciones FOR ALL USING (true) WITH CHECK (true);
 CREATE POLICY "Acceso total auditoria" ON public.auditoria_logs FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "Acceso total categorias_gastos" ON public.categorias_gastos FOR ALL USING (true) WITH CHECK (true);
 
 -- ============================================================================
 -- DATOS SEMILLA (SEED DATA) DE PRUEBA

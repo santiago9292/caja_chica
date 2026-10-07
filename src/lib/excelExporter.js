@@ -1,11 +1,28 @@
 import * as XLSX from 'xlsx';
 
-export function exportarCajaChicaExcel(solicitudes, cajaFondo, usuarioGenerador) {
-  try {
-    const wb = XLSX.utils.book_new();
+export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador) {
+  const wb = XLSX.utils.book_new();
 
-    // 1. Hoja Principal de Movimientos
-    const movimientosData = solicitudes.map((item, index) => ({
+  // 1. Hoja Principal de Movimientos
+  const movimientosData = solicitudes.map((item, index) => {
+    let compTipo = item.comprobante_tipo ? item.comprobante_tipo.replace(/_/g, ' ') : 'N/A';
+    let compNum = item.comprobante_numero || '-';
+    let compRuc = item.comprobante_ruc_emisor || '-';
+    let compRazon = item.comprobante_razon_social || '-';
+
+    if (item.rendiciones) {
+      try {
+        const r = typeof item.rendiciones === 'string' ? JSON.parse(item.rendiciones) : item.rendiciones;
+        if (Array.isArray(r) && r.length > 0) {
+          compTipo = r.map(x => x.tipo).join(' | ');
+          compNum = r.map(x => x.numero).join(' | ');
+          compRuc = r.map(x => x.ruc).join(' | ');
+          compRazon = r.map(x => x.razonSocial).join(' | ');
+        }
+      } catch {}
+    }
+
+    return {
       'N°': index + 1,
       'Código': item.codigo,
       'Fecha Registro': new Date(item.created_at).toLocaleDateString('es-PE'),
@@ -13,19 +30,21 @@ export function exportarCajaChicaExcel(solicitudes, cajaFondo, usuarioGenerador)
       'DNI Solicitante': item.solicitante_dni,
       'Nombre del Solicitante': item.solicitante_nombre,
       'Categoría': item.categoria.replace(/_/g, ' '),
-      'Tipo Comprobante': item.comprobante_tipo ? item.comprobante_tipo.replace(/_/g, ' ') : 'N/A',
-      'N° Comprobante': item.comprobante_numero || '-',
-      'RUC Proveedor': item.comprobante_ruc_emisor || '-',
-      'Razón Social Proveedor': item.comprobante_razon_social || '-',
+      'Centro de Costos': item.centro_costo || '-',
+      'Tipo Comprobante': compTipo,
+      'N° Comprobante': compNum,
+      'RUC Proveedor': compRuc,
+      'Razón Social Proveedor': compRazon,
       'Concepto / Justificación': item.motivo,
       'Monto (S/)': Number(item.monto || 0),
       'Estado': item.estado,
       'Aprobado Por': item.aprobado_por_nombre || '-',
       'Fecha Aprobación': item.aprobado_fecha ? new Date(item.aprobado_fecha).toLocaleDateString('es-PE') : '-',
       'Observaciones': item.observaciones_aprobador || '-'
-    }));
+    };
+  });
 
-    const wsMov = XLSX.utils.json_to_sheet(movimientosData);
+  const wsMov = XLSX.utils.json_to_sheet(movimientosData);
 
     // Configurar anchos de columna óptimos
     wsMov['!cols'] = [
@@ -36,6 +55,7 @@ export function exportarCajaChicaExcel(solicitudes, cajaFondo, usuarioGenerador)
       { wch: 16 }, // DNI
       { wch: 30 }, // Nombre
       { wch: 22 }, // Categoría
+      { wch: 20 }, // Centro de Costos
       { wch: 18 }, // Tipo Comprobante
       { wch: 16 }, // N° Comprobante
       { wch: 15 }, // RUC
@@ -115,11 +135,16 @@ export function exportarCajaChicaExcel(solicitudes, cajaFondo, usuarioGenerador)
     XLSX.utils.book_append_sheet(wb, wsCat, 'Por Categoría');
     XLSX.utils.book_append_sheet(wb, wsSol, 'Por Solicitante');
 
-    // Descargar archivo Excel en el cliente
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const fileName = `Reporte_Caja_Chica_${timestamp}.xlsx`;
-    XLSX.writeFile(wb, fileName);
 
+    return { wb, fileName };
+}
+
+export function exportarCajaChicaExcel(solicitudes, cajaFondo, usuarioGenerador) {
+  try {
+    const { wb, fileName } = generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerador);
+    XLSX.writeFile(wb, fileName);
     return { success: true, fileName };
   } catch (error) {
     console.error('Error al exportar a Excel:', error);

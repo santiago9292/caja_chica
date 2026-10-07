@@ -5,6 +5,7 @@ import { LoginModal } from './components/LoginModal';
 import { FormularioIngreso } from './components/FormularioIngreso';
 import { ModuloAprobacion } from './components/ModuloAprobacion';
 import { MaestroDni } from './components/MaestroDni';
+import { MaestroCategorias } from './components/MaestroCategorias';
 import { ModuloArqueo } from './components/ModuloArqueo';
 import { ModuloReportes } from './components/ModuloReportes';
 import { MisSolicitudes } from './components/MisSolicitudes';
@@ -15,6 +16,7 @@ import OneSignal from 'react-onesignal';
 
 export function App() {
   const [usuarios, setUsuarios] = useState(store.usuarios);
+  const [categorias, setCategorias] = useState(store.categorias);
   const [solicitudes, setSolicitudes] = useState(store.solicitudes);
   const [cajaFondo, setCajaFondo] = useState(store.cajaFondo);
   const [notificaciones, setNotificaciones] = useState(store.notificaciones);
@@ -95,10 +97,12 @@ export function App() {
     // Descargar datos iniciales desde Supabase al abrir la PWA
     store.getCajaFondo();
     store.getUsuarios();
+    store.getCategorias();
     store.getSolicitudes();
 
     const unsubscribe = store.subscribe((meta) => {
       setUsuarios([...store.usuarios]);
+      setCategorias([...store.categorias]);
       setSolicitudes([...store.solicitudes]);
       setCajaFondo({ ...store.cajaFondo });
       setNotificaciones([...store.notificaciones]);
@@ -162,7 +166,6 @@ export function App() {
     setCurrentUser(user);
     localStorage.setItem('caja_current_user', JSON.stringify(user));
     setInitialTabForUser(user);
-    playNotificationSound('success');
     showToast({
       title: `Bienvenido, ${user.nombres}`,
       message: `Sesión iniciada con roles: ${user.roles.join(', ')}`,
@@ -203,6 +206,18 @@ export function App() {
     return await store.toggleUsuarioActivo(dni);
   };
 
+  const handleSaveCategoria = async (catData) => {
+    return await store.saveCategoria(catData);
+  };
+
+  const handleToggleCategoriaActiva = async (id) => {
+    return await store.toggleCategoriaActiva(id);
+  };
+
+  const handleDeleteCategoria = async (id) => {
+    return await store.deleteCategoria(id);
+  };
+
   const handleMarcarLeidas = () => {
     store.marcarNotificacionesLeidas();
   };
@@ -241,6 +256,7 @@ export function App() {
             {currentTab === 'nuevo' && (
               <FormularioIngreso
                 currentUser={currentUser}
+                categorias={categorias}
                 onSubmitSolicitud={handleCreateSolicitud}
                 onSuccessTab={() => setCurrentTab('mis_solicitudes')}
               />
@@ -282,11 +298,22 @@ export function App() {
               />
             )}
 
+            {currentTab === 'maestro_categorias' && (
+              <MaestroCategorias
+                currentUser={currentUser}
+                categorias={categorias}
+                onSaveCategoria={handleSaveCategoria}
+                onToggleActivo={handleToggleCategoriaActiva}
+                onDeleteCategoria={handleDeleteCategoria}
+              />
+            )}
+
             {currentTab === 'reportes' && (
               <ModuloReportes
                 currentUser={currentUser}
                 solicitudes={solicitudes}
                 cajaFondo={cajaFondo}
+                categorias={categorias}
               />
             )}
           </main>

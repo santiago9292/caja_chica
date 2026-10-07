@@ -25,17 +25,46 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
 
   const handleFileChange = (e) => {
     const file = e.target.files[0];
-    if (file) {
-      if (file.size > 8 * 1024 * 1024) {
-        alert('El archivo no debe superar los 8MB.');
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = (uploadEvent) => {
+    if (!file) return;
+
+    if (file.size > 15 * 1024 * 1024) {
+      alert('El archivo no debe superar los 15MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (uploadEvent) => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX_DIM = 1280;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > MAX_DIM || height > MAX_DIM) {
+          if (width > height) {
+            height = Math.round((height * MAX_DIM) / width);
+            width = MAX_DIM;
+          } else {
+            width = Math.round((width * MAX_DIM) / height);
+            height = MAX_DIM;
+          }
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.75);
+        setArchivo(dataUrl);
+      };
+      img.onerror = () => {
         setArchivo(uploadEvent.target.result);
       };
-      reader.readAsDataURL(file);
-    }
+      img.src = uploadEvent.target.result;
+    };
+    reader.readAsDataURL(file);
   };
 
   const agregarComprobante = () => {
@@ -45,10 +74,10 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     }
     const nuevo = {
       tipo,
-      numero,
+      numero: (numero || '').trim().toUpperCase(),
       fecha,
-      ruc,
-      razonSocial,
+      ruc: (ruc || '').trim(),
+      razonSocial: (razonSocial || '').trim().toUpperCase(),
       monto: parseFloat(monto),
       archivo
     };
@@ -146,7 +175,14 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Serie y Número</label>
-              <input type="text" className="form-input" placeholder="Ej: F001-0012847" value={numero} onChange={(e) => setNumero(e.target.value)} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="EJ: F001-0012847" 
+                value={numero} 
+                onChange={(e) => setNumero(e.target.value.toUpperCase())} 
+                style={{ textTransform: 'uppercase' }}
+              />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Fecha</label>
@@ -161,7 +197,14 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Razón Social</label>
-              <input type="text" className="form-input" placeholder="Nombre o empresa" value={razonSocial} onChange={(e) => setRazonSocial(e.target.value)} />
+              <input 
+                type="text" 
+                className="form-input" 
+                placeholder="NOMBRE O EMPRESA" 
+                value={razonSocial} 
+                onChange={(e) => setRazonSocial(e.target.value.toUpperCase())} 
+                style={{ textTransform: 'uppercase' }}
+              />
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label className="form-label">Monto (S/) *</label>

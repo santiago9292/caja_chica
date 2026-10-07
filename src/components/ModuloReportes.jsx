@@ -5,16 +5,24 @@ import {
   Filter, 
   FileCheck, 
   CheckCircle2, 
-  Layers
+  Layers,
+  FileDown,
+  Archive
 } from 'lucide-react';
 import { exportarCajaChicaExcel } from '../lib/excelExporter';
+import { 
+  exportarReporteCompletoZip, 
+  descargarSustentosSolicitud, 
+  getSustentosDeSolicitud 
+} from '../lib/zipExporter';
 
-export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
+export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [] }) {
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [filtroEstado, setFiltroEstado] = useState('TODOS');
   const [filtroCategoria, setFiltroCategoria] = useState('TODAS');
   const [isExporting, setIsExporting] = useState(false);
+  const [downloadingId, setDownloadingId] = useState(null);
   const [successExport, setSuccessExport] = useState('');
 
   const solicitudesFiltradas = solicitudes.filter(s => {
@@ -37,16 +45,27 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
     .filter(s => s.estado === 'APROBADO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
-  const handleExportClientExcel = async () => {
+  const handleExportZip = async () => {
     setIsExporting(true);
     try {
-      const res = exportarCajaChicaExcel(solicitudesFiltradas, cajaFondo, currentUser);
-      setSuccessExport(`Reporte generado: ${res.fileName}`);
-      setTimeout(() => setSuccessExport(''), 5000);
+      const res = await exportarReporteCompletoZip(solicitudesFiltradas, cajaFondo, currentUser);
+      setSuccessExport(`Reporte descargado: ${res.fileName} (${res.totalSustentos} sustentos incluidos)`);
+      setTimeout(() => setSuccessExport(''), 6000);
     } catch (err) {
-      alert('Error exportando Excel: ' + err.message);
+      alert('Error exportando reporte: ' + err.message);
     } finally {
       setIsExporting(false);
+    }
+  };
+
+  const handleDescargarSustentoFila = async (sol) => {
+    setDownloadingId(sol.id);
+    try {
+      await descargarSustentosSolicitud(sol);
+    } catch (err) {
+      alert('Error descargando sustento: ' + err.message);
+    } finally {
+      setDownloadingId(null);
     }
   };
 
@@ -57,21 +76,22 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
         <div>
           <h2 style={{ fontSize: '1.35rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <FileSpreadsheet size={22} color="#15803d" />
-            <span>Reportes y Liquidación en Excel</span>
+            <span>Reportes y Liquidación con Sustentos</span>
           </h2>
           <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
-            Exportación formal en formato .xlsx con 4 pestañas de análisis
+            Exportación de Excel con datos filtrados + carpeta de comprobantes y sustentos (.zip)
           </p>
         </div>
 
         <button
-          onClick={handleExportClientExcel}
+          onClick={handleExportZip}
           disabled={isExporting || solicitudesFiltradas.length === 0}
           className="btn btn-excel"
-          style={{ padding: '0.65rem 1.25rem', fontSize: '0.875rem' }}
+          style={{ padding: '0.65rem 1.25rem', fontSize: '0.875rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+          title="Descarga un ZIP con el Excel de datos filtrados y todos los comprobantes adjuntos"
         >
-          <Download size={16} />
-          <span>{isExporting ? 'Generando...' : 'Descargar Excel (.xlsx)'}</span>
+          {isExporting ? <Download size={16} className="animate-spin" /> : <Archive size={16} />}
+          <span>{isExporting ? 'Empaquetando ZIP...' : 'Descargar Excel + Sustentos (.zip)'}</span>
         </button>
       </div>
 
@@ -145,12 +165,11 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
               onChange={(e) => setFiltroCategoria(e.target.value)}
             >
               <option value="TODAS">Todas</option>
-              <option value="TRANSPORTE">Transporte</option>
-              <option value="ALIMENTACION">Alimentación</option>
-              <option value="MATERIALES_OFICINA">Materiales Oficina</option>
-              <option value="SERVICIOS_URGENTES">Servicios Urgentes</option>
-              <option value="REPRESENTACION">Representación</option>
-              <option value="OTROS">Otros</option>
+              {categorias.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.nombre}
+                </option>
+              ))}
             </select>
           </div>
         </div>
@@ -204,6 +223,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
                 <th>Concepto</th>
                 <th>Monto S/</th>
                 <th>Estado</th>
+                <th style={{ textAlign: 'center' }}>Sustento</th>
               </tr>
             </thead>
             <tbody>
@@ -254,6 +274,45 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo }) {
                     }`}>
                       {s.estado.replace('_', ' ')}
                     </span>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    {(() => {
+                      const sustentos = getSustentosDeSolicitud(s);
+                      const tieneSustento = sustentos.length > 0;
+                      return (
+                        <button
+                          type="button"
+                          onClick={() => handleDescargarSustentoFila(s)}
+                          disabled={!tieneSustento || downloadingId === s.id}
+                          className={`btn ${tieneSustento ? 'btn-secondary' : 'btn-ghost'}`}
+                          style={{
+                            padding: '0.3rem 0.6rem',
+                            fontSize: '0.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.35rem',
+                            opacity: tieneSustento ? 1 : 0.4,
+                            cursor: tieneSustento ? 'pointer' : 'not-allowed'
+                          }}
+                          title={
+                            !tieneSustento 
+                              ? 'Sin sustento adjunto' 
+                              : sustentos.length === 1 
+                                ? 'Descargar comprobante adjunto' 
+                                : `Descargar ${sustentos.length} sustentos (.zip)`
+                          }
+                        >
+                          <FileDown size={14} />
+                          <span>
+                            {downloadingId === s.id 
+                              ? '...' 
+                              : tieneSustento 
+                                ? (sustentos.length > 1 ? `${sustentos.length} Archivos` : 'Descargar') 
+                                : 'Sin archivo'}
+                          </span>
+                        </button>
+                      );
+                    })()}
                   </td>
                 </tr>
               ))}

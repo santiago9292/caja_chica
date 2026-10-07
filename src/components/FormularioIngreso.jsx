@@ -7,19 +7,15 @@ import {
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 
-const CATEGORIAS = [
-  { id: 'TRANSPORTE', label: 'Transporte / Movilidad' },
-  { id: 'ALIMENTACION', label: 'Alimentación / Refrigerios' },
-  { id: 'MATERIALES_OFICINA', label: 'Materiales de Oficina' },
-  { id: 'SERVICIOS_URGENTES', label: 'Servicios Urgentes' },
-  { id: 'REPRESENTACION', label: 'Gastos de Representación' },
-  { id: 'OTROS', label: 'Otros Gastos Operativos' }
-];
+import { DEFAULT_CATEGORIAS } from '../lib/store';
 
-export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab }) {
+export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab, categorias = [] }) {
+  const listaCategorias = (categorias && categorias.length > 0 ? categorias : DEFAULT_CATEGORIAS).filter(c => c.activo !== false);
+  const primeraCat = listaCategorias[0]?.id || 'TRANSPORTE';
+
   const [monto, setMonto] = useState('');
   const [motivo, setMotivo] = useState('');
-  const [categoria, setCategoria] = useState('TRANSPORTE');
+  const [categoria, setCategoria] = useState(primeraCat);
   
   const [errorMsg, setErrorMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -50,6 +46,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
         monto: montoNum,
         motivo: motivo.trim(),
         categoria,
+        centro_costo: listaCategorias.find(c => c.id === categoria)?.centro_costo || 'CC-GENERAL',
         // Al ser un adelanto puro, nace sin comprobantes físicos
         comprobante_tipo: null,
         comprobante_numero: null,
@@ -174,12 +171,26 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                 value={categoria}
                 onChange={(e) => setCategoria(e.target.value)}
               >
-                {CATEGORIAS.map((cat) => (
+                {listaCategorias.map((cat) => (
                   <option key={cat.id} value={cat.id}>
-                    {cat.label}
+                    {cat.nombre || cat.label} {cat.centro_costo ? `(${cat.centro_costo})` : ''}
                   </option>
                 ))}
               </select>
+              {(() => {
+                const catObj = listaCategorias.find(c => c.id === categoria);
+                if (catObj?.centro_costo) {
+                  return (
+                    <div style={{ marginTop: '0.4rem', fontSize: '0.75rem', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <span>Centro de Costos:</span>
+                      <strong style={{ fontFamily: 'monospace', background: '#e0f2fe', padding: '0.1rem 0.4rem', borderRadius: '4px' }}>
+                        {catObj.centro_costo}
+                      </strong>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
           </div>
 

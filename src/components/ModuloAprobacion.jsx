@@ -67,6 +67,10 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   const [selectedItem, setSelectedItem] = useState(null);
   const [motivoRechazo, setMotivoRechazo] = useState('');
   const [showRechazoDialog, setShowRechazoDialog] = useState(false);
+  
+  const [showAprobarDialog, setShowAprobarDialog] = useState(false);
+  const [itemToAprobar, setItemToAprobar] = useState(null);
+  const [comentarioAprobacion, setComentarioAprobacion] = useState('Aprobado conforme');
   const [processingId, setProcessingId] = useState(null);
 
   const solicitudesFiltradas = solicitudes.filter(s => {
@@ -76,16 +80,27 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
 
   const pendientesCount = solicitudes.filter(s => s.estado === 'PENDIENTE').length;
 
-  const handleAprobar = async (item) => {
-    setProcessingId(item.id);
+  const handleOpenAprobar = (item) => {
+    setItemToAprobar(item);
+    setComentarioAprobacion('Aprobado conforme');
+    setShowAprobarDialog(true);
+  };
+
+  const handleAprobarConfirm = async () => {
+    if (!itemToAprobar) return;
+    setProcessingId(itemToAprobar.id);
     try {
-      await onUpdateEstado(item.id, 'APROBADO', 'Aprobado conforme');
+      const comentario = comentarioAprobacion.trim() || 'Aprobado conforme';
+      await onUpdateEstado(itemToAprobar.id, 'APROBADO', comentario);
       try {
         confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } });
       } catch (e) {
         console.log(e);
       }
       playNotificationSound('success');
+      setShowAprobarDialog(false);
+      setItemToAprobar(null);
+      setComentarioAprobacion('Aprobado conforme');
       setSelectedItem(null);
     } catch (err) {
       alert('Error al aprobar: ' + err.message);
@@ -241,7 +256,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                   {sol.estado === 'PENDIENTE' && (
                     <>
                       <button
-                        onClick={() => handleAprobar(sol)}
+                        onClick={() => handleOpenAprobar(sol)}
                         disabled={processingId === sol.id}
                         className="btn btn-success"
                         style={{ flex: 1, padding: '0.45rem', fontSize: '0.78rem' }}
@@ -348,7 +363,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                           {sol.estado === 'PENDIENTE' && (
                             <>
                               <button
-                                onClick={() => handleAprobar(sol)}
+                                onClick={() => handleOpenAprobar(sol)}
                                 disabled={processingId === sol.id}
                                 className="btn btn-success"
                                 style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
@@ -493,7 +508,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
 
                   <button
                     type="button"
-                    onClick={() => handleAprobar(selectedItem)}
+                    onClick={() => handleOpenAprobar(selectedItem)}
                     className="btn btn-success"
                     disabled={processingId === selectedItem.id}
                   >
@@ -504,6 +519,68 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
               )}
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* Aprobación Dialog con Comentario */}
+      {showAprobarDialog && itemToAprobar && (
+        <div className="modal-overlay">
+          <div className="modal-content" style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.85rem', color: '#16a34a' }}>
+              <CheckCircle size={22} />
+              <h3 style={{ fontSize: '1.15rem', color: '#0f172a' }}>Aprobar Solicitud {itemToAprobar.codigo}</h3>
+            </div>
+
+            <div style={{ background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0', marginBottom: '1rem', fontSize: '0.83rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Solicitante:</span>
+                <strong style={{ color: '#0f172a' }}>{itemToAprobar.solicitante_nombre}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Monto a Entregar:</span>
+                <strong style={{ color: '#16a34a', fontSize: '0.95rem' }}>S/ {Number(itemToAprobar.monto).toFixed(2)}</strong>
+              </div>
+              <div style={{ marginTop: '0.35rem', color: '#475569', fontSize: '0.78rem' }}>
+                <strong>Concepto:</strong> {itemToAprobar.motivo}
+              </div>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">
+                Comentario u Observación del Aprobador
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '0.3rem' }}>(se guardará en Supabase)</span>
+              </label>
+              <textarea
+                className="form-textarea"
+                rows={3}
+                placeholder="Ej: Aprobado conforme para trámites urgentes..."
+                value={comentarioAprobacion}
+                onChange={(e) => setComentarioAprobacion(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                className="btn btn-secondary"
+                onClick={() => {
+                  setShowAprobarDialog(false);
+                  setItemToAprobar(null);
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                className="btn btn-success"
+                disabled={processingId === itemToAprobar.id}
+                onClick={handleAprobarConfirm}
+              >
+                {processingId === itemToAprobar.id ? 'Aprobando...' : 'Confirmar Aprobación'}
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -88,6 +88,15 @@ export const DEFAULT_USUARIOS = [
   }
 ];
 
+export const DEFAULT_CATEGORIAS = [
+  { id: 'TRANSPORTE', nombre: 'Transporte / Movilidad', centro_costo: 'CC-OPERACIONES', descripcion: 'Pasajes, taxis, traslados, combustible', activo: true, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'ALIMENTACION', nombre: 'Alimentación / Refrigerios', centro_costo: 'CC-ADMINISTRACION', descripcion: 'Almuerzos, refrigerios y consumos laborales autorizados', activo: true, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'MATERIALES_OFICINA', nombre: 'Materiales de Oficina', centro_costo: 'CC-ADMINISTRACION', descripcion: 'Papelería, útiles de escritorio y consumibles', activo: true, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'SERVICIOS_URGENTES', nombre: 'Servicios Urgentes', centro_costo: 'CC-MANTENIMIENTO', descripcion: 'Cerrajería, plomería, envíos express y reparaciones menores', activo: true, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'REPRESENTACION', nombre: 'Gastos de Representación', centro_costo: 'CC-GERENCIA', descripcion: 'Atención a clientes y gestiones institucionales', activo: true, created_at: '2026-01-01T00:00:00Z' },
+  { id: 'OTROS', nombre: 'Otros Gastos Operativos', centro_costo: 'CC-GENERAL', descripcion: 'Gastos menores imprevistos debidamente sustentados', activo: true, created_at: '2026-01-01T00:00:00Z' }
+];
+
 export const DEFAULT_SOLICITUDES = [
   {
     id: 'sol-001',
@@ -179,6 +188,7 @@ class DataStore {
   constructor() {
     this.listeners = new Set();
     this.usuarios = this.loadInitial('caja_usuarios', DEFAULT_USUARIOS);
+    this.categorias = this.loadInitial('caja_categorias', DEFAULT_CATEGORIAS);
     this.solicitudes = this.loadInitial('caja_solicitudes', DEFAULT_SOLICITUDES);
     this.cajaFondo = this.loadInitial('caja_fondo', DEFAULT_CAJA_FONDO);
     this.notificaciones = this.loadInitial('caja_notificaciones', [
@@ -197,6 +207,7 @@ class DataStore {
       broadcast.onmessage = (event) => {
         if (event.data?.type === 'SYNC_ALL') {
           this.usuarios = this.loadInitial('caja_usuarios', DEFAULT_USUARIOS);
+          this.categorias = this.loadInitial('caja_categorias', DEFAULT_CATEGORIAS);
           this.solicitudes = this.loadInitial('caja_solicitudes', DEFAULT_SOLICITUDES);
           this.cajaFondo = this.loadInitial('caja_fondo', DEFAULT_CAJA_FONDO);
           this.notificaciones = this.loadInitial('caja_notificaciones', []);
@@ -294,6 +305,9 @@ class DataStore {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'caja_fondo' }, (payload) => {
           this.handleSupabaseCajaFondoEvent(payload);
         })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias_gastos' }, (payload) => {
+          this.handleSupabaseCategoriaEvent(payload);
+        })
         .subscribe();
     } catch (e) {
       console.warn('Error suscribiendo a Supabase Realtime:', e);
@@ -307,6 +321,20 @@ class DataStore {
       this.persist('caja_fondo', this.cajaFondo);
       this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'caja_fondo', eventType });
     }
+  }
+
+  handleSupabaseCategoriaEvent(payload) {
+    const { eventType, new: newRec, old: oldRec } = payload;
+    if (eventType === 'INSERT' || eventType === 'UPDATE') {
+      this.categorias = this.categorias.map(c => c.id === newRec.id ? newRec : c);
+      if (!this.categorias.find(c => c.id === newRec.id)) {
+        this.categorias.push(newRec);
+      }
+    } else if (eventType === 'DELETE') {
+      this.categorias = this.categorias.filter(c => c.id !== oldRec.id);
+    }
+    this.persist('caja_categorias', this.categorias);
+    this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'categorias_gastos', eventType });
   }
 
   handleSupabaseSolicitudEvent(payload) {
@@ -334,6 +362,110 @@ class DataStore {
     }
     this.persist('caja_usuarios', this.usuarios);
     this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'usuarios', eventType });
+  }
+
+  // --- MÉTODOS DE CATEGORÍAS DE GASTOS ---
+  async getCategorias() {
+    if (supabase) {
+      try {
+        const { data, error } = await supabase
+          .from('categorias_gastos')
+          .select('*')
+          .order('nombre', { ascending: true });
+        if (!error && data && data.length > 0) {
+          this.categorias = data;
+          this.persist('caja_categorias', data);
+          this.notifyListeners({ type: 'DATA_LOADED' });
+          return data;
+        } else if (!error && Array.isArray(data) && data.length === 0) {
+          // Si la tabla fue creada en Supabase pero está vacía, sembrar automáticamente las categorías base
+          try {
+            await supabase.from('categorias_gastos').insert(DEFAULT_CATEGORIAS);
+            this.categorias = DEFAULT_CATEGORIAS;
+            this.persist('caja_categorias', DEFAULT_CATEGORIAS);
+            this.notifyListeners({ type: 'DATA_LOADED' });
+            return DEFAULT_CATEGORIAS;
+          } catch (seedErr) {
+            console.warn('Error auto-sembrando categorias_gastos:', seedErr);
+          }
+        }
+      } catch (e) {
+        console.warn('Tabla categorias_gastos no disponible en Supabase, usando local:', e);
+      }
+    }
+    return this.categorias;
+  }
+
+  async saveCategoria(catData) {
+    const existingIdx = this.categorias.findIndex(c => c.id === catData.id);
+    let updated;
+    const cCosto = (catData.centro_costo || 'CC-GENERAL').trim().toUpperCase();
+    if (existingIdx >= 0) {
+      updated = { 
+        ...this.categorias[existingIdx], 
+        ...catData, 
+        centro_costo: cCosto,
+        updated_at: new Date().toISOString() 
+      };
+      this.categorias[existingIdx] = updated;
+    } else {
+      const generatedId = (catData.id || catData.nombre.toUpperCase().replace(/\s+/g, '_').replace(/[^A-Z0-9_]/g, '')).trim();
+      updated = {
+        id: generatedId,
+        nombre: catData.nombre.trim(),
+        centro_costo: cCosto,
+        descripcion: catData.descripcion || '',
+        activo: catData.activo !== undefined ? catData.activo : true,
+        created_at: new Date().toISOString()
+      };
+      this.categorias.push(updated);
+    }
+    this.persist('caja_categorias', this.categorias);
+
+    if (supabase) {
+      try {
+        await supabase.from('categorias_gastos').upsert(updated);
+      } catch (e) {
+        console.warn('Error guardando categoría en Supabase:', e);
+      }
+    }
+
+    this.broadcastSync({ type: 'CATEGORIA_UPDATED', categoria: updated });
+    return updated;
+  }
+
+  async toggleCategoriaActiva(id) {
+    const cat = this.categorias.find(c => c.id === id);
+    if (!cat) return null;
+    cat.activo = !cat.activo;
+    this.persist('caja_categorias', this.categorias);
+
+    if (supabase) {
+      try {
+        await supabase.from('categorias_gastos').update({ activo: cat.activo }).eq('id', id);
+      } catch (e) {
+        console.warn('Error actualizando estado de categoría en Supabase:', e);
+      }
+    }
+
+    this.broadcastSync({ type: 'CATEGORIA_UPDATED', categoria: cat });
+    return cat;
+  }
+
+  async deleteCategoria(id) {
+    this.categorias = this.categorias.filter(c => c.id !== id);
+    this.persist('caja_categorias', this.categorias);
+
+    if (supabase) {
+      try {
+        await supabase.from('categorias_gastos').delete().eq('id', id);
+      } catch (e) {
+        console.warn('Error eliminando categoría en Supabase:', e);
+      }
+    }
+
+    this.broadcastSync({ type: 'CATEGORIA_DELETED', id });
+    return true;
   }
 
   // --- MÉTODOS DE USUARIOS / MAESTRO DNI ---
@@ -420,11 +552,15 @@ class DataStore {
   async createSolicitud(solData) {
     const correlativo = String(this.solicitudes.length + 1).padStart(3, '0');
     const codigo = `SOL-2026-${correlativo}`;
+    const catObj = this.categorias.find(c => c.id === solData.categoria);
+    const centro_costo = solData.centro_costo || catObj?.centro_costo || 'CC-GENERAL';
+
     const newSolicitud = {
       id: 'sol-' + Date.now(),
       codigo,
       moneda: 'PEN',
       estado: 'PENDIENTE',
+      centro_costo,
       created_at: new Date().toISOString(),
       ...solData
     };
@@ -546,32 +682,52 @@ class DataStore {
   }
 
   async rendirAdelanto(id, comprobantesArray) {
-    if (this.useSupabase && supabase) {
-      const { data, error } = await supabase
-        .from('solicitudes')
-        .update({ 
-          rendiciones: JSON.stringify(comprobantesArray),
-          estado: 'RENDIDO'
-        })
-        .eq('id', id)
-        .select();
-      if (error) throw error;
-      const idx = this.solicitudes.findIndex(s => s.id === id);
-      if (idx !== -1 && data && data.length > 0) {
-        this.solicitudes[idx] = data[0];
+    const idx = this.solicitudes.findIndex(s => s.id === id);
+    if (idx === -1) throw new Error("Solicitud no encontrada");
+
+    const sol = this.solicitudes[idx];
+    sol.rendiciones = comprobantesArray;
+    sol.estado = 'RENDIDO';
+    this.persist('caja_solicitudes', this.solicitudes);
+
+    if (supabase) {
+      try {
+        const { error } = await supabase
+          .from('solicitudes')
+          .update({ 
+            rendiciones: comprobantesArray,
+            estado: 'RENDIDO'
+          })
+          .eq('id', id);
+
+        if (error) {
+          console.error("Error guardando rendición en Supabase:", error);
+          throw error;
+        }
+      } catch (err) {
+        console.error("Fallo al actualizar rendición en Supabase:", err);
+        throw err;
       }
-      this.broadcastSync({ type: 'SOLICITUD_RENDIDA', id });
-      return data[0];
-    } else {
-      // Fallback local
-      const idx = this.solicitudes.findIndex(s => s.id === id);
-      if (idx === -1) throw new Error("Solicitud no encontrada");
-      this.solicitudes[idx].rendiciones = JSON.stringify(comprobantesArray);
-      this.solicitudes[idx].estado = 'RENDIDO';
-      this.persist('solicitudes', this.solicitudes);
-      this.broadcastSync({ type: 'SOLICITUD_RENDIDA', id });
-      return this.solicitudes[idx];
     }
+
+    // Notificación en la app para Administradores
+    this.addNotification({
+      titulo: `Rendición Recibida: ${sol.codigo}`,
+      mensaje: `${sol.solicitante_nombre} ha rendido sus comprobantes por el adelanto entregado.`,
+      tipo: 'SUCCESS',
+      usuario_dni: 'ADMINS',
+      referencia_id: sol.id
+    });
+
+    // Enviar notificación Push (OneSignal) a Administradores y Cajeros
+    const adminYCajerosDnis = this.usuarios
+      .filter(u => u.roles?.includes('ADMINISTRADOR') || u.roles?.includes('USUARIO'))
+      .map(u => u.dni);
+    this.sendOneSignalPush(`Caja Chica: ${sol.codigo} Rendido`, `${sol.solicitante_nombre} ha rendido los comprobantes del adelanto.`, adminYCajerosDnis);
+
+    this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: 'RENDIDO' });
+    this.notifyListeners({ type: 'DATA_LOADED' });
+    return sol;
   }
 
   // --- ASIGNACIÓN DE FONDOS (ADMIN) ---

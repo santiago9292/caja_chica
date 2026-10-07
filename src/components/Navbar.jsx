@@ -11,7 +11,8 @@ import {
   Settings2,
   CheckSquare,
   Clock,
-  User
+  User,
+  Tag
 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/store';
 
@@ -324,6 +325,16 @@ export function Navbar({
           >
             <Users size={15} />
             <span>Maestro DNIs</span>
+          </button>
+        )}
+
+        {isSysadmin && (
+          <button 
+            className={`nav-tab-btn ${currentTab === 'maestro_categorias' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('maestro_categorias')}
+          >
+            <Tag size={15} />
+            <span>Categorías</span>
           </button>
         )}
 
