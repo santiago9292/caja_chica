@@ -33,6 +33,7 @@ export function App() {
   const [currentTab, setCurrentTab] = useState('nuevo');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [toasts, setToasts] = useState([]);
+  const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
 
   // Inicializar OneSignal
   useEffect(() => {
@@ -45,6 +46,7 @@ export function App() {
             enable: true,
           },
         });
+        setIsOneSignalInitialized(true);
         OneSignal.Slidedown.promptPush();
       } catch (e) {
         console.warn("OneSignal init error:", e);
@@ -55,6 +57,8 @@ export function App() {
 
   // Vincular el dispositivo al DNI del usuario
   useEffect(() => {
+    if (!isOneSignalInitialized) return;
+    
     if (currentUser && currentUser.dni) {
       try {
         OneSignal.login(currentUser.dni);
@@ -66,7 +70,7 @@ export function App() {
         OneSignal.logout();
       } catch (e) {}
     }
-  }, [currentUser]);
+  }, [currentUser, isOneSignalInitialized]);
 
   const fireNativeNotification = (title, body) => {
     if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
