@@ -191,6 +191,10 @@ export function App() {
     return await store.updateEstadoSolicitud(id, estado, currentUser, observaciones);
   };
 
+  const handleRendirAdelanto = async (id, comprobantes) => {
+    return await store.rendirAdelanto(id, comprobantes);
+  };
+
   const handleSaveUsuario = async (userData) => {
     return await store.saveUsuario(userData);
   };
@@ -246,6 +250,7 @@ export function App() {
               <MisSolicitudes
                 currentUser={currentUser}
                 solicitudes={solicitudes}
+                onRendirAdelanto={handleRendirAdelanto}
               />
             )}
 

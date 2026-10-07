@@ -471,7 +471,7 @@ class DataStore {
     }
 
     // Si el Cajero/Usuario abona el dinero, descontar del fondo disponible
-    if (nuevoEstado === 'PAGADO') {
+    if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
       const monto = Number(sol.monto || 0);
       this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_disponible - monto);
       this.persist('caja_fondo', this.cajaFondo);
@@ -496,14 +496,14 @@ class DataStore {
     let title = `Solicitud ${statusText}: ${sol.codigo}`;
     let msg = `Tu solicitud por S/ ${Number(sol.monto).toFixed(2)} fue ${statusText.toLowerCase()} por ${adminUser.nombres}. ${observaciones ? 'Obs: ' + observaciones : ''}`;
     
-    if (nuevoEstado === 'PAGADO') {
+    if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
       msg = `Tu solicitud ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)} ha sido ABONADA/PAGADA por caja (${adminUser.nombres}). El dinero ya ha sido entregado.`;
     }
 
     this.addNotification({
       titulo: title,
       mensaje: msg,
-      tipo: nuevoEstado === 'APROBADO' || nuevoEstado === 'PAGADO' ? 'SUCCESS' : 'DANGER',
+      tipo: nuevoEstado === 'APROBADO' || nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR' || nuevoEstado === 'RENDIDO' ? 'SUCCESS' : 'DANGER',
       usuario_dni: sol.solicitante_dni,
       referencia_id: sol.id
     });
@@ -529,7 +529,7 @@ class DataStore {
     let msgPush = '';
     let targetPushDnis = [sol.solicitante_dni];
 
-    if (nuevoEstado === 'PAGADO') {
+    if (nuevoEstado === 'PAGADO' || nuevoEstado === 'POR_RENDIR') {
       msgPush = `${adminUser.nombres} entregó el efectivo de tu ${sol.operacion}.`;
     } else if (nuevoEstado === 'APROBADO') {
       msgPush = `${adminUser.nombres} aprobó el ${sol.operacion} de ${sol.solicitante_nombre}. Cajero, proceda con el abono.`;
@@ -543,6 +543,35 @@ class DataStore {
 
     this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     return sol;
+  }
+
+  async rendirAdelanto(id, comprobantesArray) {
+    if (this.useSupabase && supabase) {
+      const { data, error } = await supabase
+        .from('solicitudes')
+        .update({ 
+          rendiciones: JSON.stringify(comprobantesArray),
+          estado: 'RENDIDO'
+        })
+        .eq('id', id)
+        .select();
+      if (error) throw error;
+      const idx = this.solicitudes.findIndex(s => s.id === id);
+      if (idx !== -1 && data && data.length > 0) {
+        this.solicitudes[idx] = data[0];
+      }
+      this.broadcastSync({ type: 'SOLICITUD_RENDIDA', id });
+      return data[0];
+    } else {
+      // Fallback local
+      const idx = this.solicitudes.findIndex(s => s.id === id);
+      if (idx === -1) throw new Error("Solicitud no encontrada");
+      this.solicitudes[idx].rendiciones = JSON.stringify(comprobantesArray);
+      this.solicitudes[idx].estado = 'RENDIDO';
+      this.persist('solicitudes', this.solicitudes);
+      this.broadcastSync({ type: 'SOLICITUD_RENDIDA', id });
+      return this.solicitudes[idx];
+    }
   }
 
   // --- ASIGNACIÓN DE FONDOS (ADMIN) ---

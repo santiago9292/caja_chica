@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
-import { Clock, CheckCircle2, FileText, Eye, Search } from 'lucide-react';
+import { Clock, CheckCircle2, FileText, Eye, Search, Receipt } from 'lucide-react';
+import { ModalRendicion } from './ModalRendicion';
 
-export function MisSolicitudes({ currentUser, solicitudes }) {
+export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [rendicionItem, setRendicionItem] = useState(null);
 
   const misItems = solicitudes.filter(s => s.solicitante_dni === currentUser.dni);
 
@@ -134,12 +136,24 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
                     <td>
                       <span className={`badge ${
                         item.estado === 'APROBADO' ? 'badge-aprobado' :
+                        item.estado === 'RENDIDO' ? 'badge-aprobado' :
+                        item.estado === 'POR_RENDIR' ? 'badge-pendiente' :
                         item.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
                       }`}>
-                        {item.estado}
+                        {item.estado.replace('_', ' ')}
                       </span>
                     </td>
-                    <td style={{ textAlign: 'right' }}>
+                    <td style={{ textAlign: 'right', display: 'flex', gap: '0.4rem', justifyContent: 'flex-end' }}>
+                      {item.estado === 'POR_RENDIR' && (
+                        <button
+                          onClick={() => setRendicionItem(item)}
+                          className="btn btn-primary"
+                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                        >
+                          <Receipt size={14} />
+                          <span>Rendir</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => setSelectedItem(item)}
                         className="btn btn-secondary"
@@ -233,6 +247,15 @@ export function MisSolicitudes({ currentUser, solicitudes }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal Rendición */}
+      {rendicionItem && (
+        <ModalRendicion
+          solicitud={rendicionItem}
+          onClose={() => setRendicionItem(null)}
+          onRendir={onRendirAdelanto}
+        />
       )}
     </div>
   );

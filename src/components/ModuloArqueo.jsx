@@ -12,9 +12,9 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [nuevoFondo, setNuevoFondo] = useState(montoTotal);
   const [processingId, setProcessingId] = useState(null);
 
-  // Consideramos pagados los que están en estado PAGADO (para arqueo egresos)
+  // Consideramos pagados los que están en estado PAGADO, POR_RENDIR o RENDIDO (para arqueo egresos)
   const totalPagado = solicitudes
-    .filter(s => s.estado === 'PAGADO')
+    .filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendienteOAprobado = solicitudes
@@ -24,7 +24,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
 
   const categoriasMap = {};
-  solicitudes.filter(s => s.estado === 'PAGADO').forEach(s => {
+  solicitudes.filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO').forEach(s => {
     const cat = s.categoria.replace(/_/g, ' ');
     if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, count: 0 };
     categoriasMap[cat].total += Number(s.monto || 0);
@@ -49,7 +49,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
 
     setProcessingId(sol.id);
     try {
-      await onUpdateEstado(sol.id, 'PAGADO', '');
+      await onUpdateEstado(sol.id, 'POR_RENDIR', '');
       playNotificationSound('success');
     } catch (err) {
       alert('Error al abonar: ' + err.message);
