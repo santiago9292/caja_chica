@@ -40,6 +40,7 @@ export function App() {
   // Inicializar OneSignal
   useEffect(() => {
     const initOneSignal = async () => {
+      if (window.__onesignal_initialized) return;
       try {
         await OneSignal.init({
           appId: "c50fba12-7b4e-45e9-8bc5-63d9639a2b53",
@@ -48,10 +49,12 @@ export function App() {
             enable: true,
           },
         });
+        window.__onesignal_initialized = true;
         setIsOneSignalInitialized(true);
         OneSignal.Slidedown.promptPush();
       } catch (e) {
-        console.warn("OneSignal init error:", e);
+        // En localhost o por restricción de dominio de OneSignal
+        console.info("OneSignal push notification status:", e.message || e);
       }
     };
     initOneSignal();
