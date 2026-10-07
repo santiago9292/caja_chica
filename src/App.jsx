@@ -123,15 +123,25 @@ export function App() {
           fireNativeNotification(title, msg);
         }
       } 
-      // Cambio de estado -> Solo notificar al Solicitante original
+      // Cambio de estado
       else if (meta?.type === 'SOLICITUD_STATUS_CHANGED' && meta.solicitud) {
-        if (currentUser.dni === meta.solicitud.solicitante_dni) {
+        if (meta.estado === 'PENDIENTE_REEMBOLSO') {
+          if (isAdmin) {
+            const title = `Reembolso por Autorizar: ${meta.solicitud.codigo}`;
+            const msg = `${meta.solicitud.solicitante_nombre} rindió con exceso. Autoriza el reembolso en Bandeja de Aprobaciones.`;
+            showToast({ title, message: msg, type: 'warning' });
+            fireNativeNotification(title, msg);
+          }
+        } else if (currentUser.dni === meta.solicitud.solicitante_dni) {
           const title = `Solicitud ${meta.estado}: ${meta.solicitud.codigo}`;
           const isPagado = meta.estado === 'PAGADO';
-          const msg = isPagado 
+          const isPorReembolsar = meta.estado === 'POR_REEMBOLSAR';
+          const msg = isPorReembolsar
+            ? `Tu reembolso fue aprobado por el administrador. Acércate a Caja Chica para cobrar.`
+            : isPagado 
             ? `Tu solicitud fue abonada por el cajero ${meta.solicitud.pagado_por_nombre}`
             : `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
-          showToast({ title, message: msg, type: meta.estado === 'APROBADO' || isPagado ? 'success' : 'danger' });
+          showToast({ title, message: msg, type: meta.estado === 'APROBADO' || isPagado || isPorReembolsar ? 'success' : 'danger' });
           fireNativeNotification(title, msg);
         }
       }
@@ -225,7 +235,7 @@ export function App() {
     store.marcarNotificacionesLeidas();
   };
 
-  const pendientesCount = solicitudes.filter(s => s.estado === 'PENDIENTE').length;
+  const pendientesCount = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO').length;
 
   return (
     <div className="app-container">
