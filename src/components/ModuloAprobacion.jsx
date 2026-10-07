@@ -6,9 +6,12 @@ import {
   Clock, 
   Eye, 
   Receipt, 
-  AlertTriangle,
-  Check,
-  X
+  AlertTriangle, 
+  Check, 
+  X,
+  FileText,
+  User,
+  DollarSign
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
@@ -19,30 +22,30 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   if (!isAdmin) {
     return (
       <div className="glass-panel" style={{
-        padding: '3rem 2rem',
+        padding: '2.5rem 1.5rem',
         textAlign: 'center',
         maxWidth: '560px',
-        margin: '2rem auto',
+        margin: '1.5rem auto',
         border: '1px solid var(--danger-border)',
         background: 'var(--danger-bg)'
       }}>
         <div style={{
-          width: '54px',
-          height: '54px',
+          width: '50px',
+          height: '50px',
           borderRadius: '50%',
           background: '#ffffff',
           border: '1px solid var(--danger-border)',
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1rem'
+          marginBottom: '0.85rem'
         }}>
-          <ShieldAlert size={28} color="#dc2626" />
+          <ShieldAlert size={26} color="#dc2626" />
         </div>
-        <h2 style={{ fontSize: '1.4rem', color: '#0f172a', marginBottom: '0.5rem' }}>
+        <h2 style={{ fontSize: '1.3rem', color: '#0f172a', marginBottom: '0.4rem' }}>
           Módulo de Aprobación Restringido
         </h2>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', lineHeight: '1.5', marginBottom: '1.25rem' }}>
+        <p style={{ color: 'var(--text-muted)', fontSize: '0.85rem', lineHeight: '1.5', marginBottom: '1rem' }}>
           Este módulo es exclusivo para usuarios con rol de <strong>ADMINISTRADOR</strong>.
         </p>
         <div style={{
@@ -50,7 +53,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
           padding: '0.35rem 0.85rem',
           background: '#ffffff',
           borderRadius: 'var(--radius-md)',
-          fontSize: '0.8rem',
+          fontSize: '0.78rem',
           color: 'var(--text-muted)',
           border: '1px solid #e2e8f0'
         }}>
@@ -116,23 +119,25 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
     <div>
       
       {/* Encabezado */}
-      <div className="glass-panel" style={{ padding: '1.25rem 1.75rem', marginBottom: '1.25rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+      <div className="glass-panel" style={{ padding: '1rem 1.25rem', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.85rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.35rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span>Bandeja de Aprobaciones</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+            <h2 style={{ fontSize: '1.25rem', color: '#0f172a', margin: 0 }}>
+              Bandeja de Aprobaciones
+            </h2>
             {pendientesCount > 0 && (
-              <span className="badge badge-pendiente">
-                {pendientesCount} Pendientes
+              <span className="badge badge-pendiente" style={{ fontSize: '0.75rem' }}>
+                {pendientesCount} PENDIENTES
               </span>
             )}
-          </h2>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
-            Administrador: <strong>{currentUser?.nombres} {currentUser?.apellidos}</strong> (DNI: {currentUser?.dni})
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem', marginTop: '0.2rem' }}>
+            Administrador: <strong>{currentUser?.nombres} {currentUser?.apellidos}</strong>
           </p>
         </div>
 
         {/* Filtros */}
-        <div style={{ display: 'flex', gap: '0.35rem', background: '#f1f5f9', padding: '0.25rem', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ display: 'flex', gap: '0.25rem', background: '#f1f5f9', padding: '0.2rem', borderRadius: 'var(--radius-md)', width: '100%', maxWidth: '340px' }}>
           {[
             { id: 'PENDIENTE', label: 'Pendientes', count: pendientesCount },
             { id: 'APROBADO', label: 'Aprobados' },
@@ -144,8 +149,9 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
               onClick={() => setFiltroEstado(f.id)}
               className="btn btn-ghost"
               style={{
-                fontSize: '0.78rem',
-                padding: '0.35rem 0.75rem',
+                fontSize: '0.75rem',
+                padding: '0.35rem 0.5rem',
+                flex: 1,
                 borderRadius: 'var(--radius-sm)',
                 background: filtroEstado === f.id ? '#ffffff' : 'transparent',
                 color: filtroEstado === f.id ? '#0f172a' : 'var(--text-muted)',
@@ -161,124 +167,218 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
 
       {/* Listado */}
       {solicitudesFiltradas.length === 0 ? (
-        <div className="glass-panel" style={{ padding: '3.5rem 1.5rem', textAlign: 'center' }}>
+        <div className="glass-panel" style={{ padding: '3rem 1.5rem', textAlign: 'center' }}>
           <Clock size={36} color="var(--text-faint)" style={{ marginBottom: '0.75rem' }} />
-          <h3 style={{ color: '#0f172a', fontSize: '1.05rem', marginBottom: '0.25rem' }}>
+          <h3 style={{ color: '#0f172a', fontSize: '1rem', marginBottom: '0.25rem' }}>
             No hay solicitudes en estado {filtroEstado.toLowerCase()}
           </h3>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.825rem' }}>
+          <p style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
             Las solicitudes registradas aparecerán aquí automáticamente en tiempo real.
           </p>
         </div>
       ) : (
-        <div className="glass-panel" style={{ padding: '0.75rem' }}>
-          <div className="table-responsive">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Fecha</th>
-                  <th>Solicitante</th>
-                  <th>Operación</th>
-                  <th>Categoría</th>
-                  <th>Comprobante</th>
-                  <th>Monto</th>
-                  <th>Estado</th>
-                  <th style={{ textAlign: 'right' }}>Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {solicitudesFiltradas.map((sol) => (
-                  <tr key={sol.id}>
-                    <td>
-                      <span style={{ color: '#0f172a', fontFamily: 'monospace', fontWeight: '700' }}>
-                        {sol.codigo}
-                      </span>
-                    </td>
-                    <td>{new Date(sol.created_at).toLocaleDateString('es-PE')}</td>
-                    <td>
-                      <div>
-                        <div style={{ fontWeight: '600', color: '#0f172a' }}>{sol.solicitante_nombre}</div>
-                        <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {sol.solicitante_dni}</div>
-                      </div>
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '0.8rem' }}>
-                        {sol.tipo === 'ADELANTO_DINERO' ? 'Adelanto' : 'Rendición'}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="badge" style={{ background: '#f1f5f9', color: '#475569' }}>
-                        {sol.categoria.replace(/_/g, ' ')}
-                      </span>
-                    </td>
-                    <td>
-                      {sol.comprobante_tipo ? (
-                        <div style={{ fontSize: '0.78rem' }}>
-                          <div>{sol.comprobante_tipo.replace(/_/g, ' ')}</div>
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>{sol.comprobante_numero || '-'}</div>
-                        </div>
-                      ) : (
-                        <span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>-</span>
-                      )}
-                    </td>
-                    <td>
-                      <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a' }}>
-                        S/ {Number(sol.monto).toFixed(2)}
-                      </span>
-                    </td>
-                    <td>
-                      <span className={`badge ${
-                        sol.estado === 'APROBADO' ? 'badge-aprobado' :
-                        sol.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
-                      }`}>
-                        {sol.estado}
-                      </span>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
-                        <button
-                          onClick={() => setSelectedItem(sol)}
-                          className="btn btn-secondary"
-                          style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
-                        >
-                          <Eye size={14} />
-                          <span>Revisar</span>
-                        </button>
+        <>
+          {/* VISTA MÓVIL: Tarjetas limpias (Para pantallas < 768px) */}
+          <div className="mobile-only" style={{ flexDirection: 'column', gap: '0.75rem', width: '100%' }}>
+            {solicitudesFiltradas.map((sol) => (
+              <div 
+                key={sol.id}
+                className="glass-panel"
+                style={{ padding: '1rem', display: 'flex', flexDirection: 'column', gap: '0.65rem' }}
+              >
+                {/* Fila 1: Código, Fecha y Estado */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: '800', color: '#0f172a', fontSize: '0.95rem', whiteSpace: 'nowrap' }}>
+                      {sol.codigo}
+                    </span>
+                    <span style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>
+                      • {new Date(sol.created_at).toLocaleDateString('es-PE')}
+                    </span>
+                  </div>
+                  <span className={`badge ${
+                    sol.estado === 'APROBADO' ? 'badge-aprobado' :
+                    sol.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
+                  }`}>
+                    {sol.estado}
+                  </span>
+                </div>
 
-                        {sol.estado === 'PENDIENTE' && (
-                          <>
-                            <button
-                              onClick={() => handleAprobar(sol)}
-                              disabled={processingId === sol.id}
-                              className="btn btn-success"
-                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
-                            >
-                              <Check size={14} />
-                              <span>Aprobar</span>
-                            </button>
-                            <button
-                              onClick={() => {
-                                setSelectedItem(sol);
-                                setShowRechazoDialog(true);
-                              }}
-                              disabled={processingId === sol.id}
-                              className="btn btn-danger"
-                              style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
-                            >
-                              <X size={14} />
-                              <span>Rechazar</span>
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                {/* Fila 2: Solicitante y Concepto */}
+                <div>
+                  <div style={{ fontWeight: '700', fontSize: '0.88rem', color: '#0f172a' }}>
+                    {sol.solicitante_nombre}
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.15rem' }}>
+                    DNI: {sol.solicitante_dni} • <span style={{ textTransform: 'capitalize' }}>{sol.categoria.toLowerCase().replace(/_/g, ' ')}</span>
+                  </div>
+                  <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '0.35rem', background: '#f8fafc', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e2e8f0' }}>
+                    {sol.motivo}
+                  </div>
+                </div>
+
+                {/* Fila 3: Monto e Importe */}
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '0.5rem' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    {sol.tipo === 'ADELANTO_DINERO' ? '💵 Adelanto Efectivo' : '🧾 Rendición con Comprobante'}
+                  </div>
+                  <div style={{ fontSize: '1.15rem', fontWeight: '800', color: '#0f172a' }}>
+                    S/ {Number(sol.monto).toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Fila 4: Acciones */}
+                <div style={{ display: 'flex', gap: '0.4rem', marginTop: '0.2rem' }}>
+                  <button
+                    onClick={() => setSelectedItem(sol)}
+                    className="btn btn-secondary"
+                    style={{ flex: 1, padding: '0.45rem', fontSize: '0.78rem' }}
+                  >
+                    <Eye size={14} />
+                    <span>Revisar</span>
+                  </button>
+
+                  {sol.estado === 'PENDIENTE' && (
+                    <>
+                      <button
+                        onClick={() => handleAprobar(sol)}
+                        disabled={processingId === sol.id}
+                        className="btn btn-success"
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.78rem' }}
+                      >
+                        <Check size={14} />
+                        <span>Aprobar</span>
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          setSelectedItem(sol);
+                          setShowRechazoDialog(true);
+                        }}
+                        disabled={processingId === sol.id}
+                        className="btn btn-danger"
+                        style={{ flex: 1, padding: '0.45rem', fontSize: '0.78rem' }}
+                      >
+                        <X size={14} />
+                        <span>Rechazar</span>
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            ))}
           </div>
-        </div>
+
+          {/* VISTA DESKTOP / TABLET: Tabla Completa (Para pantallas >= 768px) */}
+          <div className="glass-panel desktop-only" style={{ padding: '0.75rem', flexDirection: 'column', width: '100%' }}>
+            <div className="table-responsive">
+              <table className="data-table" style={{ minWidth: '780px' }}>
+                <thead>
+                  <tr>
+                    <th style={{ whiteSpace: 'nowrap' }}>Código</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>Fecha</th>
+                    <th>Solicitante</th>
+                    <th>Operación</th>
+                    <th>Categoría</th>
+                    <th>Comprobante</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>Monto</th>
+                    <th>Estado</th>
+                    <th style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {solicitudesFiltradas.map((sol) => (
+                    <tr key={sol.id}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ color: '#0f172a', fontFamily: 'monospace', fontWeight: '800', whiteSpace: 'nowrap' }}>
+                          {sol.codigo}
+                        </span>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>{new Date(sol.created_at).toLocaleDateString('es-PE')}</td>
+                      <td>
+                        <div>
+                          <div style={{ fontWeight: '600', color: '#0f172a' }}>{sol.solicitante_nombre}</div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {sol.solicitante_dni}</div>
+                        </div>
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '0.8rem' }}>
+                          {sol.tipo === 'ADELANTO_DINERO' ? 'Adelanto' : 'Rendición'}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="badge" style={{ background: '#f1f5f9', color: '#475569', whiteSpace: 'nowrap' }}>
+                          {sol.categoria.replace(/_/g, ' ')}
+                        </span>
+                      </td>
+                      <td>
+                        {sol.comprobante_tipo ? (
+                          <div style={{ fontSize: '0.78rem' }}>
+                            <div>{sol.comprobante_tipo.replace(/_/g, ' ')}</div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>{sol.comprobante_numero || '-'}</div>
+                          </div>
+                        ) : (
+                          <span style={{ color: 'var(--text-faint)', fontSize: '0.8rem' }}>-</span>
+                        )}
+                      </td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: '0.95rem', fontWeight: '700', color: '#0f172a', whiteSpace: 'nowrap' }}>
+                          S/ {Number(sol.monto).toFixed(2)}
+                        </span>
+                      </td>
+                      <td>
+                        <span className={`badge ${
+                          sol.estado === 'APROBADO' ? 'badge-aprobado' :
+                          sol.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
+                        }`}>
+                          {sol.estado}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', gap: '0.35rem' }}>
+                          <button
+                            onClick={() => setSelectedItem(sol)}
+                            className="btn btn-secondary"
+                            style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                          >
+                            <Eye size={14} />
+                            <span>Revisar</span>
+                          </button>
+
+                          {sol.estado === 'PENDIENTE' && (
+                            <>
+                              <button
+                                onClick={() => handleAprobar(sol)}
+                                disabled={processingId === sol.id}
+                                className="btn btn-success"
+                                style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                              >
+                                <Check size={14} />
+                                <span>Aprobar</span>
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setSelectedItem(sol);
+                                  setShowRechazoDialog(true);
+                                }}
+                                disabled={processingId === sol.id}
+                                className="btn btn-danger"
+                                style={{ padding: '0.35rem 0.65rem', fontSize: '0.78rem' }}
+                              >
+                                <X size={14} />
+                                <span>Rechazar</span>
+                              </button>
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Modal Detalle */}
@@ -301,10 +401,10 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
             </div>
 
             {/* Ficha Resumen */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '1rem' }}>
               <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
                 <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Solicitante</span>
-                <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.9rem' }}>{selectedItem.solicitante_nombre}</div>
+                <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.88rem' }}>{selectedItem.solicitante_nombre}</div>
                 <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {selectedItem.solicitante_dni}</div>
               </div>
 
@@ -325,7 +425,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                 padding: '0.75rem',
                 borderRadius: 'var(--radius-md)',
                 color: '#334155',
-                fontSize: '0.875rem',
+                fontSize: '0.85rem',
                 border: '1px solid #e2e8f0'
               }}>
                 {selectedItem.motivo}
@@ -344,7 +444,7 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                 <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '0.825rem', marginBottom: '0.5rem' }}>
                   Sustento de Comprobante
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.5rem', fontSize: '0.78rem' }}>
                   <div><span style={{ color: 'var(--text-muted)' }}>Tipo: </span><strong>{selectedItem.comprobante_tipo}</strong></div>
                   <div><span style={{ color: 'var(--text-muted)' }}>N°: </span><strong>{selectedItem.comprobante_numero || '-'}</strong></div>
                   <div><span style={{ color: 'var(--text-muted)' }}>RUC: </span><strong>{selectedItem.comprobante_ruc_emisor || '-'}</strong></div>

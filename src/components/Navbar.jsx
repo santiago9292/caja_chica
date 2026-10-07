@@ -10,7 +10,8 @@ import {
   Download, 
   Settings2,
   CheckSquare,
-  Clock
+  Clock,
+  User
 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/store';
 
@@ -55,40 +56,47 @@ export function Navbar({
   const isUsuario = userRoles.includes('USUARIO');
 
   const unreadNotifs = notificaciones.filter(n => !n.leido);
-  const firstName = currentUser?.nombres?.split(' ')[0] || 'Usuario';
+  
+  // Iniciales del usuario para el avatar
+  const getInitials = () => {
+    if (!currentUser) return 'U';
+    const n = currentUser.nombres ? currentUser.nombres[0] : '';
+    const a = currentUser.apellidos ? currentUser.apellidos[0] : '';
+    return (n + a).toUpperCase() || 'U';
+  };
 
   return (
     <>
       <header className="header-bar">
-        {/* Marca */}
+        {/* Marca a la izquierda */}
         <div className="brand-section">
           <div className="brand-logo">
-            <Building2 size={20} color="#ffffff" />
+            <Building2 size={18} color="#ffffff" />
           </div>
-          <div>
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
             <div className="brand-title">
               <span>CajaChica</span>
-              <span style={{ color: '#2563eb', fontSize: '0.75rem', fontWeight: '700' }}>CORP</span>
+              <span style={{ color: '#2563eb', fontSize: '0.7rem', fontWeight: '700' }}>CORP</span>
               <span className="pulse-indicator" title="Tiempo Real Activo" />
             </div>
             <div className="brand-subtitle desktop-only">
-              <span>{isSupabaseConfigured ? 'Supabase Realtime' : 'Modo PWA Sincronizado'}</span>
+              <span>{isSupabaseConfigured ? 'Supabase Realtime' : 'Modo Sincronizado'}</span>
             </div>
           </div>
         </div>
 
-        {/* Acciones de Cabecera */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+        {/* Acciones a la derecha */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 0 }}>
           
           {canInstallPwa && (
             <button 
-              className="btn btn-secondary" 
+              className="btn btn-secondary desktop-only" 
               onClick={handleInstallClick} 
               style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem' }}
               title="Instalar App PWA"
             >
               <Download size={14} color="#0f172a" />
-              <span className="desktop-only">Instalar</span>
+              <span>Instalar</span>
             </button>
           )}
 
@@ -131,15 +139,15 @@ export function Navbar({
               )}
             </button>
 
-            {/* Popover */}
+            {/* Menu Popover */}
             {showNotifMenu && (
               <div 
                 className="glass-panel"
                 style={{
                   position: 'absolute',
                   right: 0,
-                  top: '120%',
-                  width: '300px',
+                  top: '125%',
+                  width: '290px',
                   maxWidth: '85vw',
                   padding: '0.85rem',
                   zIndex: 100,
@@ -191,25 +199,47 @@ export function Navbar({
             )}
           </div>
 
-          {/* Tarjeta Usuario Compacta */}
+          {/* Tarjeta Usuario Limpia y Anti-Desbordamiento */}
           <div style={{
             display: 'flex',
             alignItems: 'center',
-            gap: '0.45rem',
-            padding: '0.3rem 0.55rem',
+            gap: '0.4rem',
+            padding: '0.25rem 0.45rem',
             background: '#f8fafc',
             borderRadius: 'var(--radius-md)',
             border: '1px solid #e2e8f0'
           }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0f172a', lineHeight: 1.1 }}>
-                {firstName}
+            {/* Avatar con Iniciales */}
+            <div 
+              style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: '#0f172a',
+                color: '#ffffff',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '0.72rem',
+                fontWeight: '700',
+                flexShrink: 0
+              }}
+              title={`${currentUser?.nombres} ${currentUser?.apellidos} (DNI: ${currentUser?.dni})`}
+            >
+              {getInitials()}
+            </div>
+
+            {/* Nombre Completo solo en pantallas medianas/grandes */}
+            <div className="desktop-only" style={{ textAlign: 'left', lineHeight: 1.1 }}>
+              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0f172a', maxWidth: '120px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {currentUser?.nombres?.split(' ')[0]} {currentUser?.apellidos?.split(' ')[0]}
               </div>
-              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }} className="desktop-only">
+              <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
                 {currentUser?.dni}
               </div>
             </div>
 
+            {/* Botón Salir */}
             <button 
               onClick={onLogout}
               className="btn btn-ghost btn-icon"
@@ -223,9 +253,9 @@ export function Navbar({
         </div>
       </header>
 
-      {/* Badges de Roles Compactos */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.85rem', flexWrap: 'wrap' }}>
-        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>Roles:</span>
+      {/* Badges de Roles del Usuario */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginBottom: '0.75rem', flexWrap: 'wrap' }}>
+        <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontWeight: '600' }}>Roles del usuario:</span>
         {userRoles.map((r) => (
           <span 
             key={r} 
@@ -268,7 +298,7 @@ export function Navbar({
             onClick={() => setCurrentTab('aprobaciones')}
           >
             <CheckSquare size={15} />
-            <span>Aprobaciones</span>
+            <span>Módulo de Aprobación</span>
             {pendientesCount > 0 && (
               <span className="tab-badge">
                 {pendientesCount}
