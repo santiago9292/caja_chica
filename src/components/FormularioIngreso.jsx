@@ -63,7 +63,6 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
         monto: montoNum,
         motivo: motivo.trim(),
         categoria: catObj?.nombre || 'ADMINISTRACIÓN',
-        categoria_id: catObj?.id || categoriaId,
         centro_costo: centroCosto || catObj?.centro_costo || 'TRANS',
         // Al ser un adelanto puro, nace sin comprobantes físicos
         comprobante_tipo: null,

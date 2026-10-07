@@ -589,10 +589,39 @@ class DataStore {
     return this.solicitudes;
   }
 
+  sanitizeSolicitudForSupabase(sol) {
+    const allowed = [
+      'id', 'codigo', 'tipo', 'solicitante_dni', 'solicitante_nombre',
+      'monto', 'moneda', 'motivo', 'categoria', 'centro_costo',
+      'comprobante_tipo', 'comprobante_numero', 'comprobante_ruc_emisor',
+      'comprobante_razon_social', 'comprobante_fecha', 'comprobante_archivo_url',
+      'estado', 'aprobado_por_dni', 'aprobado_por_nombre', 'aprobado_fecha',
+      'observaciones_aprobador', 'pagado_por_dni', 'pagado_por_nombre', 'pagado_fecha',
+      'rendiciones', 'created_at'
+    ];
+    const clean = {};
+    for (const key of allowed) {
+      if (sol[key] !== undefined) {
+        clean[key] = sol[key];
+      }
+    }
+    return clean;
+  }
+
   async createSolicitud(solData) {
-    const correlativo = String(this.solicitudes.length + 1).padStart(3, '0');
-    const codigo = `SOL-2026-${correlativo}`;
-    const catObj = this.categorias.find(c => c.id === solData.categoria);
+    let maxNum = 0;
+    for (const s of this.solicitudes) {
+      if (s.codigo) {
+        const match = s.codigo.match(/SOL-\d+-(\d+)/);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (n > maxNum) maxNum = n;
+        }
+      }
+    }
+    const correlativo = String(maxNum + 1).padStart(3, '0');
+    let codigo = `SOL-2026-${correlativo}`;
+    const catObj = this.categorias.find(c => c.id === solData.categoria || c.nombre === solData.categoria);
     const centro_costo = solData.centro_costo || catObj?.centro_costo || 'CC-GENERAL';
 
     const newSolicitud = {
@@ -619,7 +648,18 @@ class DataStore {
 
     if (supabase) {
       try {
-        await supabase.from('solicitudes').insert(newSolicitud);
+        const cleanPayload = this.sanitizeSolicitudForSupabase(newSolicitud);
+        const { error } = await supabase.from('solicitudes').insert(cleanPayload);
+        if (error) {
+          console.error('Error insertando solicitud en Supabase:', error);
+          if (error.code === '23505') {
+            // Colisión de código por concurrencia entre navegadores
+            cleanPayload.codigo = `SOL-2026-${Date.now().toString().slice(-4)}`;
+            newSolicitud.codigo = cleanPayload.codigo;
+            await supabase.from('solicitudes').insert(cleanPayload);
+            this.persist('caja_solicitudes', this.solicitudes);
+          }
+        }
       } catch (e) {
         console.warn('Error guardando solicitud en Supabase:', e);
       }
