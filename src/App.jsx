@@ -82,11 +82,19 @@ export function App() {
   }, [currentUser, isOneSignalInitialized]);
 
   const fireNativeNotification = (title, body) => {
-    if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+    if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    if (Notification.permission === 'granted') {
       try {
-        if (navigator.serviceWorker) {
+        if ('serviceWorker' in navigator) {
           navigator.serviceWorker.ready.then((registration) => {
-            registration.showNotification(title, { body, icon: '/icon-192.svg' });
+            registration.showNotification(title, {
+              body,
+              icon: '/icon-192.svg',
+              badge: '/icon-192.svg',
+              tag: 'caja-chica-notif-' + Date.now(),
+              renotify: true
+            });
           }).catch(() => {
             new Notification(title, { body, icon: '/icon-192.svg' });
           });
@@ -96,10 +104,27 @@ export function App() {
       } catch (e) {
         console.warn('Error mostrando notificación nativa:', e);
       }
+    } else if (Notification.permission === 'default') {
+      Notification.requestPermission().then((perm) => {
+        if (perm === 'granted') {
+          try {
+            new Notification(title, { body, icon: '/icon-192.svg' });
+          } catch (e) {}
+        }
+      }).catch(() => {});
     }
   };
 
-  // Suscripción al store reactivo en tiempo real
+  // Solicitar permiso de notificaciones para Administradores en PC
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      if (Notification.permission === 'default') {
+        Notification.requestPermission().catch(() => {});
+      }
+    }
+  }, [currentUser]);
+
+  // Suscripción al store reactivo en tiempo real y sondeo continuo
   useEffect(() => {
     // Descargar datos iniciales desde Supabase al abrir la PWA
     store.getCajaFondo();
@@ -124,6 +149,7 @@ export function App() {
           const title = 'Nueva Solicitud Registrada';
           const msg = `${meta.solicitud.solicitante_nombre} registró ${meta.solicitud.codigo} por S/ ${Number(meta.solicitud.monto).toFixed(2)}`;
           showToast({ title, message: msg, type: 'warning' });
+          playNotificationSound('alert');
           fireNativeNotification(title, msg);
         }
       } 
@@ -134,6 +160,7 @@ export function App() {
             const title = `Reembolso por Autorizar: ${meta.solicitud.codigo}`;
             const msg = `${meta.solicitud.solicitante_nombre} rindió con exceso. Autoriza el reembolso en Bandeja de Aprobaciones.`;
             showToast({ title, message: msg, type: 'warning' });
+            playNotificationSound('alert');
             fireNativeNotification(title, msg);
           }
         } else if (currentUser.dni === meta.solicitud.solicitante_dni) {
@@ -146,12 +173,33 @@ export function App() {
             ? `Tu solicitud fue abonada por el cajero ${meta.solicitud.pagado_por_nombre}`
             : `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
           showToast({ title, message: msg, type: meta.estado === 'APROBADO' || isPagado || isPorReembolsar ? 'success' : 'danger' });
+          playNotificationSound(meta.estado === 'APROBADO' || isPagado ? 'success' : 'reject');
           fireNativeNotification(title, msg);
         }
       }
     });
 
-    return () => unsubscribe();
+    // Auto-actualización al retomar ventana y sondeo de respaldo periódico cada 15s
+    const handleSync = () => {
+      if (document.visibilityState === 'visible') {
+        store.getSolicitudes();
+        store.getCajaFondo();
+      }
+    };
+    document.addEventListener('visibilitychange', handleSync);
+    window.addEventListener('focus', handleSync);
+
+    const pollInterval = setInterval(() => {
+      store.getSolicitudes();
+      store.getCajaFondo();
+    }, 15000);
+
+    return () => {
+      unsubscribe();
+      document.removeEventListener('visibilitychange', handleSync);
+      window.removeEventListener('focus', handleSync);
+      clearInterval(pollInterval);
+    };
   }, [currentUser]);
 
   // Actualizar usuario en sesión si sus datos o roles cambiaron en el maestro

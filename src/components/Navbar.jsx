@@ -248,6 +248,47 @@ export function Navbar({
                 </div>
 
                 <div style={{ maxHeight: '240px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                  {typeof window !== 'undefined' && 'Notification' in window && Notification.permission !== 'granted' && (
+                    <div style={{
+                      padding: '0.45rem 0.6rem',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '6px',
+                      marginBottom: '0.4rem',
+                      fontSize: '0.72rem',
+                      color: '#1e40af',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '0.3rem'
+                    }}>
+                      <div style={{ fontWeight: '700' }}>🔔 Alertas de escritorio PC:</div>
+                      <div>
+                        {Notification.permission === 'denied' 
+                          ? 'Están bloqueadas en esta PWA. Haz clic en el icono 🔕 de la barra superior para permitirlas.' 
+                          : 'Activa las alertas para enterarte de inmediato al recibir adelantos.'}
+                      </div>
+                      {Notification.permission === 'default' && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            await Notification.requestPermission();
+                          }}
+                          style={{
+                            background: '#2563eb',
+                            color: '#fff',
+                            border: 'none',
+                            padding: '0.25rem 0.5rem',
+                            borderRadius: '4px',
+                            fontWeight: '700',
+                            fontSize: '0.7rem',
+                            cursor: 'pointer'
+                          }}
+                        >
+                          Habilitar Alertas
+                        </button>
+                      )}
+                    </div>
+                  )}
                   {notificaciones.length === 0 ? (
                     <div style={{ color: 'var(--text-muted)', fontSize: '0.78rem', textAlign: 'center', padding: '1rem 0' }}>
                       Sin notificaciones

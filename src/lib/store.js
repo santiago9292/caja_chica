@@ -275,9 +275,13 @@ class DataStore {
   }
 
   async initSupabaseRealtime() {
+    if (!supabase) return;
     try {
-      // Suscribirse a cambios en tablas
-      supabase
+      if (this.realtimeChannel) {
+        try { supabase.removeChannel(this.realtimeChannel); } catch (e) {}
+      }
+      // Suscribirse a cambios en tablas con reconexión automática
+      this.realtimeChannel = supabase
         .channel('realtime-solicitudes')
         .on('postgres_changes', { event: '*', schema: 'public', table: 'solicitudes' }, (payload) => {
           this.handleSupabaseSolicitudEvent(payload);
@@ -291,7 +295,14 @@ class DataStore {
         .on('postgres_changes', { event: '*', schema: 'public', table: 'categorias_gastos' }, (payload) => {
           this.handleSupabaseCategoriaEvent(payload);
         })
-        .subscribe();
+        .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ Supabase Realtime conectado');
+          } else if (status === 'CLOSED' || status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('⚠️ Supabase Realtime desconectado/error:', status, err);
+            setTimeout(() => this.initSupabaseRealtime(), 3000);
+          }
+        });
     } catch (e) {
       console.warn('Error suscribiendo a Supabase Realtime:', e);
     }
@@ -324,13 +335,48 @@ class DataStore {
     const { eventType, new: newRec, old: oldRec } = payload;
     if (eventType === 'INSERT') {
       this.solicitudes = [newRec, ...this.solicitudes.filter(s => s.id !== newRec.id)];
+      this.persist('caja_solicitudes', this.solicitudes);
+
+      // Registrar notificación en la lista de notificaciones local si no existe
+      const notifExists = this.notificaciones.some(n => n.referencia_id === newRec.id);
+      if (!notifExists) {
+        this.addNotification({
+          titulo: 'Nueva Solicitud Registrada',
+          mensaje: `${newRec.solicitante_nombre} ha registrado la solicitud ${newRec.codigo} por S/ ${Number(newRec.monto || 0).toFixed(2)}.`,
+          tipo: 'WARNING',
+          usuario_dni: 'ADMINS',
+          referencia_id: newRec.id
+        });
+      }
+
+      // Notificar a la app para actualizar UI de aprobación, Toast, sonido y notificación nativa
+      this.notifyListeners({ 
+        type: 'SOLICITUD_CREATED', 
+        solicitud: newRec,
+        source: 'supabase_realtime'
+      });
+      return;
     } else if (eventType === 'UPDATE') {
+      const prevSol = this.solicitudes.find(s => s.id === newRec.id);
       this.solicitudes = this.solicitudes.map(s => s.id === newRec.id ? newRec : s);
+      this.persist('caja_solicitudes', this.solicitudes);
+
+      if (prevSol && prevSol.estado !== newRec.estado) {
+        this.notifyListeners({ 
+          type: 'SOLICITUD_STATUS_CHANGED', 
+          solicitud: newRec,
+          estado: newRec.estado,
+          source: 'supabase_realtime'
+        });
+      } else {
+        this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'solicitudes', eventType, record: newRec });
+      }
+      return;
     } else if (eventType === 'DELETE') {
       this.solicitudes = this.solicitudes.filter(s => s.id !== oldRec.id);
+      this.persist('caja_solicitudes', this.solicitudes);
+      this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'solicitudes', eventType, record: oldRec });
     }
-    this.persist('caja_solicitudes', this.solicitudes);
-    this.notifyListeners({ type: 'SUPABASE_REALTIME', table: 'solicitudes', eventType, record: newRec });
   }
 
   handleSupabaseUsuarioEvent(payload) {
