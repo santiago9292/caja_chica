@@ -116,18 +116,33 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const notifData = event.notification.data || {};
+  const targetUrl = notifData.url || '/';
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
-      if (clientList.length > 0) {
-        let client = clientList[0];
-        for (let i = 0; i < clientList.length; i++) {
-          if (clientList[i].focused) {
-            client = clientList[i];
-          }
+      let client = null;
+      for (let i = 0; i < clientList.length; i++) {
+        if (clientList[i].focused) {
+          client = clientList[i];
+          break;
         }
-        return client.focus();
       }
-      return clients.openWindow('/');
+      if (!client && clientList.length > 0) {
+        client = clientList[0];
+      }
+
+      if (client) {
+        client.focus();
+        if (notifData.evento) {
+          client.postMessage({ type: 'NOTIF_NAV', evento: notifData.evento, sol: notifData.sol || '' });
+        } else if (notifData.url && notifData.url !== '/') {
+          client.navigate(notifData.url);
+        }
+        return;
+      }
+
+      return clients.openWindow(targetUrl);
     })
   );
 });

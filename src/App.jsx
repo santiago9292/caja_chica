@@ -13,6 +13,7 @@ import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { Bell, CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 import { playNotificationSound } from './lib/audioNotifier';
 import OneSignal from 'react-onesignal';
+import { buildNotifUrl, resolveTabForEvent, consumeNotifFromUrl } from './lib/notifRouting';
 
 export function App() {
   const [usuarios, setUsuarios] = useState(store.usuarios);
@@ -37,6 +38,9 @@ export function App() {
   const [toasts, setToasts] = useState([]);
   const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
 
+  // Destino pendiente al abrir la app desde una notificación (?notif=EVENTO&sol=DNI)
+  const [pendingNotif, setPendingNotif] = useState(() => consumeNotifFromUrl());
+
   // NOTA: El Service Worker lo registra ÚNICAMENTE OneSignal (OneSignalSDKWorker.js).
   // Registrarlo también desde la app con otra URL provocaba falsas "nuevas versiones"
   // en bucle. Las actualizaciones se aplican solas (skipWaiting + Network First).
@@ -51,12 +55,27 @@ export function App() {
           allowLocalhostAsSecureOrigin: true,
           serviceWorkerPath: "OneSignalSDKWorker.js",
           serviceWorkerParam: { scope: "/" },
+          // Al hacer clic: reutilizar la ventana abierta de la app y llevarla a la URL de la notificación
+          notificationClickHandlerMatch: "origin",
+          notificationClickHandlerAction: "navigate",
           notifyButton: {
             enable: true,
           },
         });
         window.__onesignal_initialized = true;
         setIsOneSignalInitialized(true);
+
+        // Si la app ya estaba abierta y OneSignal solo la enfoca, cambiar de pestaña aquí
+        OneSignal.Notifications.addEventListener('click', (event) => {
+          try {
+            const url = event?.result?.url || event?.notification?.launchURL;
+            if (!url) return;
+            const params = new URL(url).searchParams;
+            const evento = params.get('notif');
+            if (evento) setPendingNotif({ evento, sol: params.get('sol') || '' });
+          } catch (e) {}
+        });
+
         OneSignal.Slidedown.promptPush();
       } catch (e) {
         // En localhost o por restricción de dominio de OneSignal
@@ -104,8 +123,39 @@ export function App() {
     }
   }, [currentUser, isOneSignalInitialized]);
 
-  const fireNativeNotification = (title, body) => {
+  // Llevar al usuario a la pestaña que corresponde a la notificación pulsada
+  useEffect(() => {
+    if (!pendingNotif || !currentUser) return; // Si no hay sesión, se aplica tras el login
+    const tab = resolveTabForEvent(currentUser, pendingNotif.evento, pendingNotif.sol);
+    if (tab) setCurrentTab(tab);
+    setPendingNotif(null);
+  }, [pendingNotif, currentUser]);
+
+  // Mensajes del Service Worker (clic en notificación local con la app abierta)
+  useEffect(() => {
+    if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    const onSwMessage = (event) => {
+      if (event.data?.type === 'NOTIF_NAV' && event.data.evento) {
+        setPendingNotif({ evento: event.data.evento, sol: event.data.sol || '' });
+      }
+    };
+    navigator.serviceWorker.addEventListener('message', onSwMessage);
+    return () => navigator.serviceWorker.removeEventListener('message', onSwMessage);
+  }, []);
+
+  const fireNativeNotification = (title, body, evento = null, solicitanteDni = '') => {
     if (typeof window === 'undefined' || !('Notification' in window)) return;
+
+    const url = evento ? buildNotifUrl(evento, solicitanteDni) : '/';
+    // Fallback sin Service Worker: al hacer clic, enfocar y navegar dentro de la app
+    const showBasic = () => {
+      const n = new Notification(title, { body, icon: '/icon-192.svg' });
+      n.onclick = () => {
+        window.focus();
+        if (evento) setPendingNotif({ evento, sol: solicitanteDni || '' });
+        n.close();
+      };
+    };
 
     if (Notification.permission === 'granted') {
       try {
@@ -116,13 +166,14 @@ export function App() {
               icon: '/icon-192.svg',
               badge: '/icon-192.svg',
               tag: 'caja-chica-notif-' + Date.now(),
-              renotify: true
+              renotify: true,
+              data: { __cajaLocal: true, url, evento, sol: solicitanteDni || '' }
             });
           }).catch(() => {
-            new Notification(title, { body, icon: '/icon-192.svg' });
+            showBasic();
           });
         } else {
-          new Notification(title, { body, icon: '/icon-192.svg' });
+          showBasic();
         }
       } catch (e) {
         console.warn('Error mostrando notificación nativa:', e);
@@ -131,7 +182,7 @@ export function App() {
       Notification.requestPermission().then((perm) => {
         if (perm === 'granted') {
           try {
-            new Notification(title, { body, icon: '/icon-192.svg' });
+            showBasic();
           } catch (e) {}
         }
       }).catch(() => {});
@@ -173,7 +224,7 @@ export function App() {
           const msg = `${meta.solicitud.solicitante_nombre} registró ${meta.solicitud.codigo} por S/ ${Number(meta.solicitud.monto).toFixed(2)}`;
           showToast({ title, message: msg, type: 'warning' });
           playNotificationSound('alert');
-          fireNativeNotification(title, msg);
+          fireNativeNotification(title, msg, 'NUEVA_SOLICITUD', meta.solicitud.solicitante_dni);
         }
       } 
       // Cambio de estado
@@ -184,7 +235,7 @@ export function App() {
             const msg = `${meta.solicitud.solicitante_nombre} rindió con exceso. Autoriza el reembolso en Bandeja de Aprobaciones.`;
             showToast({ title, message: msg, type: 'warning' });
             playNotificationSound('alert');
-            fireNativeNotification(title, msg);
+            fireNativeNotification(title, msg, 'REEMBOLSO_PENDIENTE', meta.solicitud.solicitante_dni);
           }
         } else if (currentUser.dni === meta.solicitud.solicitante_dni) {
           const title = `Solicitud ${meta.estado}: ${meta.solicitud.codigo}`;
@@ -197,7 +248,7 @@ export function App() {
             : `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
           showToast({ title, message: msg, type: meta.estado === 'APROBADO' || isPagado || isPorReembolsar ? 'success' : 'danger' });
           playNotificationSound(meta.estado === 'APROBADO' || isPagado ? 'success' : 'reject');
-          fireNativeNotification(title, msg);
+          fireNativeNotification(title, msg, meta.estado, meta.solicitud.solicitante_dni);
         }
       }
     });

@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js';
+import { buildNotifUrl } from './notifRouting';
 
 // Intentar leer configuración de Supabase desde env o localStorage
 const savedSupabaseUrl = typeof window !== 'undefined' ? localStorage.getItem('caja_supabase_url') : '';
@@ -205,7 +206,13 @@ class DataStore {
     }
   }
 
-  async sendOneSignalPush(title, message, targetDnis = null) {
+  /**
+   * @param {string} title
+   * @param {string} message
+   * @param {string[]|null} targetDnis
+   * @param {{evento?: string, solicitanteDni?: string}} [nav] Destino al hacer clic en la notificación
+   */
+  async sendOneSignalPush(title, message, targetDnis = null, nav = {}) {
     try {
       const body = {
         app_id: 'c50fba12-7b4e-45e9-8bc5-63d9639a2b53',
@@ -215,6 +222,11 @@ class DataStore {
         priority: 10, // Alta prioridad: entrega inmediata aunque la pantalla esté apagada (Doze)
         ttl: 86400,   // Conservar 24h si el dispositivo está sin conexión
       };
+
+      // URL de destino al hacer clic: cada dispositivo resuelve la pestaña según sus roles
+      if (nav.evento) {
+        body.web_url = buildNotifUrl(nav.evento, nav.solicitanteDni);
+      }
 
       if (targetDnis && targetDnis.length > 0) {
         const strDnis = targetDnis.map(String);
@@ -720,7 +732,7 @@ class DataStore {
 
     // Enviar notificación Push (OneSignal) a Administradores y Cajeros (USUARIO)
     const adminYCajerosDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR') || u.roles?.includes('USUARIO')).map(u => u.dni);
-    this.sendOneSignalPush('Nueva Solicitud Registrada', `${solData.solicitante_nombre} ha registrado un gasto por S/ ${Number(solData.monto).toFixed(2)}.`, adminYCajerosDnis);
+    this.sendOneSignalPush('Nueva Solicitud Registrada', `${solData.solicitante_nombre} ha registrado un gasto por S/ ${Number(solData.monto).toFixed(2)}.`, adminYCajerosDnis, { evento: 'NUEVA_SOLICITUD', solicitanteDni: solData.solicitante_dni });
 
     this.broadcastSync({ type: 'SOLICITUD_CREATED', solicitud: newSolicitud });
     return newSolicitud;
@@ -837,7 +849,7 @@ class DataStore {
       msgPush = `Tu solicitud ${sol.codigo} fue actualizada a ${nuevoEstado}.`;
     }
 
-    this.sendOneSignalPush(`Caja Chica: ${sol.codigo}`, msgPush, targetPushDnis);
+    this.sendOneSignalPush(`Caja Chica: ${sol.codigo}`, msgPush, targetPushDnis, { evento: nuevoEstado, solicitanteDni: sol.solicitante_dni });
 
     this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitud: sol, estado: nuevoEstado });
     return sol;
@@ -907,7 +919,7 @@ class DataStore {
       });
 
       const adminDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR')).map(u => u.dni);
-      this.sendOneSignalPush(`Reembolso ${sol.codigo}: S/ ${diferencia.toFixed(2)}`, `Rendición con exceso para autorizar a ${sol.solicitante_nombre}.`, adminDnis);
+      this.sendOneSignalPush(`Reembolso ${sol.codigo}: S/ ${diferencia.toFixed(2)}`, `Rendición con exceso para autorizar a ${sol.solicitante_nombre}.`, adminDnis, { evento: 'REEMBOLSO_PENDIENTE', solicitanteDni: sol.solicitante_dni });
     } else {
       this.addNotification({
         titulo: `Rendición Recibida: ${sol.codigo}`,
