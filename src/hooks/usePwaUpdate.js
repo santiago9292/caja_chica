@@ -71,30 +71,28 @@ export function usePwaUpdate() {
     };
   }, []);
 
-  /**
-   * Solo recarga cuando el usuario hace clic en el botón de actualizar.
-   * Limpia CacheStorage (sin tocar sesión ni localStorage) y recarga la página.
-   */
-  const applyUpdate = useCallback(async () => {
+  useEffect(() => {
+    let refreshing = false;
+    const handleControllerChange = () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+    };
+  }, []);
+
+  const applyUpdate = useCallback(() => {
     if (isUpdating) return;
     setIsUpdating(true);
-    try {
-      if (waitingWorker) {
-        waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-      }
-
-      // Limpiar caché de Service Worker (CacheStorage)
-      if ('caches' in window) {
-        const cacheKeys = await caches.keys();
-        await Promise.all(cacheKeys.map((key) => caches.delete(key)));
-      }
-
-      // Pequeña pausa para permitir que el nuevo SW active sus hooks
-      await new Promise((r) => setTimeout(r, 300));
-    } catch (e) {
-      console.warn('Error limpiando caché de SW:', e);
-    } finally {
-      // Recargar una única vez de forma intencional por acción del usuario
+    
+    if (waitingWorker) {
+      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
+    } else {
       window.location.reload();
     }
   }, [waitingWorker, isUpdating]);
