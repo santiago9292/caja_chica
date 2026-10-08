@@ -215,7 +215,9 @@ class DataStore {
       };
 
       if (targetDnis && targetDnis.length > 0) {
-        body.include_aliases = { external_id: targetDnis };
+        const strDnis = targetDnis.map(String);
+        body.include_external_user_ids = strDnis; // Añadimos external ID (DNI) para múltiples dispositivos
+        body.include_aliases = { external_id: strDnis };
       } else {
         body.included_segments = ["Total Subscriptions"];
       }

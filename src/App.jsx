@@ -72,7 +72,8 @@ export function App() {
     
     if (currentUser && currentUser.dni) {
       try {
-        OneSignal.login(currentUser.dni);
+        // Asegurar que el DNI sea string para que funcione correctamente como external_id en múltiples dispositivos
+        OneSignal.login(String(currentUser.dni));
       } catch (e) {
         console.warn("OneSignal login error:", e);
       }
