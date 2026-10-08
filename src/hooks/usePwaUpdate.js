@@ -44,8 +44,8 @@ export function usePwaUpdate() {
       });
     };
 
-    // Registrar o asociar el Service Worker
-    navigator.serviceWorker.register('/sw.js').then((reg) => {
+    // Registrar o asociar el Service Worker unificado
+    navigator.serviceWorker.register('/OneSignalSDKWorker.js').then((reg) => {
       attachRegistration(reg);
     }).catch((err) => {
       console.warn('Error registrando Service Worker:', err);
