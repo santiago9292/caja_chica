@@ -77,12 +77,26 @@ export function App() {
     if (!isOneSignalInitialized) return;
     
     if (currentUser && currentUser.dni) {
-      try {
-        // Asegurar que el DNI sea string para que funcione correctamente como external_id en múltiples dispositivos
-        OneSignal.login(String(currentUser.dni));
-      } catch (e) {
-        console.warn("OneSignal login error:", e);
-      }
+      const vincular = async () => {
+        try {
+          // Asegurar que el DNI sea string para que funcione correctamente como external_id en múltiples dispositivos
+          await OneSignal.login(String(currentUser.dni));
+        } catch (e) {
+          console.warn("OneSignal login error:", e);
+        }
+        // Auto-reparación: si hay permiso pero la suscripción push se perdió
+        // (p. ej. tras desregistrar el Service Worker), volver a suscribir el dispositivo.
+        try {
+          const sub = OneSignal.User?.PushSubscription;
+          const permiso = OneSignal.Notifications?.permission;
+          if (sub && permiso && (!sub.optedIn || !sub.id || !sub.token)) {
+            await sub.optIn();
+          }
+        } catch (e) {
+          console.warn("OneSignal re-suscripción error:", e);
+        }
+      };
+      vincular();
     } else {
       try {
         OneSignal.logout();

@@ -212,17 +212,18 @@ class DataStore {
         headings: { en: title, es: title },
         contents: { en: message, es: message },
         target_channel: 'push',
+        priority: 10, // Alta prioridad: entrega inmediata aunque la pantalla esté apagada (Doze)
+        ttl: 86400,   // Conservar 24h si el dispositivo está sin conexión
       };
 
       if (targetDnis && targetDnis.length > 0) {
         const strDnis = targetDnis.map(String);
-        body.include_external_user_ids = strDnis; // Añadimos external ID (DNI) para múltiples dispositivos
-        body.include_aliases = { external_id: strDnis };
+        body.include_aliases = { external_id: strDnis }; // External ID (DNI) => todos los dispositivos del usuario
       } else {
         body.included_segments = ["Total Subscriptions"];
       }
 
-      await fetch('https://onesignal.com/api/v1/notifications', {
+      const res = await fetch('https://onesignal.com/api/v1/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -230,6 +231,10 @@ class DataStore {
         },
         body: JSON.stringify(body)
       });
+      const result = await res.json().catch(() => ({}));
+      if (!res.ok || result.errors) {
+        console.warn("OneSignal push respuesta:", res.status, result);
+      }
     } catch (e) {
       console.warn("OneSignal push error:", e);
     }
