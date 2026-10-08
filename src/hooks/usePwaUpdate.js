@@ -72,33 +72,38 @@ export function usePwaUpdate() {
   }, []);
 
   useEffect(() => {
-    let refreshing = false;
-    const handleControllerChange = () => {
-      if (!refreshing) {
-        refreshing = true;
-        window.location.reload();
-      }
-    };
-    navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
-
-    return () => {
-      navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
-    };
+    // Ya no usamos controllerchange porque vamos a forzar el unregister
   }, []);
 
-  const applyUpdate = useCallback(() => {
+  const applyUpdate = useCallback(async () => {
     if (isUpdating) return;
     setIsUpdating(true);
     
-    if (waitingWorker) {
-      waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-    }
-    
-    // Fallback: si controllerchange no dispara o el worker viejo no tenía el listener
-    setTimeout(() => {
+    try {
+      // Método infalible: desregistrar todos los service workers
+      // Esto fuerza al navegador a matar el SW viejo y descargar el nuevo desde cero al recargar.
+      if (registrationRef.current) {
+        await registrationRef.current.unregister();
+      }
+      
+      if ('serviceWorker' in navigator) {
+        const regs = await navigator.serviceWorker.getRegistrations();
+        for (let reg of regs) {
+          await reg.unregister();
+        }
+      }
+      
+      // Limpiamos caché por si acaso
+      if ('caches' in window) {
+        const cacheKeys = await caches.keys();
+        await Promise.all(cacheKeys.map(key => caches.delete(key)));
+      }
+    } catch (e) {
+      console.warn('Error forzando actualización:', e);
+    } finally {
       window.location.reload();
-    }, 1000);
-  }, [waitingWorker, isUpdating]);
+    }
+  }, [isUpdating]);
 
   const dismissUpdate = useCallback(() => {
     setUpdateAvailable(false);
