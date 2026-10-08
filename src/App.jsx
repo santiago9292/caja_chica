@@ -10,10 +10,9 @@ import { ModuloArqueo } from './components/ModuloArqueo';
 import { ModuloReportes } from './components/ModuloReportes';
 import { MisSolicitudes } from './components/MisSolicitudes';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
-import { Bell, CheckCircle2, AlertTriangle, Info, X, RefreshCw } from 'lucide-react';
+import { Bell, CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 import { playNotificationSound } from './lib/audioNotifier';
 import OneSignal from 'react-onesignal';
-import { usePwaUpdate } from './hooks/usePwaUpdate';
 
 export function App() {
   const [usuarios, setUsuarios] = useState(store.usuarios);
@@ -38,8 +37,9 @@ export function App() {
   const [toasts, setToasts] = useState([]);
   const [isOneSignalInitialized, setIsOneSignalInitialized] = useState(false);
 
-  // Hook de auto-actualización PWA (ciclo de vida SW updatefound y visibilitychange)
-  const { updateAvailable, applyUpdate, dismissUpdate, isUpdating } = usePwaUpdate();
+  // NOTA: El Service Worker lo registra ÚNICAMENTE OneSignal (OneSignalSDKWorker.js).
+  // Registrarlo también desde la app con otra URL provocaba falsas "nuevas versiones"
+  // en bucle. Las actualizaciones se aplican solas (skipWaiting + Network First).
 
   // Inicializar OneSignal
   useEffect(() => {
@@ -61,6 +61,12 @@ export function App() {
       } catch (e) {
         // En localhost o por restricción de dominio de OneSignal
         console.info("OneSignal push notification status:", e.message || e);
+        // Respaldo: si OneSignal no pudo registrar el SW, registrarlo para soporte offline
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.getRegistration('/').then((reg) => {
+            if (!reg) navigator.serviceWorker.register('/OneSignalSDKWorker.js').catch(() => {});
+          }).catch(() => {});
+        }
       }
     };
     initOneSignal();
@@ -397,84 +403,6 @@ export function App() {
 
       {/* Contenedor de Toasts Flotantes en Tiempo Real */}
       <div className="toast-container">
-        {/* Notificación Toast de Nueva Versión PWA */}
-        {updateAvailable && (
-          <div 
-            className="toast-item update-toast"
-            style={{
-              background: '#0f172a',
-              color: '#ffffff',
-              borderRadius: '12px',
-              padding: '0.85rem 1rem',
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '0.65rem',
-              boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3)',
-              border: '1px solid #1e293b',
-              animation: 'zoomIn 0.25s ease'
-            }}
-          >
-            <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '0.5rem', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.55rem' }}>
-                <div style={{
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '8px',
-                  background: 'rgba(37, 99, 235, 0.25)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0
-                }}>
-                  <RefreshCw size={17} color="#60a5fa" className={isUpdating ? "animate-spin" : ""} />
-                </div>
-                <div>
-                  <div style={{ fontWeight: '800', fontSize: '0.88rem', color: '#ffffff', lineHeight: 1.2 }}>
-                    Actualización disponible
-                  </div>
-                  <div style={{ fontSize: '0.74rem', color: '#94a3b8', marginTop: '2px' }}>
-                    Se detectó una nueva versión en el servidor.
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={dismissUpdate}
-                title="Descartar por ahora"
-                style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: '2px' }}
-              >
-                <X size={15} />
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={applyUpdate}
-              disabled={isUpdating}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '0.45rem',
-                width: '100%',
-                background: '#2563eb',
-                color: '#ffffff',
-                border: 'none',
-                borderRadius: '8px',
-                padding: '0.55rem 0.85rem',
-                fontSize: '0.82rem',
-                fontWeight: '700',
-                cursor: isUpdating ? 'wait' : 'pointer',
-                transition: 'all 0.15s ease',
-                boxShadow: '0 2px 8px rgba(37, 99, 235, 0.4)'
-              }}
-            >
-              <RefreshCw size={14} className={isUpdating ? "animate-spin" : ""} />
-              <span>{isUpdating ? 'Actualizando y limpiando caché...' : 'Nueva versión disponible. Clic para actualizar'}</span>
-            </button>
-          </div>
-        )}
-
         {toasts.map((t) => (
           <div 
             key={t.id} 

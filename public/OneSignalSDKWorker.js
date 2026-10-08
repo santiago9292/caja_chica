@@ -14,7 +14,7 @@ try {
 }
 
 // Service Worker para PWA Caja Chica DICAR LOGISTIC
-const CACHE_NAME = 'caja-chica-v6';
+const CACHE_NAME = 'caja-chica-v6.0.2';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -25,10 +25,12 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', (event) => {
+  // Activar la nueva versión de inmediato (sin quedar en "waiting" ni pedir al usuario)
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(ASSETS_TO_CACHE);
-    })
+    caches.open(CACHE_NAME)
+      .then((cache) => cache.addAll(ASSETS_TO_CACHE))
+      .catch(() => {})
   );
 });
 
@@ -90,6 +92,8 @@ self.addEventListener('push', (event) => {
   if (event.data) {
     try {
       const data = event.data.json();
+      // Las notificaciones de OneSignal (traen "custom") ya las muestra su SDK: evitar duplicados
+      if (data && data.custom) return;
       const options = {
         body: data.mensaje || data.body || 'Nueva actividad en Caja Chica DICAR',
         icon: '/logo-dicar.png',
