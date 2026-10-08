@@ -92,9 +92,12 @@ export function usePwaUpdate() {
     
     if (waitingWorker) {
       waitingWorker.postMessage({ type: 'SKIP_WAITING' });
-    } else {
-      window.location.reload();
     }
+    
+    // Fallback: si controllerchange no dispara o el worker viejo no tenía el listener
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   }, [waitingWorker, isUpdating]);
 
   const dismissUpdate = useCallback(() => {
