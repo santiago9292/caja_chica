@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Building2, 
   Bell, 
@@ -29,7 +29,7 @@ export function Navbar({
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [deferredPrompt, setDeferredPrompt] = useState(null);
 
-  // ValidaciÃ³n de si la aplicaciÃ³n ya estÃ¡ instalada en el dispositivo
+  // Validación de si la aplicación ya está instalada en el dispositivo
   const checkIfInstalled = () => {
     if (typeof window === 'undefined') return false;
     const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
@@ -95,9 +95,9 @@ export function Navbar({
     } else {
       const isIos = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
       if (isIos) {
-        alert("Para instalar en tu iPhone o iPad:\n1. Toca el botÃ³n 'Compartir' (icono con flecha hacia arriba) en Safari.\n2. Elige 'Agregar a pantalla de inicio'.");
+        alert("Para instalar en tu iPhone o iPad:\n1. Toca el botón 'Compartir' (icono con flecha hacia arriba) en Safari.\n2. Elige 'Agregar a pantalla de inicio'.");
       } else {
-        alert("Para instalar esta aplicaciÃ³n:\n1. Toca el menÃº de tu navegador (â‹® en la esquina superior derecha).\n2. Elige 'Instalar aplicaciÃ³n' o 'Agregar a la pantalla principal'.");
+        alert("Para instalar esta aplicación:\n1. Toca el menú de tu navegador (⋮ en la esquina superior derecha).\n2. Elige 'Instalar aplicación' o 'Agregar a la pantalla principal'.");
       }
     }
   };
@@ -168,7 +168,7 @@ export function Navbar({
             </div>
             <div className="brand-subtitle" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.1rem' }}>
               <span className="desktop-only">En tiempo real</span>
-              <span className="desktop-only" style={{ opacity: 0.5 }}>â€¢</span>
+              <span className="desktop-only" style={{ opacity: 0.5 }}>•</span>
               <span style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px' }}>v6.0.3</span>
             </div>
           </div>
@@ -177,11 +177,11 @@ export function Navbar({
         {/* Acciones a la derecha */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.2rem', flexShrink: 0 }}>
 
-          {/* ConfiguraciÃ³n */}
+          {/* Configuración */}
           <button 
             className="btn btn-ghost btn-icon" 
             onClick={onOpenSettings} 
-            title="ConfiguraciÃ³n de Base de Datos"
+            title="Configuración de Base de Datos"
           >
             <Settings2 size={17} color="#475569" />
           </button>
@@ -244,7 +244,7 @@ export function Navbar({
                       className="btn btn-ghost" 
                       style={{ fontSize: '0.7rem', padding: '0.15rem 0.35rem' }}
                     >
-                      LeÃ­das
+                      Leídas
                     </button>
                   )}
                 </div>
@@ -263,10 +263,10 @@ export function Navbar({
                       flexDirection: 'column',
                       gap: '0.3rem'
                     }}>
-                      <div style={{ fontWeight: '700' }}>ðŸ”” Alertas de escritorio PC:</div>
+                      <div style={{ fontWeight: '700' }}>🔔 Alertas de escritorio PC:</div>
                       <div>
                         {Notification.permission === 'denied' 
-                          ? 'EstÃ¡n bloqueadas en esta PWA. Haz clic en el icono ðŸ”• de la barra superior para permitirlas.' 
+                          ? 'Están bloqueadas en esta PWA. Haz clic en el icono 🔕 de la barra superior para permitirlas.' 
                           : 'Activa las alertas para enterarte de inmediato al recibir adelantos.'}
                       </div>
                       {Notification.permission === 'default' && (
@@ -357,12 +357,12 @@ export function Navbar({
               </div>
             </div>
 
-            {/* BotÃ³n Salir */}
+            {/* Botón Salir */}
             <button 
               onClick={onLogout}
               className="btn btn-ghost btn-icon"
               style={{ width: '26px', height: '26px', minWidth: '26px' }}
-              title="Cerrar sesiÃ³n"
+              title="Cerrar sesión"
             >
               <LogOut size={14} color="#dc2626" />
             </button>
@@ -388,7 +388,7 @@ export function Navbar({
         ))}
       </div>
 
-      {/* PestaÃ±as de NavegaciÃ³n con Scroll Horizontal Suave */}
+      {/* Pestañas de Navegación con Scroll Horizontal Suave */}
       <nav className="nav-tabs-container">
         {isSolicitante && (
           <button 
@@ -416,7 +416,7 @@ export function Navbar({
             onClick={() => setCurrentTab('aprobaciones')}
           >
             <CheckSquare size={15} />
-            <span>MÃ³dulo de AprobaciÃ³n</span>
+            <span>Módulo de Aprobación</span>
             {pendientesCount > 0 && (
               <span className="tab-badge">
                 {pendientesCount}
@@ -451,7 +451,7 @@ export function Navbar({
             onClick={() => setCurrentTab('maestro_categorias')}
           >
             <Tag size={15} />
-            <span>CategorÃ­as</span>
+            <span>Categorías</span>
           </button>
         )}
 
