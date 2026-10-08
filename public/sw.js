@@ -1,3 +1,11 @@
+// Listener para forzar activación inmediata cuando el usuario hace clic en actualizar
+// IMPORTANTE: DEBE ESTAR ARRIBA DE TODO, ANTES DE ONESIGNAL PARA QUE NO INTERCEPTE EL EVENTO
+self.addEventListener('message', (event) => {
+  if (event.data && event.data.type === 'SKIP_WAITING') {
+    self.skipWaiting();
+  }
+});
+
 // Importar OneSignal Web SDK en el Service Worker raíz para compatibilidad y evitar error [WM]
 try {
   importScripts("https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.sw.js");
@@ -6,7 +14,7 @@ try {
 }
 
 // Service Worker para PWA Caja Chica DICAR LOGISTIC
-const CACHE_NAME = 'caja-chica-v5';
+const CACHE_NAME = 'caja-chica-v6';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',
@@ -38,12 +46,6 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Listener para forzar activación inmediata cuando el usuario hace clic en actualizar
-self.addEventListener('message', (event) => {
-  if (event.data && event.data.type === 'SKIP_WAITING') {
-    self.skipWaiting();
-  }
-});
 
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
