@@ -20,9 +20,9 @@ Sistema corporativo en tiempo real para la gestión, rendición de gastos, antic
   - Perfiles de demostración rápida para pruebas inmediatas de cada rol.
   - **Maestro de DNI (Exclusivo SYSADMIN)**: Creación y edición de colaboradores con asignación de **múltiples roles** por persona (`ADMINISTRADOR`, `SYSADMIN`, `SOLICITANTE`, `USUARIO`).
 - **📝 Formulario de Ingreso de Datos (SOLICITANTE)**:
-  - Registro de **Rendición de Gastos** (con comprobantes: Factura, Boleta, Recibo por Honorarios, Ticket o Declaración Jurada) y **Adelantos de Efectivo**.
+  - Registro de **Rendición de Gastos** (con comprobantes: Factura, Boleta, Recibo por Honorarios, Ticket, Planilla de Movilidad o Sin Comprobante) y **Adelantos de Efectivo**.
   - Categorización con iconos: Transporte, Alimentación, Materiales de Oficina, Servicios Urgentes, Gastos de Representación y Otros.
-  - Adjunto y previsualización de foto/voucher del comprobante de pago con compresión de imagen.
+  - Adjunto y previsualización de sustento digital con soporte para fotos, PDF, Excel (.xlsx, .xls) y Word (.docx, .doc).
 - **🛡️ Módulo de Aprobación (Exclusivo ADMINISTRADOR)**:
   - Vista restringida con verificación estricta de privilegios.
   - Bandeja interactiva de evaluación de solicitudes pendientes en tiempo real.

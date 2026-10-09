@@ -1,6 +1,23 @@
 import React, { useState } from 'react';
-import { Wallet, TrendingDown, Clock, CheckCircle2, Layers, DollarSign, Edit3, Check, Eye, XCircle, AlertCircle, History } from 'lucide-react';
+import { 
+  Wallet, 
+  TrendingDown, 
+  Clock, 
+  CheckCircle2, 
+  Layers, 
+  DollarSign, 
+  Edit3, 
+  Check, 
+  Eye, 
+  XCircle, 
+  AlertCircle, 
+  History,
+  Paperclip,
+  Download,
+  X
+} from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
+import { ModalAbono } from './ModalAbono';
 
 export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo }) {
   const montoTotal = Number(cajaFondo?.monto_total || 500);
@@ -14,6 +31,10 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [montoReponer, setMontoReponer] = useState(0);
   const [processingId, setProcessingId] = useState(null);
   const [filtroBandeja, setFiltroBandeja] = useState('APROBADO'); // 'APROBADO' | 'PENDIENTE' | 'RECHAZADO' | 'HISTORIAL' | 'TODOS'
+
+  // Modal de Abono / Entrega con Sustento Obligatorio
+  const [solicitudAbonoModal, setSolicitudAbonoModal] = useState(null);
+  const [sustentoModalUrl, setSustentoModalUrl] = useState(null);
 
   const getTotalRendido = (sol) => {
     let lista = [];
@@ -92,44 +113,27 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
     }
   };
 
-  const handleAbonar = async (sol) => {
-    const isReembolso = sol.estado === 'POR_REEMBOLSAR';
+  const handleAbonar = (sol) => {
+    const isDevolucion = sol.estado === 'POR_DEVOLVER';
     const montoAEntregar = getMontoEntrega(sol);
 
-    if (montoDisponible < montoAEntregar) {
+    if (!isDevolucion && montoDisponible < montoAEntregar) {
       alert('⚠️ Fondos insuficientes en la Caja Chica para realizar este desembolso.');
       return;
     }
 
-    const confirmMsg = isReembolso
-      ? `¿Confirmas la entrega del REEMBOLSO de S/ ${montoAEntregar.toFixed(2)} a ${sol.solicitante_nombre}?`
-      : `¿Confirmas la entrega de S/ ${montoAEntregar.toFixed(2)} a ${sol.solicitante_nombre}?`;
-
-    if (!window.confirm(confirmMsg)) return;
-
-    setProcessingId(sol.id);
-    try {
-      const nuevoEstado = isReembolso ? 'RENDIDO' : 'POR_RENDIR';
-      const obs = isReembolso ? 'Reembolso por exceso entregado en efectivo' : '';
-      await onUpdateEstado(sol.id, nuevoEstado, obs);
-      playNotificationSound('success');
-    } catch (err) {
-      alert('Error al entregar dinero: ' + err.message);
-    } finally {
-      setProcessingId(null);
-    }
+    // Abrir modal con sustento obligatorio
+    setSolicitudAbonoModal(sol);
   };
 
-  const handleRecibirDevolucion = async (sol) => {
-    const montoDevuelto = getMontoEntrega(sol);
-    if (!window.confirm(`¿Confirmas que RECIBISTE S/ ${montoDevuelto.toFixed(2)} en efectivo de ${sol.solicitante_nombre} como devolución del sobrante de ${sol.codigo}?`)) return;
+  const handleRecibirDevolucion = (sol) => {
+    setSolicitudAbonoModal(sol);
+  };
 
-    setProcessingId(sol.id);
+  const handleConfirmarAbonoDesdeModal = async (solId, nuevoEstado, obs, extraData) => {
+    setProcessingId(solId);
     try {
-      await onUpdateEstado(sol.id, 'RENDIDO', 'Devolución de sobrante recibida en caja');
-      playNotificationSound('success');
-    } catch (err) {
-      alert('Error al confirmar la devolución: ' + err.message);
+      await onUpdateEstado(solId, nuevoEstado, obs, extraData);
     } finally {
       setProcessingId(null);
     }
@@ -534,24 +538,89 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                           </div>
                         )}
                         {sol.estado === 'POR_RENDIR' && (
-                          <span className="badge badge-aprobado" style={{ background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <History size={13} /> Dinero Entregado
-                          </span>
+                          <div>
+                            <span className="badge badge-aprobado" style={{ background: '#eff6ff', color: '#2563eb', borderColor: '#bfdbfe', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <History size={13} /> Dinero Entregado
+                            </span>
+                            {sol.abono_metodo && (
+                              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>
+                                {sol.abono_metodo} {sol.abono_operacion ? `• ${sol.abono_operacion}` : ''}
+                              </div>
+                            )}
+                            {sol.abono_sustento_url && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
+                                  title="Ver sustento de entrega / comprobante de abono"
+                                >
+                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                         {sol.estado === 'LIQUIDADO' && (
-                          <span className="badge badge-liquidado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <CheckCircle2 size={13} /> Liquidado Contable
-                          </span>
+                          <div>
+                            <span className="badge badge-liquidado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <CheckCircle2 size={13} /> Liquidado Contable
+                            </span>
+                            {sol.abono_sustento_url && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
+                                  title="Ver sustento de entrega / comprobante de abono"
+                                >
+                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                         {sol.estado === 'RENDIDO' && (
-                          <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <CheckCircle2 size={13} /> Rendido (Por Liquidar)
-                          </span>
+                          <div>
+                            <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <CheckCircle2 size={13} /> Rendido (Por Liquidar)
+                            </span>
+                            {sol.abono_sustento_url && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
+                                  title="Ver sustento de entrega / comprobante de abono"
+                                >
+                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                         {sol.estado === 'PAGADO' && (
-                          <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <Check size={13} /> Pagado
-                          </span>
+                          <div>
+                            <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <Check size={13} /> Pagado
+                            </span>
+                            {sol.abono_sustento_url && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
+                                  title="Ver sustento de entrega / comprobante de abono"
+                                >
+                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
@@ -560,7 +629,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             className="btn btn-primary" 
                             onClick={() => handleAbonar(sol)}
                             disabled={processingId === sol.id}
-                            style={{ whiteSpace: 'nowrap' }}
+                            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                           >
                             <Check size={16} /> {sol.estado === 'POR_REEMBOLSAR' ? 'Entregar Reembolso' : 'Entregar Dinero'}
                           </button>
@@ -569,7 +638,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             className="btn btn-success" 
                             onClick={() => handleRecibirDevolucion(sol)}
                             disabled={processingId === sol.id}
-                            style={{ whiteSpace: 'nowrap' }}
+                            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
                           >
                             <Check size={16} /> Confirmar Recepción
                           </button>
@@ -635,6 +704,43 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
           </div>
         )}
       </div>
+
+      {/* Modal de Abono / Entrega de Dinero con Sustento Obligatorio */}
+      <ModalAbono
+        isOpen={Boolean(solicitudAbonoModal)}
+        onClose={() => setSolicitudAbonoModal(null)}
+        solicitud={solicitudAbonoModal}
+        montoDisponible={montoDisponible}
+        onConfirmar={handleConfirmarAbonoDesdeModal}
+      />
+
+      {/* Modal Visualizador de Sustento de Abono */}
+      {sustentoModalUrl && (
+        <div className="modal-overlay" onClick={() => setSustentoModalUrl(null)}>
+          <div className="modal-content" style={{ maxWidth: '680px', padding: '1.25rem' }} onClick={(e) => e.stopPropagation()}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.85rem' }}>
+              <h3 style={{ fontSize: '1.05rem', color: '#0f172a', margin: 0 }}>
+                Comprobante / Sustento de Entrega de Dinero
+              </h3>
+              <button type="button" onClick={() => setSustentoModalUrl(null)} className="btn-close">
+                <X size={18} />
+              </button>
+            </div>
+            <div style={{ textAlign: 'center', background: '#0f172a', borderRadius: 'var(--radius-md)', padding: '0.5rem', maxHeight: '70vh', overflowY: 'auto' }}>
+              {sustentoModalUrl.startsWith('data:image/') ? (
+                <img src={sustentoModalUrl} alt="Sustento de Abono" style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain' }} />
+              ) : (
+                <div style={{ padding: '2rem', color: '#ffffff' }}>
+                  <p>Documento digital cargado en la entrega.</p>
+                  <a href={sustentoModalUrl} download="sustento_abono" className="btn btn-primary" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Download size={15} /> Descargar Archivo
+                  </a>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

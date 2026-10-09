@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import { Clock, CheckCircle2, FileText, Eye, Search, Receipt } from 'lucide-react';
-import { ModalRendicion } from './ModalRendicion';
+import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download } from 'lucide-react';
+import { ModalRendicion, getTipoLabel } from './ModalRendicion';
 
 export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -295,6 +295,38 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
               </div>
             )}
 
+            {selectedItem.abono_sustento_url && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#047857' }}>
+                  <CheckCircle2 size={15} /> Sustento de Entrega / Abono de Dinero
+                </label>
+                <div style={{ background: '#f8fafc', padding: '0.75rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                  <div style={{ fontSize: '0.78rem', color: '#334155', marginBottom: '0.5rem', display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.4rem' }}>
+                    <span><strong>Modalidad:</strong> {selectedItem.abono_metodo || 'Efectivo en Caja'} {selectedItem.abono_operacion ? `(Ref: ${selectedItem.abono_operacion})` : ''}</span>
+                    {selectedItem.pagado_por_nombre && (
+                      <span style={{ color: 'var(--text-muted)' }}>Por: {selectedItem.pagado_por_nombre}</span>
+                    )}
+                  </div>
+                  {selectedItem.abono_sustento_url.startsWith('data:image/') ? (
+                    <img 
+                      src={selectedItem.abono_sustento_url} 
+                      alt="Comprobante de Abono" 
+                      style={{ width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: 'var(--radius-sm)', background: '#ffffff', border: '1px solid #cbd5e1' }} 
+                    />
+                  ) : (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: '#ffffff', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                      <span style={{ fontSize: '0.78rem', fontWeight: '600' }}>
+                        📎 {selectedItem.abono_sustento_nombre || 'Comprobante de abono adjunto'}
+                      </span>
+                      <a href={selectedItem.abono_sustento_url} download="sustento_abono" className="btn btn-secondary" style={{ fontSize: '0.72rem', padding: '0.2rem 0.5rem' }}>
+                        Descargar
+                      </a>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {selectedItem.comprobante_archivo_url && (
               <div style={{ marginBottom: '1rem' }}>
                 <label className="form-label">Comprobante Original</label>
@@ -319,22 +351,49 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
               if (rends.length > 0) {
                 return (
                   <div style={{ marginBottom: '1rem' }}>
-                    <label className="form-label">Comprobantes Rendidos ({rends.length})</label>
+                    <label className="form-label">Comprobantes y Sustentos Rendidos ({rends.length})</label>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-                      {rends.map((r, i) => (
-                        <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '0.65rem', background: '#f8fafc' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <div style={{ fontSize: '0.8rem', fontWeight: 'bold' }}>{r.tipo} {r.numero}</div>
-                            <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#0f172a' }}>S/ {Number(r.monto).toFixed(2)}</div>
+                      {rends.map((r, i) => {
+                        const isImage = r.archivo && (r.archivo.startsWith('data:image/') || (!r.archivoNombre && !r.archivo.includes('application/')));
+                        return (
+                          <div key={i} style={{ border: '1px solid #e2e8f0', borderRadius: 'var(--radius-md)', padding: '0.75rem', background: '#f8fafc' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.35rem' }}>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 'bold', color: '#1e293b' }}>
+                                {getTipoLabel(r.tipo)} {r.numero ? `• ${r.numero}` : ''}
+                              </div>
+                              <div style={{ fontSize: '0.85rem', fontWeight: 'bold', color: '#0f172a' }}>
+                                S/ {Number(r.monto).toFixed(2)}
+                              </div>
+                            </div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                              {r.razonSocial ? `${r.razonSocial} | ` : ''}{r.ruc ? `RUC: ${r.ruc} | ` : ''}{r.fecha}
+                            </div>
+                            {r.archivo && (
+                              isImage ? (
+                                <img 
+                                  src={r.archivo} 
+                                  alt={`Rendicion ${i}`} 
+                                  style={{ width: '100%', maxHeight: '160px', objectFit: 'contain', border: '1px solid #cbd5e1', borderRadius: 'var(--radius-sm)', background: '#ffffff' }} 
+                                />
+                              ) : (
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.6rem 0.75rem', background: '#ffffff', borderRadius: '6px', border: '1px solid #cbd5e1' }}>
+                                  <span style={{ fontSize: '0.78rem', color: '#1e293b', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.4rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    <Paperclip size={14} color="#2563eb" /> {r.archivoNombre || 'Documento adjunto'}
+                                  </span>
+                                  <a 
+                                    href={r.archivo} 
+                                    download={r.archivoNombre || `sustento_${r.tipo}_${i + 1}`} 
+                                    className="btn btn-secondary" 
+                                    style={{ fontSize: '0.72rem', padding: '0.25rem 0.6rem', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+                                  >
+                                    <Download size={12} /> Descargar
+                                  </a>
+                                </div>
+                              )
+                            )}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
-                            {r.razonSocial} | RUC: {r.ruc} | {r.fecha}
-                          </div>
-                          {r.archivo && (
-                            <img src={r.archivo} alt={`Rendicion ${i}`} style={{ width: '100%', maxHeight: '140px', objectFit: 'contain', border: '1px solid #cbd5e1', borderRadius: 'var(--radius-sm)' }} />
-                          )}
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
                 );

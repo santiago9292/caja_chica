@@ -17,11 +17,14 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
     new Set(listaCategorias.map(c => c.centro_costo).filter(Boolean))
   );
 
-  const [centroCosto, setCentroCosto] = useState(() => centrosCostoDisponibles[0] || 'TRANS');
+  const [centroCosto, setCentroCosto] = useState('');
   
-  // Categorías que pertenecen al centro de costo actual
-  const categoriasDelCentro = listaCategorias.filter(c => !c.centro_costo || c.centro_costo === centroCosto);
-  const [categoriaId, setCategoriaId] = useState(() => categoriasDelCentro[0]?.id || listaCategorias[0]?.id || '');
+  // Categorías que pertenecen al centro de costo actual (o todas si no ha elegido)
+  const categoriasDelCentro = centroCosto 
+    ? listaCategorias.filter(c => !c.centro_costo || c.centro_costo === centroCosto)
+    : listaCategorias;
+
+  const [categoriaId, setCategoriaId] = useState('');
 
   const [monto, setMonto] = useState('');
   const [motivo, setMotivo] = useState('');
@@ -32,10 +35,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
 
   const handleCentroCostoChange = (newCC) => {
     setCentroCosto(newCC);
-    const sub = listaCategorias.filter(c => c.centro_costo === newCC);
-    if (sub.length > 0) {
-      setCategoriaId(sub[0].id);
-    }
+    setCategoriaId(''); // Forzar a que elija la categoría
   };
 
   const handleSubmit = async (e) => {
@@ -48,6 +48,16 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
       return;
     }
 
+    if (!centroCosto) {
+      setErrorMsg('Por favor seleccione un Centro de Costo obligatorio.');
+      return;
+    }
+
+    if (!categoriaId) {
+      setErrorMsg('Por favor seleccione una Categoría del Gasto obligatoria.');
+      return;
+    }
+
     if (!motivo.trim()) {
       setErrorMsg('Por favor especifique el concepto o justificación del gasto.');
       return;
@@ -55,7 +65,7 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
 
     setSubmitting(true);
     try {
-      const catObj = listaCategorias.find(c => c.id === categoriaId) || categoriasDelCentro[0];
+      const catObj = listaCategorias.find(c => c.id === categoriaId);
       const data = {
         tipo: 'ADELANTO_DINERO',
         solicitante_dni: currentUser.dni,
@@ -79,6 +89,8 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
       setSuccessCode(result.codigo);
       
       setMonto('');
+      setCentroCosto('');
+      setCategoriaId('');
       setMotivo('');
     } catch (err) {
       setErrorMsg('Error al registrar: ' + err.message);
@@ -187,7 +199,9 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                 className="form-select"
                 value={centroCosto}
                 onChange={(e) => handleCentroCostoChange(e.target.value)}
+                required
               >
+                <option value="">-- Seleccionar Centro de Costo --</option>
                 {centrosCostoDisponibles.map((cc) => (
                   <option key={cc} value={cc}>
                     {cc}
@@ -202,7 +216,11 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
                 className="form-select"
                 value={categoriaId}
                 onChange={(e) => setCategoriaId(e.target.value)}
+                required
               >
+                <option value="">
+                  {centroCosto ? '-- Seleccionar Categoría --' : '-- Primero seleccione un Centro de Costo --'}
+                </option>
                 {categoriasDelCentro.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.nombre}

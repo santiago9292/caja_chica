@@ -643,6 +643,12 @@ class DataStore {
               }
             } catch (e) {}
           }
+          if (!sol.liquidacion_codigo && sol.observaciones_aprobador) {
+            const match = sol.observaciones_aprobador.match(/\[Liquidado\s+(LIQ-[A-Z0-9_-]+)/i);
+            if (match) {
+              sol.liquidacion_codigo = match[1];
+            }
+          }
         });
 
         this.solicitudes = data;
@@ -662,7 +668,9 @@ class DataStore {
       'comprobante_razon_social', 'comprobante_fecha', 'comprobante_archivo_url',
       'estado', 'aprobado_por_dni', 'aprobado_por_nombre', 'aprobado_fecha',
       'observaciones_aprobador', 'pagado_por_dni', 'pagado_por_nombre', 'pagado_fecha',
-      'rendiciones', 'created_at'
+      'rendiciones', 'created_at',
+      'abono_sustento_url', 'abono_sustento_nombre', 'abono_metodo', 'abono_operacion', 'abono_observacion', 'abono_fecha',
+      'liquidacion_codigo', 'liquidado_fecha', 'liquidado_por_dni', 'liquidado_por_nombre'
     ];
     const clean = {};
     for (const key of allowed) {
@@ -738,13 +746,22 @@ class DataStore {
     return newSolicitud;
   }
 
-  async updateEstadoSolicitud(id, nuevoEstado, adminUser, observaciones = '') {
+  async updateEstadoSolicitud(id, nuevoEstado, adminUser, observaciones = '', extraData = {}) {
     const sol = this.solicitudes.find(s => s.id === id);
     if (!sol) throw new Error('Solicitud no encontrada');
 
     // Guardar el estado anterior ANTES de sobrescribirlo (necesario para reembolsos y devoluciones)
     const estadoPrevio = sol.estado;
     sol.estado = nuevoEstado;
+
+    if (extraData && typeof extraData === 'object') {
+      if (extraData.abono_sustento_url) sol.abono_sustento_url = extraData.abono_sustento_url;
+      if (extraData.abono_sustento_nombre) sol.abono_sustento_nombre = extraData.abono_sustento_nombre;
+      if (extraData.abono_metodo) sol.abono_metodo = extraData.abono_metodo;
+      if (extraData.abono_operacion) sol.abono_operacion = extraData.abono_operacion;
+      if (extraData.abono_observacion) sol.abono_observacion = extraData.abono_observacion;
+      if (extraData.abono_fecha) sol.abono_fecha = extraData.abono_fecha;
+    }
 
     if (nuevoEstado === 'APROBADO' || nuevoEstado === 'RECHAZADO') {
       sol.aprobado_por_dni = adminUser.dni;
@@ -762,6 +779,9 @@ class DataStore {
       sol.pagado_por_dni = adminUser.dni;
       sol.pagado_por_nombre = `${adminUser.nombres} ${adminUser.apellidos}`;
       sol.pagado_fecha = new Date().toISOString();
+      if (observaciones) {
+        sol.observaciones_aprobador = sol.observaciones_aprobador ? `${sol.observaciones_aprobador} | [Abono: ${observaciones}]` : `[Abono: ${observaciones}]`;
+      }
 
       await this.syncCajaFondoToSupabase();
     }
@@ -839,7 +859,7 @@ class DataStore {
 
     if (supabase) {
       try {
-        await supabase.from('solicitudes').update({
+        const updatePayload = {
           estado: sol.estado,
           monto: Number(sol.monto || 0),
           aprobado_por_dni: sol.aprobado_por_dni,
@@ -849,7 +869,15 @@ class DataStore {
           pagado_por_dni: sol.pagado_por_dni,
           pagado_por_nombre: sol.pagado_por_nombre,
           pagado_fecha: sol.pagado_fecha
-        }).eq('id', id);
+        };
+
+        if (sol.abono_sustento_url) updatePayload.abono_sustento_url = sol.abono_sustento_url;
+        if (sol.abono_sustento_nombre) updatePayload.abono_sustento_nombre = sol.abono_sustento_nombre;
+        if (sol.abono_metodo) updatePayload.abono_metodo = sol.abono_metodo;
+        if (sol.abono_operacion) updatePayload.abono_operacion = sol.abono_operacion;
+        if (sol.abono_fecha) updatePayload.abono_fecha = sol.abono_fecha;
+
+        await supabase.from('solicitudes').update(updatePayload).eq('id', id);
       } catch (e) {
         console.warn('Error actualizando en Supabase:', e);
       }
@@ -996,7 +1024,11 @@ class DataStore {
           try {
             await supabase.from('solicitudes').update({
               estado: 'LIQUIDADO',
-              observaciones_aprobador: sol.observaciones_aprobador
+              observaciones_aprobador: sol.observaciones_aprobador,
+              liquidacion_codigo: sol.liquidacion_codigo,
+              liquidado_fecha: sol.liquidado_fecha,
+              liquidado_por_dni: sol.liquidado_por_dni,
+              liquidado_por_nombre: sol.liquidado_por_nombre
             }).eq('id', id);
           } catch (e) {
             console.warn('Error actualizando estado LIQUIDADO en Supabase:', e);

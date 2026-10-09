@@ -1,6 +1,6 @@
 # 📘 Manual de Usuario y Flujo Operativo - Caja Chica
 **DICAR LOGISTIC | Sistema PWA de Gestión, Rendición y Liquidación en Tiempo Real**  
-*Versión del Sistema: 6.0.5*
+*Versión del Sistema: 6.0.6*
 
 ---
 
@@ -133,8 +133,8 @@ flowchart TD
 ### Paso 1: Solicitud de Dinero (Solicitante)
 1. El colaborador inicia sesión con su DNI.
 2. Ingresa a la pestaña **"Ingreso Solicitud"**.
-3. Selecciona el **Centro de Costo** de su área u operación (`TRANS`, `ALM 1`, `ALM 2`, `ALM 3`, `ALM 4`, `LAB`, `REFRI`).
-4. Selecciona la **Categoría del Gasto** (`ADMINISTRACIÓN`, `VENTAS`, `PRODUCCIÓN`).
+3. **Centro de Costo Obligatorio**: Viene en blanco por defecto para obligar al colaborador a seleccionar su área (`TRANS`, `ALM 1`, `ALM 2`, `ALM 3`, `ALM 4`, `LAB`, `REFRI`).
+4. **Categoría del Gasto Obligatoria**: Viene en blanco por defecto para seleccionar conscientemente (`ADMINISTRACIÓN`, `VENTAS`, `PRODUCCIÓN`).
 5. Indica el **Monto requerido en Soles (S/)** y la **Justificación o motivo** detallado del gasto.
 6. Presiona **"Enviar Solicitud"**.
    - *Resultado*: Se genera un código correlativo único (ej. `SOL-2026-015`) en estado **PENDIENTE**.
@@ -147,27 +147,31 @@ flowchart TD
    - **Aprobar**: Confirma la solicitud. El estado pasa a **APROBADO**. Se notifica al solicitante y al cajero.
    - **Rechazar**: Ingresa una observación obligatoria del motivo del rechazo. El estado pasa a **RECHAZADO** y finaliza la solicitud.
 
-### Paso 3: Desembolso del Efectivo (Cajero / Usuario)
-1. Con la solicitud en estado **APROBADO**, el solicitante se acerca a la ventanilla de Caja Chica.
-2. El Cajero entra a la pestaña **"Arqueo & Balance"** en la sub-bandeja **"Aprobados / Por Abonar"**.
-3. El Cajero verifica que haya saldo disponible suficiente en la caja y presiona **"Abonar Efectivo"**.
-4. El sistema:
+### Paso 3: Desembolso y Abono de Dinero con Sustento Obligatorio (Cajero / Usuario)
+1. Con la solicitud en estado **APROBADO**, el colaborador se acerca a ventanilla o solicita la transferencia.
+2. El Cajero entra a la pestaña **"Arqueo & Balance"** en la sub-bandeja **"Por Abonar"**.
+3. El Cajero presiona el botón **"Entregar Dinero"** (o **"Entregar Reembolso"**).
+4. Se abre el **Modal de Entrega de Dinero**:
+   - Selecciona la **Modalidad de Abono**: *Efectivo en Caja*, *Transferencia Yape*, *Transferencia Plin*, *Transferencia BCP/BBVA/Interbank*, etc.
+   - Digita el **N° de Operación o Recibo** (opcional).
+   - **Adjunta obligatoriamente el Sustento del Abono**: Foto del recibo firmado o captura de la transferencia/Yape.
+5. Al confirmar:
    - Descuenta automáticamente el monto entregado del **Monto Disponible** de la Caja Chica.
-   - Cambia el estado de la solicitud a **POR_RENDIR**.
-   - Registra el nombre del cajero, DNI y fecha exacta de entrega.
+   - Cambia el estado de la solicitud a **POR_RENDIR** (o **RENDIDO** si era reembolso).
+   - Registra el nombre del cajero, DNI, fecha exacta y almacena el comprobante de entrega.
    - Envía notificación push al colaborador indicando que su dinero fue entregado.
 
 ### Paso 4: Rendición de Gastos y Comprobantes (Solicitante)
 1. Tras ejecutar los pagos o compras, el colaborador entra a **"Mis Solicitudes"**.
 2. Ubica la solicitud en estado `POR RENDIR` y hace clic en el botón verde **"Rendir Cuentas"**.
 3. En el formulario emergente, va agregando cada comprobante que sustenta el gasto:
-   - **Tipo**: Factura Electrónica, Boleta de Venta, Recibo por Honorarios, Ticket o Declaración Jurada.
-   - **Número de Comprobante**: Serie y correlativo (ej. `F001-0004523`).
+   - **Tipo**: Factura Electrónica, Boleta de Venta, Recibo por Honorarios, Ticket, **Planilla de Movilidad** o Sin Comprobante Físico.
+   - **Número de Comprobante**: Serie y correlativo (ej. `F001-0004523`, opcional para planillas).
    - **Fecha de Emisión**.
-   - **RUC del Emisor**: Al escribir los 11 dígitos, el sistema puede consultar en tiempo real a SUNAT vía API para traer la Razón Social y verificar el estado y condición del contribuyente.
+   - **RUC del Emisor (Estricto de 11 dígitos)**: Obligatorio para Facturas y Recibos por Honorarios. Si se escribe incompleto, el sistema alerta visualmente con un contador de dígitos faltantes. Consulta automática a SUNAT vía Factiliza al completar los 11 dígitos.
    - **Importe (S/)**: Monto exacto del comprobante.
-   - **Foto / Documento del Voucher**: Puede tomar foto desde el celular o subir una imagen/PDF. El sistema comprime automáticamente la imagen para optimizar el almacenamiento.
-4. Puede agregar tantos comprobantes como sean necesarios (Factura de repuesto + Boleta de combustible + Ticket de peaje, etc.).
+   - **Sustento Obligatorio (Multiformato)**: Es 100% obligatorio adjuntar el archivo digital para agregar cualquier comprobante. Admite fotos desde el celular (`.jpg`, `.png`), documentos en PDF (`.pdf`), planillas en **Excel (.xlsx, .xls)** y formatos en **Word (.docx, .doc)**.
+4. Puede agregar tantos comprobantes como sean necesarios (Factura de repuesto + Boleta de combustible + Planilla de movilidad, etc.).
 5. El sistema calcula en vivo:
    - `Total Adelantado` vs `Total Rendido en Comprobantes`.
    - `Diferencia resultante`.
@@ -259,9 +263,9 @@ flowchart TD
 ### Módulo 5: Reportes Excel & Liquidación en Lote
 * **Destinado a**: Control contable y administrativo.
 * **Herramientas**:
-  - **Filtros avanzados**: Por rango de fechas (Desde / Hasta), Centro de Costo, Categoría y Estado.
-  - **Exportar Excel Detallado**: Genera un archivo con 4 hojas (Resumen de Arqueo, Libro de Movimientos, Consolidado por Categoría y Consolidado por Solicitante).
-  - **Liquidar Rendiciones**: Agrupa los gastos rendidos en un paquete formal numerado (`LIQ-YYYY-###`), cambia su estado a `LIQUIDADO` y descarga el paquete ZIP con fotos.
+  - **Pestaña Movimientos y Reportes**: Filtros avanzados por rango de fechas (Desde / Hasta), Centro de Costo, Categoría y Estado, con exportación de la vista actual a ZIP.
+  - **Pestaña Historial de Liquidaciones Pasadas**: Archivo histórico de todos los lotes de liquidación cerrados (`LIQ-YYYY-###`), mostrando fecha, administrador responsable, total liquidado, desglose de comprobantes y botón directo para **volver a descargar el paquete ZIP oficial (Libro Excel + Carpeta de Sustentos)** en cualquier momento.
+  - **Liquidar Rendiciones**: Agrupa los gastos rendidos en un paquete formal numerado (`LIQ-YYYY-###`), cambia su estado a `LIQUIDADO` y descarga el paquete ZIP oficial con sustentos.
 
 ### Módulo 6: Maestro de DNIs (Sysadmin)
 * **Destinado a**: Exclusivo para `SYSADMIN`.
@@ -296,8 +300,8 @@ flowchart TD
 
 ## 8. Preguntas Frecuentes y Soporte
 
-### ❓ ¿Qué ocurre si un colaborador pierde un comprobante físico?
-En el modal de rendición puede seleccionar el tipo **"Declaración Jurada de Gasto"** o **"Sin Comprobante Físico"**, explicando detalladamente el motivo y adjuntando una nota firmada o autorización previa.
+### ❓ ¿Qué ocurre si un colaborador pierde un comprobante físico o incurrió en gastos de movilidad local?
+En el modal de rendición puede seleccionar el tipo **"Planilla de Movilidad"** o **"Sin Comprobante Físico"**, explicando detalladamente el motivo o ruta y adjuntando obligatoriamente su formato de sustento (en Excel, Word, PDF o foto firmada).
 
 ### ❓ ¿Por qué no recibo las notificaciones push en mi teléfono móvil?
 1. Asegúrate de haber presionado el botón **"Permitir"** cuando el navegador solicitó permisos de notificación.

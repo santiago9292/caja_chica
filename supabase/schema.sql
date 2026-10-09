@@ -40,19 +40,37 @@ CREATE TABLE IF NOT EXISTS public.solicitudes (
     categoria VARCHAR(50) NOT NULL, -- 'TRANSPORTE', 'ALIMENTACION', 'MATERIALES_OFICINA', 'SERVICIOS_URGENTES', 'REPRESENTACION', 'OTROS'
     
     -- Datos del Comprobante (Relevante para Rendición de Gastos)
-    comprobante_tipo VARCHAR(40), -- 'FACTURA', 'BOLETA', 'RECIBO_HONORARIOS', 'TICKET_VALE', 'DECLARACION_JURADA', 'SIN_COMPROBANTE'
+    comprobante_tipo VARCHAR(40), -- 'FACTURA', 'BOLETA', 'RECIBO_HONORARIOS', 'TICKET_VALE', 'PLANILLA_MOVILIDAD', 'SIN_COMPROBANTE'
     comprobante_numero VARCHAR(50),
     comprobante_ruc_emisor VARCHAR(20),
     comprobante_razon_social VARCHAR(200),
     comprobante_fecha DATE,
     comprobante_archivo_url TEXT, -- Almacena URL o Data URI de la foto/voucher
+    rendiciones JSONB DEFAULT '[]'::jsonb, -- Múltiples comprobantes rendidos
     
     -- Flujo de Aprobación
-    estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE', -- 'PENDIENTE', 'APROBADO', 'RECHAZADO', 'RENDIDO'
+    estado VARCHAR(30) NOT NULL DEFAULT 'PENDIENTE', -- 'PENDIENTE', 'APROBADO', 'RECHAZADO', 'POR_RENDIR', 'RENDIDO', 'LIQUIDADO'
     aprobado_por_dni VARCHAR(15),
     aprobado_por_nombre VARCHAR(200),
     aprobado_fecha TIMESTAMPTZ,
     observaciones_aprobador TEXT,
+    
+    -- Datos de Entrega y Abono de Dinero (Caja)
+    pagado_por_dni VARCHAR(15),
+    pagado_por_nombre VARCHAR(200),
+    pagado_fecha TIMESTAMPTZ,
+    abono_sustento_url TEXT, -- Foto o comprobante de entrega/Yape/Transferencia
+    abono_sustento_nombre VARCHAR(200),
+    abono_metodo VARCHAR(50), -- 'Efectivo en Caja', 'Transferencia Yape', 'Transferencia BCP', etc.
+    abono_operacion VARCHAR(60), -- Nro de Operación / Recibo
+    abono_observacion TEXT,
+    abono_fecha TIMESTAMPTZ,
+
+    -- Liquidación Contable
+    liquidacion_codigo VARCHAR(30), -- ej: 'LIQ-2026-001'
+    liquidado_fecha TIMESTAMPTZ,
+    liquidado_por_dni VARCHAR(15),
+    liquidado_por_nombre VARCHAR(200),
     
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
@@ -161,6 +179,24 @@ WHERE NOT EXISTS (SELECT 1 FROM public.caja_fondos);
 INSERT INTO public.solicitudes (codigo, tipo, solicitante_dni, solicitante_nombre, monto, motivo, categoria, comprobante_tipo, comprobante_numero, comprobante_ruc_emisor, comprobante_razon_social, comprobante_fecha, estado, created_at)
 VALUES
   ('SOL-2026-001', 'RENDICION_GASTO', '78901234', 'Javier Alonso Morales Silva', 125.50, 'Taxi para traslado de documentos notariales urgentes', 'TRANSPORTE', 'FACTURA', 'F001-0004523', '20556789123', 'TAXI SEGURO S.A.C.', CURRENT_DATE - INTERVAL '1 day', 'PENDIENTE', NOW() - INTERVAL '3 hours'),
-  ('SOL-2026-002', 'ADELANTO_DINERO', '11223344', 'Lucía Fernanda Vargas Paredes', 250.00, 'Adelanto para compra de insumos de cafetería y reunión de directorio', 'ALIMENTACION', 'DECLARACION_JURADA', NULL, NULL, NULL, CURRENT_DATE, 'PENDIENTE', NOW() - INTERVAL '1 hour'),
+  ('SOL-2026-002', 'ADELANTO_DINERO', '11223344', 'Lucía Fernanda Vargas Paredes', 250.00, 'Adelanto para compra de insumos de cafetería y reunión de directorio', 'ALIMENTACION', 'PLANILLA_MOVILIDAD', NULL, NULL, NULL, CURRENT_DATE, 'PENDIENTE', NOW() - INTERVAL '1 hour'),
   ('SOL-2026-003', 'RENDICION_GASTO', '78901234', 'Javier Alonso Morales Silva', 85.00, 'Compra de papel bond y archivadores de palanca', 'MATERIALES_OFICINA', 'BOLETA', 'B002-0012894', '20100458921', 'LIBRERIA CONTINENTAL S.A.C.', CURRENT_DATE - INTERVAL '3 days', 'APROBADO', NOW() - INTERVAL '2 days')
 ON CONFLICT (codigo) DO NOTHING;
+
+-- ============================================================================
+-- SCRIPT DE MIGRACIÓN PARA BASES DE DATOS EXISTENTES EN SUPABASE
+-- (Copiar y ejecutar en el SQL Editor de Supabase si la base ya estaba creada)
+-- ============================================================================
+ALTER TABLE public.solicitudes 
+ADD COLUMN IF NOT EXISTS abono_sustento_url TEXT,
+ADD COLUMN IF NOT EXISTS abono_sustento_nombre VARCHAR(200),
+ADD COLUMN IF NOT EXISTS abono_metodo VARCHAR(50),
+ADD COLUMN IF NOT EXISTS abono_operacion VARCHAR(60),
+ADD COLUMN IF NOT EXISTS abono_observacion TEXT,
+ADD COLUMN IF NOT EXISTS abono_fecha TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS rendiciones JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS liquidacion_codigo VARCHAR(30),
+ADD COLUMN IF NOT EXISTS liquidado_fecha TIMESTAMPTZ,
+ADD COLUMN IF NOT EXISTS liquidado_por_dni VARCHAR(15),
+ADD COLUMN IF NOT EXISTS liquidado_por_nombre VARCHAR(200);
+

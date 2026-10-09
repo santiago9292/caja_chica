@@ -342,8 +342,8 @@ export function App() {
     return await store.createSolicitud(solData);
   };
 
-  const handleUpdateEstado = async (id, estado, observaciones) => {
-    return await store.updateEstadoSolicitud(id, estado, currentUser, observaciones);
+  const handleUpdateEstado = async (id, estado, observaciones, extraData = {}) => {
+    return await store.updateEstadoSolicitud(id, estado, currentUser, observaciones, extraData);
   };
 
   const handleRendirAdelanto = async (id, comprobantes) => {
@@ -466,7 +466,7 @@ export function App() {
                 solicitudes={solicitudes}
                 cajaFondo={cajaFondo}
                 categorias={categorias}
-                onLiquidarSolicitudes={async (data) => await store.liquidarSolicitudesBatch(data)}
+                onLiquidarSolicitudes={async (data) => await store.liquidarSolicitudesBatch({ ...data, adminUser: currentUser })}
               />
             )}
           </main>

@@ -36,7 +36,14 @@ export function ModalLiquidacion({
     const year = new Date().getFullYear();
     const prefix = `LIQ-${year}-`;
     const codigosExistentes = solicitudes
-      .map(s => s.liquidacion_codigo)
+      .map(s => {
+        if (s.liquidacion_codigo) return s.liquidacion_codigo;
+        if (s.observaciones_aprobador) {
+          const match = s.observaciones_aprobador.match(/\[Liquidado\s+(LIQ-[A-Z0-9_-]+)/i);
+          if (match) return match[1];
+        }
+        return null;
+      })
       .filter(c => c && c.startsWith(prefix));
 
     let maxNum = 0;

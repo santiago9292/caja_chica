@@ -2,12 +2,20 @@ import JSZip from 'jszip';
 import * as XLSX from 'xlsx';
 import { generarCajaChicaWorkbook } from './excelExporter';
 
-function getExtensionFromDataUrl(dataUrl, defaultExt = 'jpg') {
+function getExtensionFromDataUrl(dataUrl, defaultExt = 'jpg', fileName = '') {
+  if (fileName && fileName.includes('.')) {
+    const ext = fileName.split('.').pop().toLowerCase();
+    if (ext && ext.length <= 5) return ext;
+  }
   if (!dataUrl) return defaultExt;
   if (dataUrl.startsWith('data:image/png')) return 'png';
   if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) return 'jpg';
   if (dataUrl.startsWith('data:image/webp')) return 'webp';
   if (dataUrl.startsWith('data:application/pdf')) return 'pdf';
+  if (dataUrl.startsWith('data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) return 'xlsx';
+  if (dataUrl.startsWith('data:application/vnd.ms-excel')) return 'xls';
+  if (dataUrl.startsWith('data:application/vnd.openxmlformats-officedocument.wordprocessingml.document')) return 'docx';
+  if (dataUrl.startsWith('data:application/msword')) return 'doc';
   return defaultExt;
 }
 
@@ -31,6 +39,44 @@ export function downloadDataUrl(dataUrl, filename) {
   document.body.removeChild(a);
 }
 
+async function addFileToZipWithUniqueName(zipFolderOrRoot, rawName, dataUrl, usedNamesMap) {
+  if (!dataUrl || typeof dataUrl !== 'string') return false;
+
+  let finalName = rawName || 'sustento.jpg';
+
+  if (usedNamesMap.has(finalName)) {
+    const count = usedNamesMap.get(finalName) + 1;
+    usedNamesMap.set(finalName, count);
+    const dotIndex = finalName.lastIndexOf('.');
+    if (dotIndex !== -1) {
+      finalName = `${finalName.slice(0, dotIndex)}_(${count})${finalName.slice(dotIndex)}`;
+    } else {
+      finalName = `${finalName}_(${count})`;
+    }
+  } else {
+    usedNamesMap.set(finalName, 1);
+  }
+
+  if (dataUrl.startsWith('data:')) {
+    const parts = dataUrl.split(',');
+    const base64Data = parts[1];
+    if (!base64Data) return false;
+    zipFolderOrRoot.file(finalName, base64Data, { base64: true });
+    return true;
+  } else if (dataUrl.startsWith('http://') || dataUrl.startsWith('https://') || dataUrl.startsWith('blob:')) {
+    try {
+      const resp = await fetch(dataUrl);
+      const blob = await resp.blob();
+      zipFolderOrRoot.file(finalName, blob);
+      return true;
+    } catch (e) {
+      console.error("Error fetching sustento:", e);
+      return false;
+    }
+  }
+  return false;
+}
+
 /**
  * Obtiene la lista de todos los sustentos con imagen/archivo de una solicitud
  */
@@ -43,11 +89,15 @@ export function getSustentosDeSolicitud(sol) {
       if (Array.isArray(rends)) {
         rends.forEach((r, idx) => {
           if (r.archivo) {
-            const ext = getExtensionFromDataUrl(r.archivo);
+            const ext = getExtensionFromDataUrl(r.archivo, 'jpg', r.archivoNombre || '');
             const cleanNum = (r.numero || `comp_${idx + 1}`).replace(/[^a-zA-Z0-9_-]/g, '_');
             const cleanTipo = (r.tipo || 'COMP').replace(/[^a-zA-Z0-9_-]/g, '_');
+            const fileBaseName = r.archivoNombre 
+              ? r.archivoNombre.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
+              : `${cleanTipo}_${cleanNum}`;
+            
             sustentos.push({
-              nombre: `${sol.codigo}_${cleanTipo}_${cleanNum}.${ext}`,
+              nombre: `${sol.codigo}_Rendicion_${idx + 1}_${fileBaseName}.${ext}`,
               dataUrl: r.archivo,
               tipo: r.tipo,
               numero: r.numero,
@@ -66,10 +116,26 @@ export function getSustentosDeSolicitud(sol) {
     const cleanNum = (sol.comprobante_numero || 'comprobante').replace(/[^a-zA-Z0-9_-]/g, '_');
     const cleanTipo = (sol.comprobante_tipo || 'COMP').replace(/[^a-zA-Z0-9_-]/g, '_');
     sustentos.push({
-      nombre: `${sol.codigo}_${cleanTipo}_${cleanNum}.${ext}`,
+      nombre: `${sol.codigo}_ComprobanteInicial_${cleanTipo}_${cleanNum}.${ext}`,
       dataUrl: sol.comprobante_archivo_url,
       tipo: sol.comprobante_tipo,
       numero: sol.comprobante_numero,
+      monto: sol.monto
+    });
+  }
+
+  if (sol.abono_sustento_url) {
+    const ext = getExtensionFromDataUrl(sol.abono_sustento_url, 'jpg', sol.abono_sustento_nombre || '');
+    const cleanOp = (sol.abono_operacion || 'ENTREGA').replace(/[^a-zA-Z0-9_-]/g, '_');
+    const fileBaseName = sol.abono_sustento_nombre 
+      ? sol.abono_sustento_nombre.replace(/\.[^/.]+$/, '').replace(/[^a-zA-Z0-9_-]/g, '_')
+      : `ENTREGA_${cleanOp}`;
+
+    sustentos.push({
+      nombre: `${sol.codigo}_SustentoAbono_${fileBaseName}.${ext}`,
+      dataUrl: sol.abono_sustento_url,
+      tipo: 'SUSTENTO_ABONO',
+      numero: sol.abono_operacion || '-',
       monto: sol.monto
     });
   }
@@ -93,14 +159,13 @@ export async function descargarSustentosSolicitud(sol) {
     return true;
   }
 
-  // Múltiples sustentos -> crear ZIP
+  // Múltiples sustentos -> crear ZIP con nombres únicos garantizados
   const zip = new JSZip();
-  sustentos.forEach(s => {
-    if (s.dataUrl.startsWith('data:')) {
-      const base64Data = s.dataUrl.split(',')[1];
-      zip.file(s.nombre, base64Data, { base64: true });
-    }
-  });
+  const usedNamesMap = new Map();
+
+  for (const s of sustentos) {
+    await addFileToZipWithUniqueName(zip, s.nombre, s.dataUrl, usedNamesMap);
+  }
 
   const blob = await zip.generateAsync({ type: 'blob' });
   downloadBlob(blob, `Sustentos_${sol.codigo}.zip`);
@@ -124,18 +189,16 @@ export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuario
 
   // 2. Carpeta de Sustentos dentro del ZIP
   const sustentosFolder = zip.folder('sustentos');
+  const usedNamesMap = new Map();
   let totalArchivosAdjuntos = 0;
 
-  solicitudes.forEach(sol => {
+  for (const sol of solicitudes) {
     const sustentos = getSustentosDeSolicitud(sol);
-    sustentos.forEach(s => {
-      if (s.dataUrl && s.dataUrl.startsWith('data:')) {
-        const base64Data = s.dataUrl.split(',')[1];
-        sustentosFolder.file(s.nombre, base64Data, { base64: true });
-        totalArchivosAdjuntos++;
-      }
-    });
-  });
+    for (const s of sustentos) {
+      const added = await addFileToZipWithUniqueName(sustentosFolder, s.nombre, s.dataUrl, usedNamesMap);
+      if (added) totalArchivosAdjuntos++;
+    }
+  }
 
   // Generar el archivo ZIP final
   const zipBlob = await zip.generateAsync({ 
@@ -154,3 +217,4 @@ export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuario
     totalSustentos: totalArchivosAdjuntos
   };
 }
+
