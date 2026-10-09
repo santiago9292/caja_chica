@@ -15,27 +15,34 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [processingId, setProcessingId] = useState(null);
   const [filtroBandeja, setFiltroBandeja] = useState('APROBADO'); // 'APROBADO' | 'PENDIENTE' | 'RECHAZADO' | 'HISTORIAL' | 'TODOS'
 
+  const getTotalRendido = (sol) => {
+    let lista = [];
+    try {
+      lista = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
+    } catch (e) {
+      lista = [];
+    }
+    if (!Array.isArray(lista)) return 0;
+    return lista.reduce((sum, c) => sum + Number(c.monto || 0), 0);
+  };
+
   const getMontoEntrega = (sol) => {
     if (sol.estado === 'POR_REEMBOLSAR') {
-      let lista = [];
-      try {
-        lista = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
-      } catch (e) {
-        lista = [];
-      }
-      if (Array.isArray(lista)) {
-        const totalRendido = lista.reduce((sum, c) => sum + Number(c.monto || 0), 0);
-        const adelanto = Number(sol.monto || 0);
-        return Math.max(0, Number((totalRendido - adelanto).toFixed(2)));
-      }
-      return 0;
+      const adelanto = Number(sol.monto || 0);
+      return Math.max(0, Number((getTotalRendido(sol) - adelanto).toFixed(2)));
+    }
+    if (sol.estado === 'POR_DEVOLVER') {
+      // Sobrante que el solicitante debe devolver a Caja
+      const adelanto = Number(sol.monto || 0);
+      return Math.max(0, Number((adelanto - getTotalRendido(sol)).toFixed(2)));
     }
     return Number(sol.monto || 0);
   };
 
-  // Consideramos pagados los que están en estado PAGADO, POR_RENDIR, RENDIDO o LIQUIDADO (para arqueo egresos)
+  // Consideramos pagados los que están en estado PAGADO, POR_RENDIR, POR_DEVOLVER, RENDIDO o LIQUIDADO (para arqueo egresos)
+  const ESTADOS_EGRESO = ['PAGADO', 'POR_RENDIR', 'POR_DEVOLVER', 'RENDIDO', 'LIQUIDADO'];
   const totalPagado = solicitudes
-    .filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO' || s.estado === 'LIQUIDADO')
+    .filter(s => ESTADOS_EGRESO.includes(s.estado))
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendienteOAprobado = solicitudes
@@ -45,7 +52,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
 
   const categoriasMap = {};
-  solicitudes.filter(s => s.estado === 'PAGADO' || s.estado === 'POR_RENDIR' || s.estado === 'RENDIDO' || s.estado === 'LIQUIDADO').forEach(s => {
+  solicitudes.filter(s => ESTADOS_EGRESO.includes(s.estado)).forEach(s => {
     const cat = s.categoria.replace(/_/g, ' ');
     if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, count: 0 };
     categoriasMap[cat].total += Number(s.monto || 0);
@@ -53,12 +60,14 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   });
 
   const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR');
+  const solicitudesDevolucion = solicitudes.filter(s => s.estado === 'POR_DEVOLVER');
   const solicitudesPendientes = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO');
   const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'RECHAZADO');
   const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado));
 
   const solicitudesFiltradasBandeja = solicitudes.filter(s => {
     if (filtroBandeja === 'APROBADO') return s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR';
+    if (filtroBandeja === 'DEVOLUCION') return s.estado === 'POR_DEVOLVER';
     if (filtroBandeja === 'PENDIENTE') return s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO';
     if (filtroBandeja === 'RECHAZADO') return s.estado === 'RECHAZADO';
     if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado);
@@ -106,6 +115,21 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
       playNotificationSound('success');
     } catch (err) {
       alert('Error al entregar dinero: ' + err.message);
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+  const handleRecibirDevolucion = async (sol) => {
+    const montoDevuelto = getMontoEntrega(sol);
+    if (!window.confirm(`¿Confirmas que RECIBISTE S/ ${montoDevuelto.toFixed(2)} en efectivo de ${sol.solicitante_nombre} como devolución del sobrante de ${sol.codigo}?`)) return;
+
+    setProcessingId(sol.id);
+    try {
+      await onUpdateEstado(sol.id, 'RENDIDO', 'Devolución de sobrante recibida en caja');
+      playNotificationSound('success');
+    } catch (err) {
+      alert('Error al confirmar la devolución: ' + err.message);
     } finally {
       setProcessingId(null);
     }
@@ -293,6 +317,25 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
 
               <button
                 type="button"
+                className={`btn btn-sm ${filtroBandeja === 'DEVOLUCION' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('DEVOLUCION')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <span>Devoluciones</span>
+                <span style={{ 
+                  background: filtroBandeja === 'DEVOLUCION' ? 'rgba(255,255,255,0.25)' : '#f5f3ff', 
+                  color: filtroBandeja === 'DEVOLUCION' ? '#fff' : '#6d28d9',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {solicitudesDevolucion.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
                 className={`btn btn-sm ${filtroBandeja === 'PENDIENTE' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setFiltroBandeja('PENDIENTE')}
                 style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
@@ -372,6 +415,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
           {solicitudesFiltradasBandeja.length === 0 ? (
             <div style={{ textAlign: 'center', padding: '2.5rem 1rem', color: 'var(--text-muted)' }}>
               {filtroBandeja === 'APROBADO' && 'No hay solicitudes aprobadas pendientes de pago o entrega de dinero.'}
+              {filtroBandeja === 'DEVOLUCION' && 'No hay devoluciones de sobrantes pendientes de recibir.'}
               {filtroBandeja === 'PENDIENTE' && 'No hay solicitudes pendientes de aprobación.'}
               {filtroBandeja === 'RECHAZADO' && 'No hay solicitudes rechazadas.'}
               {filtroBandeja === 'HISTORIAL' && 'No hay entregas registradas en el historial.'}
@@ -427,6 +471,15 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                               Reembolso (Adelanto: S/ {Number(sol.monto).toFixed(2)})
                             </div>
                           </div>
+                        ) : sol.estado === 'POR_DEVOLVER' ? (
+                          <div>
+                            <div style={{ fontWeight: '800', color: '#6d28d9', fontSize: '1.1rem' }}>
+                              S/ {getMontoEntrega(sol).toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              A devolver (Adelanto: S/ {Number(sol.monto).toFixed(2)} · Rendido: S/ {getTotalRendido(sol).toFixed(2)})
+                            </div>
+                          </div>
                         ) : sol.estado === 'PENDIENTE_REEMBOLSO' ? (
                           <div>
                             <div style={{ fontWeight: '800', color: '#b45309', fontSize: '1.05rem' }}>
@@ -451,6 +504,11 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                         {sol.estado === 'POR_REEMBOLSAR' && (
                           <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                             <CheckCircle2 size={13} /> Listo para Reembolso
+                          </span>
+                        )}
+                        {sol.estado === 'POR_DEVOLVER' && (
+                          <span className="badge" style={{ background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                            <Clock size={13} /> Devolución por Recibir
                           </span>
                         )}
                         {sol.estado === 'PENDIENTE' && (
@@ -505,6 +563,15 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             style={{ whiteSpace: 'nowrap' }}
                           >
                             <Check size={16} /> {sol.estado === 'POR_REEMBOLSAR' ? 'Entregar Reembolso' : 'Entregar Dinero'}
+                          </button>
+                        ) : sol.estado === 'POR_DEVOLVER' ? (
+                          <button 
+                            className="btn btn-success" 
+                            onClick={() => handleRecibirDevolucion(sol)}
+                            disabled={processingId === sol.id}
+                            style={{ whiteSpace: 'nowrap' }}
+                          >
+                            <Check size={16} /> Confirmar Recepción
                           </button>
                         ) : (sol.estado === 'PENDIENTE' || sol.estado === 'PENDIENTE_REEMBOLSO') ? (
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>

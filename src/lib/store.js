@@ -742,6 +742,8 @@ class DataStore {
     const sol = this.solicitudes.find(s => s.id === id);
     if (!sol) throw new Error('Solicitud no encontrada');
 
+    // Guardar el estado anterior ANTES de sobrescribirlo (necesario para reembolsos y devoluciones)
+    const estadoPrevio = sol.estado;
     sol.estado = nuevoEstado;
 
     if (nuevoEstado === 'APROBADO' || nuevoEstado === 'RECHAZADO') {
@@ -764,8 +766,27 @@ class DataStore {
       await this.syncCajaFondoToSupabase();
     }
 
+    // Si el Cajero confirma la recepción del sobrante devuelto (de POR_DEVOLVER pasa a RENDIDO final)
+    if (estadoPrevio === 'POR_DEVOLVER' && nuevoEstado === 'RENDIDO') {
+      let totalRendido = 0;
+      if (sol.rendiciones) {
+        const list = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
+        if (Array.isArray(list)) {
+          totalRendido = list.reduce((sum, c) => sum + Number(c.monto || 0), 0);
+        }
+      }
+      const montoDevuelto = Math.max(0, Number((Number(sol.monto || 0) - totalRendido).toFixed(2)));
+      if (montoDevuelto > 0) {
+        this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + montoDevuelto);
+        this.persist('caja_fondo', this.cajaFondo);
+        await this.syncCajaFondoToSupabase();
+      }
+      sol.monto = totalRendido;
+      const obsDev = `[Devolución S/ ${montoDevuelto.toFixed(2)} recibida por ${adminUser.nombres} ${adminUser.apellidos} el ${new Date().toLocaleString('es-PE')}]`;
+      sol.observaciones_aprobador = sol.observaciones_aprobador ? `${sol.observaciones_aprobador} | ${obsDev}` : obsDev;
+    }
+
     // Si el Cajero entrega el reembolso por exceso (de POR_REEMBOLSAR pasa a RENDIDO final)
-    const estadoPrevio = sol.estado;
     if (estadoPrevio === 'POR_REEMBOLSAR' && nuevoEstado === 'RENDIDO') {
       let totalRendido = 0;
       if (sol.rendiciones) {
@@ -803,6 +824,9 @@ class DataStore {
     } else if (nuevoEstado === 'RENDIDO' && estadoPrevio === 'POR_REEMBOLSAR') {
       title = `Reembolso Pagado: ${sol.codigo}`;
       msg = `Caja te ha entregado el efectivo correspondiente a tu reembolso por exceso. Rendición finalizada y conforme.`;
+    } else if (nuevoEstado === 'RENDIDO' && estadoPrevio === 'POR_DEVOLVER') {
+      title = `Devolución Recibida: ${sol.codigo}`;
+      msg = `Caja (${adminUser.nombres}) confirmó la recepción de tu devolución de efectivo. Rendición finalizada y conforme.`;
     }
 
     this.addNotification({
@@ -845,6 +869,8 @@ class DataStore {
       msgPush = `Reembolso autorizado para ${sol.codigo}. Cajero, proceda con el pago de la diferencia.`;
       const cajerosDnis = this.usuarios.filter(u => u.roles?.includes('USUARIO')).map(u => u.dni);
       targetPushDnis = [...targetPushDnis, ...cajerosDnis];
+    } else if (nuevoEstado === 'RENDIDO' && estadoPrevio === 'POR_DEVOLVER') {
+      msgPush = `${adminUser.nombres} confirmó la recepción de tu devolución para ${sol.codigo}. Rendición conforme.`;
     } else {
       msgPush = `Tu solicitud ${sol.codigo} fue actualizada a ${nuevoEstado}.`;
     }
@@ -867,18 +893,13 @@ class DataStore {
     sol.rendiciones = comprobantesArray;
 
     // Si gastó más del adelanto (diferencia > 0): pasa a PENDIENTE_REEMBOLSO para visto bueno del Admin
-    // Si gastó exacto o menos: pasa a RENDIDO
-    const nuevoEstado = diferencia > 0 ? 'PENDIENTE_REEMBOLSO' : 'RENDIDO';
+    // Si gastó menos (diferencia < 0): pasa a POR_DEVOLVER hasta que el Cajero confirme la recepción del sobrante
+    // Si gastó exacto: pasa a RENDIDO
+    const nuevoEstado = diferencia > 0 ? 'PENDIENTE_REEMBOLSO' : diferencia < 0 ? 'POR_DEVOLVER' : 'RENDIDO';
     sol.estado = nuevoEstado;
 
-    // Si gastó menos (diferencia < 0), devolver el sobrante al fondo de Caja Chica
-    if (diferencia < 0) {
-      const devolucion = Math.abs(diferencia);
-      this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + devolucion);
-      this.persist('caja_fondo', this.cajaFondo);
-      sol.monto = totalRendido;
-      await this.syncCajaFondoToSupabase();
-    } else if (diferencia === 0) {
+    // En POR_DEVOLVER el monto se mantiene como el adelanto: el fondo se repone recién cuando Caja confirma
+    if (diferencia === 0) {
       sol.monto = totalRendido;
     }
 
@@ -920,6 +941,18 @@ class DataStore {
 
       const adminDnis = this.usuarios.filter(u => u.roles?.includes('ADMINISTRADOR')).map(u => u.dni);
       this.sendOneSignalPush(`Reembolso ${sol.codigo}: S/ ${diferencia.toFixed(2)}`, `Rendición con exceso para autorizar a ${sol.solicitante_nombre}.`, adminDnis, { evento: 'REEMBOLSO_PENDIENTE', solicitanteDni: sol.solicitante_dni });
+    } else if (diferencia < 0) {
+      const devolucion = Math.abs(diferencia);
+      this.addNotification({
+        titulo: `Devolución por Recibir: ${sol.codigo}`,
+        mensaje: `${sol.solicitante_nombre} rindió S/ ${totalRendido.toFixed(2)} sobre adelanto de S/ ${adelanto.toFixed(2)}. Debe devolver S/ ${devolucion.toFixed(2)} en Caja.`,
+        tipo: 'WARNING',
+        usuario_dni: 'ADMINS',
+        referencia_id: sol.id
+      });
+
+      const cajerosDnis = this.usuarios.filter(u => u.roles?.includes('USUARIO')).map(u => u.dni);
+      this.sendOneSignalPush(`Devolución ${sol.codigo}: S/ ${devolucion.toFixed(2)}`, `${sol.solicitante_nombre} debe devolver efectivo sobrante. Confirma la recepción en Arqueo & Balance.`, cajerosDnis, { evento: 'DEVOLUCION_PENDIENTE', solicitanteDni: sol.solicitante_dni });
     } else {
       this.addNotification({
         titulo: `Rendición Recibida: ${sol.codigo}`,

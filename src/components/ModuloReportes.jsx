@@ -27,6 +27,7 @@ const OPCIONES_ESTADO = [
   { value: 'APROBADO', label: 'Aprobado', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
   { value: 'PENDIENTE', label: 'Pendiente', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   { value: 'POR_REEMBOLSAR', label: 'Por Reembolsar', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
+  { value: 'POR_DEVOLVER', label: 'Por Devolver', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
   { value: 'RECHAZADO', label: 'Rechazado', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' }
 ];
 
@@ -161,7 +162,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
 
   const totalFiltrado = solicitudesFiltradas.reduce((acc, cur) => acc + getMontoReal(cur), 0);
   const totalAprobadoFiltrado = solicitudesFiltradas
-    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
+    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR', 'POR_DEVOLVER'].includes(s.estado))
     .reduce((acc, cur) => acc + getMontoReal(cur), 0);
 
   const handleExportZip = async () => {

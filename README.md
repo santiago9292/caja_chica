@@ -2,6 +2,8 @@
 
 Sistema corporativo en tiempo real para la gestión, rendición de gastos, anticipos de efectivo y control de arqueos de **Caja Chica**, desarrollado con arquitectura reactiva, soporte de **Supabase Realtime**, PWA instalable en móviles y desktop, control de acceso multi-nivel por **DNI y Roles Múltiples**, y generación de reportes en **Excel (.xlsx)**.
 
+> 📖 **Manual de Usuario y Flujo Operativo**: Puedes consultar el manual completo y detallado paso a paso en [MANUAL_DE_USUARIO_Y_FLUJO.md](./MANUAL_DE_USUARIO_Y_FLUJO.md).
+
 ---
 
 ## 🚀 Características Principales

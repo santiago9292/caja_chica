@@ -394,7 +394,7 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
             fontSize: '0.82rem',
             color: '#b45309'
           }}>
-            ⚠️ <strong>Sobrante de efectivo: S/ {Math.abs(diferencia).toFixed(2)}</strong>. Recuerda entregar los S/ {Math.abs(diferencia).toFixed(2)} no utilizados al Cajero para reintegrarlos al fondo de Caja Chica.
+            ⚠️ <strong>Sobrante de efectivo: S/ {Math.abs(diferencia).toFixed(2)}</strong>. Debes entregar los S/ {Math.abs(diferencia).toFixed(2)} no utilizados al Cajero. Tu rendición quedará <strong>Por Devolver</strong> hasta que Caja confirme la recepción del efectivo.
           </div>
         )}
 

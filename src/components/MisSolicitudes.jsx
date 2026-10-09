@@ -33,6 +33,8 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
         return <span className="badge" style={{ background: '#fffbeb', color: '#b45309', border: '1px solid #fde68a' }}>Reembolso en Revisión</span>;
       case 'POR_REEMBOLSAR':
         return <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0' }}>Reembolso por Cobrar</span>;
+      case 'POR_DEVOLVER':
+        return <span className="badge" style={{ background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe' }}>Por Devolver a Caja</span>;
       case 'RECHAZADO':
         return <span className="badge badge-rechazado">Rechazado</span>;
       default:
@@ -41,7 +43,7 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
   };
 
   const totalMontoAprobado = misItems
-    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'POR_RENDIR', 'POR_REEMBOLSAR'].includes(s.estado))
+    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'POR_RENDIR', 'POR_REEMBOLSAR', 'POR_DEVOLVER'].includes(s.estado))
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendiente = misItems
@@ -228,6 +230,28 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                 <strong>🎉 Reembolso Aprobado:</strong> Acércate a Caja para cobrar el efectivo adicional correspondiente al exceso de tus comprobantes.
               </div>
             )}
+
+            {selectedItem.estado === 'POR_DEVOLVER' && (() => {
+              let rendido = 0;
+              try {
+                const list = typeof selectedItem.rendiciones === 'string' ? JSON.parse(selectedItem.rendiciones) : selectedItem.rendiciones;
+                if (Array.isArray(list)) rendido = list.reduce((sum, c) => sum + Number(c.monto || 0), 0);
+              } catch (e) {}
+              const aDevolver = Math.max(0, Number(selectedItem.monto || 0) - rendido);
+              return (
+                <div style={{
+                  background: '#f5f3ff',
+                  border: '1px solid #ddd6fe',
+                  padding: '0.75rem',
+                  borderRadius: 'var(--radius-md)',
+                  marginBottom: '1rem',
+                  fontSize: '0.825rem',
+                  color: '#5b21b6'
+                }}>
+                  <strong>💵 Devolución Pendiente:</strong> Rendiste S/ {rendido.toFixed(2)}. Acércate a Caja a devolver <strong>S/ {aDevolver.toFixed(2)}</strong>. Tu rendición quedará conforme cuando el cajero confirme la recepción.
+                </div>
+              );
+            })()}
 
             {selectedItem.estado === 'PENDIENTE_REEMBOLSO' && (
               <div style={{

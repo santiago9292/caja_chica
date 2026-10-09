@@ -237,17 +237,30 @@ export function App() {
             playNotificationSound('alert');
             fireNativeNotification(title, msg, 'REEMBOLSO_PENDIENTE', meta.solicitud.solicitante_dni);
           }
+        } else if (meta.estado === 'POR_DEVOLVER' && currentUser.roles?.includes('USUARIO') && currentUser.dni !== meta.solicitud.solicitante_dni) {
+          const title = `Devolución por Recibir: ${meta.solicitud.codigo}`;
+          const msg = `${meta.solicitud.solicitante_nombre} rindió con sobrante. Confirma la recepción del efectivo en Arqueo & Balance.`;
+          showToast({ title, message: msg, type: 'warning' });
+          playNotificationSound('alert');
+          fireNativeNotification(title, msg, 'DEVOLUCION_PENDIENTE', meta.solicitud.solicitante_dni);
         } else if (currentUser.dni === meta.solicitud.solicitante_dni) {
           const title = `Solicitud ${meta.estado}: ${meta.solicitud.codigo}`;
           const isPagado = meta.estado === 'PAGADO';
           const isPorReembolsar = meta.estado === 'POR_REEMBOLSAR';
+          const isPorDevolver = meta.estado === 'POR_DEVOLVER';
+          const isRendido = meta.estado === 'RENDIDO';
           const msg = isPorReembolsar
             ? `Tu reembolso fue aprobado por el administrador. Acércate a Caja Chica para cobrar.`
+            : isPorDevolver
+            ? `Rendición registrada con sobrante. Acércate a Caja a devolver el efectivo no utilizado.`
+            : isRendido
+            ? `Tu rendición quedó conforme.`
             : isPagado 
             ? `Tu solicitud fue abonada por el cajero ${meta.solicitud.pagado_por_nombre}`
             : `La solicitud fue ${meta.estado.toLowerCase()} por ${meta.solicitud.aprobado_por_nombre}`;
-          showToast({ title, message: msg, type: meta.estado === 'APROBADO' || isPagado || isPorReembolsar ? 'success' : 'danger' });
-          playNotificationSound(meta.estado === 'APROBADO' || isPagado ? 'success' : 'reject');
+          const isPositivo = meta.estado === 'APROBADO' || isPagado || isPorReembolsar || isRendido;
+          showToast({ title, message: msg, type: isPositivo ? 'success' : isPorDevolver ? 'warning' : 'danger' });
+          playNotificationSound(isPositivo ? 'success' : isPorDevolver ? 'alert' : 'reject');
           fireNativeNotification(title, msg, meta.estado, meta.solicitud.solicitante_dni);
         }
       }

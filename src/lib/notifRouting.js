@@ -16,6 +16,7 @@ export const TAB_ROLES = {
 const EVENTOS_GESTION = {
   NUEVA_SOLICITUD: ['aprobaciones', 'arqueo'],     // Admin aprueba, cajero se entera
   REEMBOLSO_PENDIENTE: ['aprobaciones', 'arqueo'], // Admin autoriza exceso
+  DEVOLUCION_PENDIENTE: ['arqueo', 'aprobaciones'], // Cajero confirma recepción del sobrante
 };
 
 // Destino para los cajeros/gestores en cambios de estado (APROBADO, POR_REEMBOLSAR...)
