@@ -1,6 +1,6 @@
 # 📘 Manual de Usuario y Flujo Operativo - Caja Chica
-**DICAR LOGISTIC | Sistema PWA de Gestión, Rendición y Liquidación en Tiempo Real**  
-*Versión del Sistema: 6.0.6*
+**CORPORACION CADILLO & ROJO SAC | Sistema PWA de Gestión, Rendición y Liquidación en Tiempo Real**  
+*Versión del Sistema: 6.0.7*
 
 ---
 
@@ -25,7 +25,7 @@
    - [Módulo 2: Mis Solicitudes y Modal de Rendición](#módulo-2-mis-solicitudes-y-modal-de-rendición)
    - [Módulo 3: Bandeja de Aprobaciones](#módulo-3-bandeja-de-aprobaciones)
    - [Módulo 4: Arqueo & Balance](#módulo-4-arqueo--balance)
-   - [Módulo 5: Reportes Excel & Liquidación en Lote](#módulo-5-reportes-excel--liquidación-en-lote)
+   - [Módulo 5: Reportes Excel & Estructura del Libro Caja Chica](#módulo-5-reportes-excel--liquidación-en-lote)
    - [Módulo 6: Maestro de DNIs (Sysadmin)](#módulo-6-maestro-de-dnis-sysadmin)
    - [Módulo 7: Maestro de Categorías y Centros de Costo](#módulo-7-maestro-de-categorías-y-centros-de-costo)
 7. [Glosario de Estados del Sistema](#7-glosario-de-estados-del-sistema)
@@ -35,7 +35,7 @@
 
 ## 1. Introducción y Objetivos
 
-El sistema de **Caja Chica de DICAR LOGISTIC** es una plataforma web progresiva (PWA) diseñada para optimizar, transparentar y acelerar el ciclo de vida de los fondos fijos empresariales. 
+El sistema de **Caja Chica de CORPORACION CADILLO & ROJO SAC** es una plataforma web progresiva (PWA) diseñada para optimizar, transparentar y acelerar el ciclo de vida de los fondos fijos empresariales. 
 
 ### Objetivos Clave:
 * **Eliminar el papel físico preliminar**: Digitalizar desde la solicitud de efectivo hasta el comprobante fiscal sustentatorio.
@@ -261,11 +261,37 @@ flowchart TD
   - Edición del fondo techo y registro de reposiciones de dinero.
 
 ### Módulo 5: Reportes Excel & Liquidación en Lote
-* **Destinado a**: Control contable y administrativo.
-* **Herramientas**:
-  - **Pestaña Movimientos y Reportes**: Filtros avanzados por rango de fechas (Desde / Hasta), Centro de Costo, Categoría y Estado, con exportación de la vista actual a ZIP.
-  - **Pestaña Historial de Liquidaciones Pasadas**: Archivo histórico de todos los lotes de liquidación cerrados (`LIQ-YYYY-###`), mostrando fecha, administrador responsable, total liquidado, desglose de comprobantes y botón directo para **volver a descargar el paquete ZIP oficial (Libro Excel + Carpeta de Sustentos)** en cualquier momento.
-  - **Liquidar Rendiciones**: Agrupa los gastos rendidos en un paquete formal numerado (`LIQ-YYYY-###`), cambia su estado a `LIQUIDADO` y descarga el paquete ZIP oficial con sustentos.
+* **Destinado a**: Control contable, tesorería y administración.
+* **Estructura Oficial de la Hoja "Libro Caja Chica" en Excel (.xlsx)**:
+  El reporte en Excel generado sigue de forma exacta el formato corporativo de liquidación de gastos:
+  
+  ```
+  +----------------------------------------------------------------------------------------------------------------------------------+
+  |                               LIQUIDACIÓN DEL FONDO DE CAJA CHICA DE CORPORACION CADILLO & ROJO SAC                              |
+  +-------------------------------------------------------------+--------------------------------------------------------------------+
+  | Area : Administrativo                                       | LIQUIDACION CAJA N.°: 001-2026                                     |
+  +-------------------------------------------------------------+--------------------------------------------------------------------+
+  | Nombre y Apellidos: ANDREA DEL CARMEN PARCO VELARDE         | Cargo: ASISTENTE DE TRANSPORTE                                     |
+  +----+------------+---------+--------------------+----------------------------------+------------------------------+---------------+------------+
+  | N° | Fecha      | Tipo    | Nro. De Comprobante| Razón Social                     | Descripción                  | Centro Costos | Importe S/ |
+  +----+------------+---------+--------------------+----------------------------------+------------------------------+---------------+------------+
+  | 1  | 26/09/2026 | FACTURA | FFF1-019264        | CRAGG CAMPOS GENOVEVA ELIZABETH  | PAGO DE CARTA NOTARIAL       | ADMINISTRACIÓN|      75.00 |
+  | 2  | 02/09/2026 | FACTURA | F003-0002777       | CORPORACION FERRETERA ROSITA SAC | COMPRA DE PANEL LED          | ALMACÉN 1     |      60.00 |
+  | 3  | 02/10/2026 | RECIBO  | 01242              | IMANOL MONTOYA                   | PAGO DIA DE APOYO 29/09 Y 28 | ALMACÉN 1     |     130.00 |
+  | .. | ...        | ...     | ...                | ...                              | ...                          | ...           |        ... |
+  +----+------------+---------+--------------------+----------------------------------+------------------------------+---------------+------------+
+  |    |            |         |                    |                                  |                        TOTAL |               |    1250.00 |
+  +----+------------+---------+--------------------+----------------------------------+------------------------------+---------------+------------+
+  ```
+
+* **Características del reporte:**
+  1. **Desglose unitario de comprobantes**: Cada comprobante (factura, boleta, recibo, ticket, nota de venta) se exporta en una fila independiente.
+  2. **Encabezado con celdas combinadas**: Título corporativo unificado, metadatos de Área, Código de Liquidación correlativo, Responsable y Cargo.
+  3. **Hojas adicionales de control**:
+     - **Arqueo & Balance**: Métricas del fondo fijo, disponible y fecha de emisión.
+     - **Por Categoría**: Totales consolidados por tipo de gasto.
+     - **Por Solicitante**: Resumen consolidado por cada colaborador.
+  4. **Pestaña Historial de Liquidaciones Pasadas**: Permite consultar y descargar nuevamente el paquete **ZIP con el Excel estructurado y la carpeta de fotos/sustentos** de cualquier lote cerrado.
 
 ### Módulo 6: Maestro de DNIs (Sysadmin)
 * **Destinado a**: Exclusivo para `SYSADMIN`.
@@ -315,4 +341,4 @@ El sistema incluye consulta directa al servicio Factiliza conectado a SUNAT. Si 
 Los registros en estado `LIQUIDADO` quedan protegidos por integridad contable. Si se requiere una corrección excepcional, debe ser gestionada por el usuario con rol `SYSADMIN`.
 
 ---
-*Manual elaborado para DICAR LOGISTIC - Sistema Caja Chica v6.0.5*
+*Manual elaborado para CORPORACION CADILLO & ROJO SAC - Sistema Caja Chica v6.0.7*

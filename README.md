@@ -32,12 +32,12 @@ Sistema corporativo en tiempo real para la gestión, rendición de gastos, antic
   - Visualización del Fondo Fijo Asignado, Saldo Disponible en Caja, Gastos Egresados y En Trámite.
   - Gráfica de avance del presupuesto y desglose por categorías de gasto.
 - **📑 Generación de Reportes Oficiales en Excel (.xlsx)**:
-  - Exportación con la librería `xlsx` (SheetJS) con formato profesional estructurado en 4 pestañas:
-    1. **Arqueo & Balance**: Resumen ejecutivo, fondos y fecha de corte.
-    2. **Libro Caja Chica**: Listado exhaustivo de movimientos con datos de comprobantes y aprobadores.
+  - Exportación con la librería `xlsx` (SheetJS) con formato oficial corporativo estructurado en 4 pestañas:
+    1. **Libro Caja Chica**: Estructura oficial idéntica a la plantilla de liquidación corporativa, con título formal, área, N° de liquidación, responsable, cargo, desglose unitario de comprobantes (N°, Fecha, Tipo, Nro. De Comprobante, Razón Social, Descripción, Centro de Costos, Importe S/) y fila de totales calculada.
+    2. **Arqueo & Balance**: Resumen ejecutivo, fondos asignados, disponible y fecha de corte.
     3. **Por Categoría**: Totales agrupados y conteo de comprobantes.
     4. **Por Solicitante**: Resumen de importes solicitados y aprobados por cada colaborador.
-  - Filtros interactivos por rango de fechas, estados y categorías.
+  - Filtros interactivos por rango de fechas, estados, categorías y centros de costo.
 
 ---
 

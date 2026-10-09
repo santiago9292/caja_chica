@@ -124,7 +124,7 @@ export function ModalLiquidacion({
     try {
       // 1. Exportar el archivo ZIP oficial con el número de liquidación
       const cleanCodigo = codigoLiquidacion.trim().toUpperCase().replace(/[^A-Z0-9_-]/g, '_');
-      const customPrefix = `Liquidacion_${cleanCodigo}_DICAR_LOGISTIC`;
+      const customPrefix = `Liquidacion_${cleanCodigo}_CORPORACION_CADILLO_Y_ROJO_SAC`;
       
       await exportarReporteCompletoZip(seleccionadosList, cajaFondo, currentUser, customPrefix);
 

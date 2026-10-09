@@ -264,7 +264,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
     setDownloadingLiqCodigo(liq.codigo);
     try {
       const cleanCodigo = liq.codigo.replace(/[^A-Z0-9_-]/g, '_');
-      const customPrefix = `Liquidacion_${cleanCodigo}_DICAR_LOGISTIC`;
+      const customPrefix = `Liquidacion_${cleanCodigo}_CORPORACION_CADILLO_Y_ROJO_SAC`;
       const res = await exportarReporteCompletoZip(liq.items, cajaFondo, currentUser, customPrefix);
       setSuccessExport(`Liquidación ${liq.codigo} descargada: ${res.fileName} (${res.totalSustentos} sustentos incluidos)`);
       setTimeout(() => setSuccessExport(''), 6000);
