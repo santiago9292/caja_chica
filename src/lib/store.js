@@ -643,11 +643,15 @@ class DataStore {
               }
             } catch (e) {}
           }
-          if (!sol.liquidacion_codigo && sol.observaciones_aprobador) {
-            const match = sol.observaciones_aprobador.match(/\[Liquidado\s+(LIQ-[A-Z0-9_-]+)/i);
-            if (match) {
-              sol.liquidacion_codigo = match[1];
+          if (sol.estado === 'LIQUIDADO') {
+            if (!sol.liquidacion_codigo && sol.observaciones_aprobador) {
+              const match = sol.observaciones_aprobador.match(/\[Liquidado\s+(LIQ-[A-Z0-9_-]+)/i);
+              if (match) {
+                sol.liquidacion_codigo = match[1];
+              }
             }
+          } else {
+            sol.liquidacion_codigo = null;
           }
         });
 
@@ -1078,7 +1082,14 @@ class DataStore {
       sol.liquidado_por_dni = null;
       sol.liquidado_por_nombre = null;
 
-      // Actualizar observaciones para auditoría
+      // Limpiar etiquetas previas de liquidado y registrar nota de reversa
+      if (sol.observaciones_aprobador) {
+        sol.observaciones_aprobador = sol.observaciones_aprobador
+          .replace(new RegExp(`\\s*\\|?\\s*\\[Liquidado\\s+${codigoLiquidacion}[^\\]]*\\]`, 'gi'), '')
+          .replace(/\[Liquidado\s+LIQ-[A-Z0-9_-]+[^\]]*\]/gi, '')
+          .trim();
+      }
+
       const notaReversa = `[Liquidación ${codigoLiquidacion} revertida el ${new Date().toLocaleDateString('es-PE')} por ${adminNombre}${motivo ? ': ' + motivo : ''}]`;
       sol.observaciones_aprobador = sol.observaciones_aprobador 
         ? `${sol.observaciones_aprobador} | ${notaReversa}` 
