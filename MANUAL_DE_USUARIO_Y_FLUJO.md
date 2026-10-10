@@ -66,8 +66,13 @@ El sistema funciona en navegadores web pero está optimizado para instalarse com
 El sistema cuenta con comunicación omnicanal:
 1. **Push Notifications (OneSignal)**: Llegan incluso con la pantalla del celular bloqueada o la aplicación cerrada.
 2. **Enrutamiento Inteligente**: Al pulsar una notificación recibida, el aplicativo se abre y redirige automáticamente a la pestaña correspondiente según el rol del usuario (por ejemplo, a la bandeja de aprobaciones para el administrador o a mis solicitudes para el colaborador).
-3. **Alertas Sonoras (Web Audio API)**: Emite tonos distintivos cuando entra una nueva solicitud, se autoriza un pago o se rechaza un requerimiento.
-4. **Toasts flotantes**: Mensajes visuales en la esquina inferior derecha con información resumida.
+3. **Recordatorios Automatizados de Rendición (Cada 4 Horas)**:
+   - El motor de backend (`server.js`) monitorea las solicitudes en estado **`POR_RENDIR`** (efectivo ya entregado al trabajador).
+   - En **horario laboral (8:00 AM a 6:00 PM)**, si transcurren más de 4 horas desde el desembolso y el colaborador aún no ha presentado sus comprobantes, el sistema despacha automáticamente una notificación Push a su celular: *"⏰ Recordatorio: Liquidación por Rendir (SOL-XXXX)..."*.
+   - Si no ha rendido, se reitera cada 4 horas hasta que suba sus comprobantes o se liquide la solicitud.
+   - En la aplicación, la pestaña **"Mis Solicitudes"** muestra un badge numérico de advertencia y un banner superior destacado con el tiempo transcurrido y botón directo *"Rendir Ahora"*.
+4. **Alertas Sonoras (Web Audio API)**: Emite tonos distintivos cuando entra una nueva solicitud, se autoriza un pago o se rechaza un requerimiento.
+5. **Toasts flotantes**: Mensajes visuales en la esquina inferior derecha con información resumida.
 
 ---
 
@@ -291,7 +296,9 @@ flowchart TD
      - **Arqueo & Balance**: Métricas del fondo fijo, disponible y fecha de emisión.
      - **Por Categoría**: Totales consolidados por tipo de gasto.
      - **Por Solicitante**: Resumen consolidado por cada colaborador.
-  4. **Pestaña Historial de Liquidaciones Pasadas**: Permite consultar y descargar nuevamente el paquete **ZIP con el Excel estructurado y la carpeta de fotos/sustentos** de cualquier lote cerrado.
+  4. **Pestaña Historial de Liquidaciones Pasadas**: 
+     - Permite consultar y descargar nuevamente el paquete **ZIP con el Excel estructurado y la carpeta de fotos/sustentos** de cualquier lote cerrado.
+     - **Reversa de Liquidación Oficial (Solo Administrador)**: Si un lote fue cerrado por error o se liquidaron gastos de forma separada en vez de agruparlos, el Administrador puede presionar **"Revertir"**. Tras confirmar en el modal explicativo, los gastos retornan automáticamente al estado **`RENDIDO`** y quedan inmediatamente listos para ser seleccionados y liquidados juntos en un único corte contable consolidado. No altera el saldo de caja ni elimina comprobantes.
 
 ### Módulo 6: Maestro de DNIs (Sysadmin)
 * **Destinado a**: Exclusivo para `SYSADMIN`.

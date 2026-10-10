@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download } from 'lucide-react';
+import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle } from 'lucide-react';
 import { ModalRendicion, getTipoLabel } from './ModalRendicion';
 
 export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
@@ -84,6 +84,130 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
           </div>
         </div>
       </div>
+
+      {/* Banner de Recordatorio de Liquidaciones Pendientes por Rendir */}
+      {(() => {
+        const pendientesRendir = misItems.filter(s => s.estado === 'POR_RENDIR');
+        if (pendientesRendir.length === 0) return null;
+
+        return (
+          <div 
+            className="glass-panel" 
+            style={{ 
+              background: 'linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%)', 
+              border: '1.5px solid #fcd34d', 
+              borderRadius: '12px',
+              padding: '1.1rem 1.25rem', 
+              marginBottom: '1.25rem',
+              boxShadow: '0 4px 14px rgba(245, 158, 11, 0.12)'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.75rem', marginBottom: '0.85rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ 
+                  width: '38px', 
+                  height: '38px', 
+                  borderRadius: '10px', 
+                  background: '#f59e0b', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  color: '#ffffff',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 8px rgba(245, 158, 11, 0.35)'
+                }}>
+                  <AlertTriangle size={20} />
+                </div>
+                <div>
+                  <h4 style={{ margin: 0, fontSize: '0.975rem', fontWeight: '700', color: '#92400e', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span>Tienes {pendientesRendir.length === 1 ? '1 liquidación pendiente por rendir' : `${pendientesRendir.length} liquidaciones pendientes por rendir`}</span>
+                    <span style={{ fontSize: '0.68rem', background: '#b45309', color: '#fff', padding: '0.12rem 0.5rem', borderRadius: '20px', fontWeight: '700' }}>
+                      Recordatorio cada 4h
+                    </span>
+                  </h4>
+                  <p style={{ margin: '0.2rem 0 0', fontSize: '0.8rem', color: '#78350f' }}>
+                    Se te entregó efectivo para estos adelantos. Recuerda adjuntar los comprobantes de gasto (facturas/boletas) para sustentar y cerrar tu rendición.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '0.75rem' }}>
+              {pendientesRendir.map((item) => {
+                const fechaBase = new Date(item.pagado_fecha || item.abono_fecha || item.created_at);
+                const horasPasadas = Math.floor((Date.now() - fechaBase.getTime()) / (1000 * 60 * 60));
+                const esMayorA4Horas = horasPasadas >= 4;
+
+                return (
+                  <div 
+                    key={item.id} 
+                    style={{ 
+                      background: '#ffffff', 
+                      borderRadius: '8px', 
+                      padding: '0.85rem 1rem', 
+                      border: esMayorA4Horas ? '1.5px solid #f59e0b' : '1px solid #e2e8f0',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '0.5rem'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '0.875rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                          <span>{item.codigo}</span>
+                          <span style={{ fontSize: '0.68rem', fontWeight: '600', color: '#b45309', background: '#fef3c7', padding: '0.1rem 0.35rem', borderRadius: '4px' }}>
+                            {item.categoria}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '0.775rem', color: '#64748b', marginTop: '0.2rem', maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.motivo}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: '800', fontSize: '1rem', color: '#b45309' }}>
+                          S/ {Number(item.monto || 0).toFixed(2)}
+                        </div>
+                        <div style={{ fontSize: '0.68rem', color: esMayorA4Horas ? '#dc2626' : '#64748b', fontWeight: esMayorA4Horas ? '700' : '500', display: 'flex', alignItems: 'center', gap: '3px', justifyContent: 'flex-end', marginTop: '0.15rem' }}>
+                          <Clock size={11} />
+                          <span>{horasPasadas > 0 ? `Entregado hace ${horasPasadas}h` : 'Entregado hace <1h'}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.25rem', paddingTop: '0.5rem', borderTop: '1px solid #f1f5f9' }}>
+                      <span style={{ fontSize: '0.72rem', color: esMayorA4Horas ? '#b45309' : '#64748b', fontWeight: '500' }}>
+                        {esMayorA4Horas ? '⏰ Tiempo transcurrido > 4h' : 'En plazo normal'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setRendicionItem(item)}
+                        className="btn"
+                        style={{
+                          background: '#d97706',
+                          color: '#ffffff',
+                          padding: '0.35rem 0.75rem',
+                          fontSize: '0.75rem',
+                          fontWeight: '600',
+                          borderRadius: '6px',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '0.35rem',
+                          border: 'none',
+                          cursor: 'pointer'
+                        }}
+                      >
+                        <Receipt size={13} />
+                        <span>Rendir Ahora</span>
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Buscador */}
       <div className="glass-panel" style={{ padding: '0.85rem', marginBottom: '1.25rem' }}>

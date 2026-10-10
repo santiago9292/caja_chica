@@ -375,6 +375,7 @@ export function App() {
   };
 
   const pendientesCount = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO').length;
+  const porRendirCount = solicitudes.filter(s => s.solicitante_dni === currentUser?.dni && s.estado === 'POR_RENDIR').length;
 
   return (
     <div className="app-container">
@@ -394,6 +395,7 @@ export function App() {
             currentTab={currentTab}
             setCurrentTab={setCurrentTab}
             pendientesCount={pendientesCount}
+            porRendirCount={porRendirCount}
             notificaciones={notificaciones.filter(n => 
               n.usuario_dni === 'TODOS' || 
               (n.usuario_dni === 'ADMINS' && (currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN'))) || 
@@ -467,6 +469,7 @@ export function App() {
                 cajaFondo={cajaFondo}
                 categorias={categorias}
                 onLiquidarSolicitudes={async (data) => await store.liquidarSolicitudesBatch({ ...data, adminUser: currentUser })}
+                onRevertirLiquidacion={async (codigo, motivo) => await store.revertirLiquidacion(codigo, currentUser, motivo)}
               />
             )}
           </main>

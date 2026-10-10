@@ -41,9 +41,11 @@ const OPCIONES_ESTADO = [
   { value: 'RECHAZADO', label: 'Rechazado', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' }
 ];
 
-export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [], onLiquidarSolicitudes }) {
+export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [], onLiquidarSolicitudes, onRevertirLiquidacion }) {
   // Pestaña activa: 'REPORTES' | 'HISTORIAL_LIQUIDACIONES'
   const [activeTab, setActiveTab] = useState('REPORTES');
+
+  const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN');
 
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
@@ -62,6 +64,39 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
   // Modal detalle de liquidación pasada
   const [selectedLiquidacionDetalle, setSelectedLiquidacionDetalle] = useState(null);
   const [busquedaHistorial, setBusquedaHistorial] = useState('');
+
+  // Estados para modal de Reversa de Liquidación
+  const [liquidacionARevertir, setLiquidacionARevertir] = useState(null);
+  const [motivoReversa, setMotivoReversa] = useState('');
+  const [isReverting, setIsReverting] = useState(false);
+  const [reversaError, setReversaError] = useState('');
+
+  const handleConfirmarReversa = async () => {
+    if (!liquidacionARevertir) return;
+    setIsReverting(true);
+    setReversaError('');
+    try {
+      if (onRevertirLiquidacion) {
+        const res = await onRevertirLiquidacion(liquidacionARevertir.codigo, motivoReversa);
+        if (res && res.success === false) {
+          setReversaError(res.error || 'Error al revertir la liquidación');
+          setIsReverting(false);
+          return;
+        }
+      }
+      setSuccessExport(`Liquidación ${liquidacionARevertir.codigo} revertida exitosamente. Los gastos volvieron a estado RENDIDO.`);
+      setTimeout(() => setSuccessExport(''), 8000);
+      setLiquidacionARevertir(null);
+      setMotivoReversa('');
+      if (selectedLiquidacionDetalle?.codigo === liquidacionARevertir.codigo) {
+        setSelectedLiquidacionDetalle(null);
+      }
+    } catch (err) {
+      setReversaError(err.message || 'Error al revertir la liquidación');
+    } finally {
+      setIsReverting(false);
+    }
+  };
 
   const rendidosPorLiquidarCount = solicitudes.filter(s => s.estado === 'RENDIDO').length;
 
@@ -987,7 +1022,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                       </div>
 
                       {/* Botones de acción */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                         <button
                           type="button"
                           onClick={() => setSelectedLiquidacionDetalle(liq)}
@@ -1026,6 +1061,33 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                             </>
                           )}
                         </button>
+
+                        {/* Botón de Reversa exclusivo para Administrador / Sysadmin */}
+                        {isAdmin && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setMotivoReversa('');
+                              setReversaError('');
+                              setLiquidacionARevertir(liq);
+                            }}
+                            className="btn btn-secondary"
+                            style={{ 
+                              padding: '0.55rem 0.85rem', 
+                              fontSize: '0.8rem', 
+                              display: 'flex', 
+                              alignItems: 'center', 
+                              gap: '0.35rem',
+                              color: '#b91c1c',
+                              borderColor: '#fca5a5',
+                              background: '#fff5f5'
+                            }}
+                            title="Revertir este lote contable para agrupar nuevamente los gastos"
+                          >
+                            <RotateCcw size={14} />
+                            <span>Revertir</span>
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -1177,14 +1239,40 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
             </div>
 
             {/* Footer Modal Detalle */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.85rem' }}>
-              <button 
-                type="button" 
-                onClick={() => setSelectedLiquidacionDetalle(null)} 
-                className="btn btn-secondary"
-              >
-                Cerrar
-              </button>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--border-subtle)', paddingTop: '0.85rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedLiquidacionDetalle(null)} 
+                  className="btn btn-secondary"
+                >
+                  Cerrar
+                </button>
+
+                {isAdmin && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setMotivoReversa('');
+                      setReversaError('');
+                      setLiquidacionARevertir(selectedLiquidacionDetalle);
+                    }}
+                    className="btn btn-secondary"
+                    style={{ 
+                      color: '#b91c1c', 
+                      borderColor: '#fca5a5', 
+                      background: '#fff5f5',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem'
+                    }}
+                    title="Revertir este lote contable"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Revertir Lote</span>
+                  </button>
+                )}
+              </div>
 
               <button
                 type="button"
@@ -1225,6 +1313,150 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
           setTimeout(() => setSuccessExport(''), 7000);
         }}
       />
+
+      {/* MODAL DE CONFIRMACIÓN DE REVERSA DE LIQUIDACIÓN */}
+      {liquidacionARevertir && (
+        <div className="modal-overlay" onClick={() => !isReverting && setLiquidacionARevertir(null)}>
+          <div 
+            className="modal-content glass-panel" 
+            onClick={(e) => e.stopPropagation()} 
+            style={{ maxWidth: '520px', width: '92%', padding: '1.75rem', borderRadius: '16px', border: '1.5px solid #fee2e2' }}
+          >
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '1.25rem' }}>
+              <div style={{
+                width: '44px',
+                height: '44px',
+                borderRadius: '12px',
+                background: '#fee2e2',
+                color: '#dc2626',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0
+              }}>
+                <RotateCcw size={22} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <h3 style={{ fontSize: '1.15rem', color: '#0f172a', margin: '0 0 0.25rem 0', fontWeight: '800' }}>
+                  ¿Revertir Liquidación {liquidacionARevertir.codigo}?
+                </h3>
+                <p style={{ color: '#64748b', fontSize: '0.825rem', margin: 0 }}>
+                  Acción autorizada para Administrador / Sysadmin
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => !isReverting && setLiquidacionARevertir(null)}
+                className="btn-close"
+                disabled={isReverting}
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Resumen del Lote a Revertir */}
+            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: '10px', border: '1px solid #e2e8f0', marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.825rem' }}>
+                <span style={{ color: '#64748b' }}>Lote contable:</span>
+                <strong style={{ fontFamily: 'monospace', color: '#0f172a' }}>{liquidacionARevertir.codigo}</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem', fontSize: '0.825rem' }}>
+                <span style={{ color: '#64748b' }}>Gastos afectados:</span>
+                <strong>{liquidacionARevertir.totalItems} solicitud(es) ({liquidacionARevertir.totalSustentos} sustentos)</strong>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.825rem' }}>
+                <span style={{ color: '#64748b' }}>Importe liquidado:</span>
+                <strong style={{ color: '#15803d', fontSize: '0.95rem' }}>S/ {liquidacionARevertir.totalMonto.toFixed(2)}</strong>
+              </div>
+            </div>
+
+            {/* Mensaje explicativo */}
+            <div style={{ 
+              background: '#fffbeb', 
+              border: '1px solid #fde68a', 
+              borderRadius: '8px', 
+              padding: '0.85rem', 
+              marginBottom: '1.25rem',
+              fontSize: '0.8rem',
+              color: '#92400e',
+              lineHeight: 1.4
+            }}>
+              <strong>¿Qué ocurrirá al revertir?</strong>
+              <ul style={{ margin: '0.4rem 0 0 1.1rem', padding: 0 }}>
+                <li>Los gastos volverán al estado <strong>RENDIDO</strong>.</li>
+                <li>Volverán a aparecer disponibles en <em>"Liquidación de Gastos Rendidos"</em> para que puedas agruparlos nuevamente con otros gastos en un solo lote.</li>
+                <li><strong>No se altera el saldo en efectivo de la caja</strong> ni se borran comprobantes ni sustentos cargados.</li>
+              </ul>
+            </div>
+
+            {/* Motivo Opcional */}
+            <div style={{ marginBottom: '1.25rem' }}>
+              <label style={{ display: 'block', fontSize: '0.8rem', fontWeight: '600', color: '#334155', marginBottom: '0.35rem' }}>
+                Motivo de la reversa (opcional para auditoría):
+              </label>
+              <input
+                type="text"
+                className="form-input"
+                placeholder="Ej: Se liquidó separado por error, agrupar en lote único..."
+                value={motivoReversa}
+                onChange={(e) => setMotivoReversa(e.target.value)}
+                disabled={isReverting}
+                style={{ fontSize: '0.825rem' }}
+              />
+            </div>
+
+            {reversaError && (
+              <div style={{ background: '#fef2f2', color: '#dc2626', padding: '0.65rem', borderRadius: '6px', fontSize: '0.8rem', marginBottom: '1rem', border: '1px solid #fecaca' }}>
+                {reversaError}
+              </div>
+            )}
+
+            {/* Botones de acción */}
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <button
+                type="button"
+                onClick={() => setLiquidacionARevertir(null)}
+                disabled={isReverting}
+                className="btn btn-secondary"
+                style={{ padding: '0.6rem 1.1rem', fontSize: '0.825rem' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmarReversa}
+                disabled={isReverting}
+                className="btn"
+                style={{ 
+                  background: '#dc2626', 
+                  color: '#ffffff', 
+                  padding: '0.6rem 1.25rem', 
+                  fontSize: '0.825rem',
+                  fontWeight: '700',
+                  borderRadius: '6px',
+                  border: 'none',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  cursor: isReverting ? 'not-allowed' : 'pointer'
+                }}
+              >
+                {isReverting ? (
+                  <>
+                    <RotateCcw size={15} className="animate-spin" />
+                    <span>Revirtiendo...</span>
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw size={15} />
+                    <span>Confirmar Reversa</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

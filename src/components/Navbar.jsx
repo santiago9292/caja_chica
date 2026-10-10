@@ -22,6 +22,7 @@ export function Navbar({
   currentTab, 
   setCurrentTab, 
   pendientesCount = 0,
+  porRendirCount = 0,
   notificaciones = [],
   onMarcarLeidas,
   onOpenSettings
@@ -407,6 +408,23 @@ export function Navbar({
           >
             <Clock size={15} />
             <span>Mis Solicitudes</span>
+            {porRendirCount > 0 && (
+              <span 
+                style={{
+                  background: '#f59e0b',
+                  color: '#ffffff',
+                  fontSize: '0.65rem',
+                  fontWeight: '700',
+                  padding: '0.1rem 0.45rem',
+                  borderRadius: '10px',
+                  lineHeight: 1.2,
+                  marginLeft: '0.25rem'
+                }}
+                title={`${porRendirCount} liquidación(es) pendiente(s) por rendir`}
+              >
+                {porRendirCount}
+              </span>
+            )}
           </button>
         )}
 

@@ -1052,6 +1052,71 @@ class DataStore {
     return { count: actualizadas.length, solicitudes: actualizadas };
   }
 
+  // --- REVERSA DE LIQUIDACIÓN CONTABLE (ADMIN) ---
+  async revertirLiquidacion(codigoLiquidacion, adminUser, motivo = '') {
+    if (!codigoLiquidacion) return { success: false, error: 'Código de liquidación requerido' };
+
+    const adminNombre = adminUser ? `${adminUser.nombres} ${adminUser.apellidos}` : 'Administrador';
+    const adminDni = adminUser?.dni || '';
+
+    // Encontrar solicitudes asociadas a esta liquidación
+    const sols = this.solicitudes.filter(s => 
+      s.liquidacion_codigo === codigoLiquidacion || 
+      (s.estado === 'LIQUIDADO' && s.observaciones_aprobador?.includes(codigoLiquidacion))
+    );
+
+    if (sols.length === 0) {
+      return { success: false, error: `No se encontraron gastos vinculados al lote ${codigoLiquidacion}` };
+    }
+
+    const actualizadas = [];
+
+    for (const sol of sols) {
+      sol.estado = 'RENDIDO';
+      sol.liquidacion_codigo = null;
+      sol.liquidado_fecha = null;
+      sol.liquidado_por_dni = null;
+      sol.liquidado_por_nombre = null;
+
+      // Actualizar observaciones para auditoría
+      const notaReversa = `[Liquidación ${codigoLiquidacion} revertida el ${new Date().toLocaleDateString('es-PE')} por ${adminNombre}${motivo ? ': ' + motivo : ''}]`;
+      sol.observaciones_aprobador = sol.observaciones_aprobador 
+        ? `${sol.observaciones_aprobador} | ${notaReversa}` 
+        : notaReversa;
+
+      actualizadas.push(sol);
+
+      if (supabase) {
+        try {
+          await supabase.from('solicitudes').update({
+            estado: 'RENDIDO',
+            liquidacion_codigo: null,
+            liquidado_fecha: null,
+            liquidado_por_dni: null,
+            liquidado_por_nombre: null,
+            observaciones_aprobador: sol.observaciones_aprobador
+          }).eq('id', sol.id);
+        } catch (e) {
+          console.warn('Error revirtiendo liquidación en Supabase:', e);
+        }
+      }
+    }
+
+    this.persist('caja_solicitudes', this.solicitudes);
+
+    this.addNotification({
+      titulo: `Liquidación Revertida: ${codigoLiquidacion}`,
+      mensaje: `${adminNombre} revirtió el lote ${codigoLiquidacion}. ${actualizadas.length} gasto(s) volvieron al estado RENDIDO.`,
+      tipo: 'WARNING',
+      usuario_dni: adminDni
+    });
+
+    this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', liquidacionRevertida: codigoLiquidacion, count: actualizadas.length });
+    this.notifyListeners({ type: 'DATA_LOADED' });
+
+    return { success: true, count: actualizadas.length, solicitudes: actualizadas };
+  }
+
   // --- ASIGNACIÓN DE FONDOS (ADMIN) ---
   async updateFondoAsignado(nuevoMonto) {
     // Calculamos el monto gastado histórico o recalculamos en base a la diferencia
