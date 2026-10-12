@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   ShieldCheck,
   Search,
@@ -23,10 +23,12 @@ import {
   RotateCcw,
   Building,
   FolderArchive,
-  Activity
+  Activity,
+  ExternalLink
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { store } from '../lib/store';
+import { abrirArchivoEnNuevaPestana, descargarArchivo } from '../lib/fileViewer';
 
 export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [], onRefresh }) {
   const [searchTerm, setSearchTerm] = useState('');
@@ -34,8 +36,24 @@ export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [],
   const [fechaDesde, setFechaDesde] = useState('');
   const [fechaHasta, setFechaHasta] = useState('');
   const [selectedSol, setSelectedSol] = useState(null);
+  const [comprobanteModal, setComprobanteModal] = useState(null);
   const [pingLoading, setPingLoading] = useState(false);
   const [lastPingTime, setLastPingTime] = useState(() => store.getLastKeepAlivePing());
+
+  // Soporte para cerrar modales con la tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (comprobanteModal) {
+          setComprobanteModal(null);
+        } else if (selectedSol) {
+          setSelectedSol(null);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [comprobanteModal, selectedSol]);
 
   const handlePingKeepAlive = async () => {
     setPingLoading(true);
@@ -666,14 +684,38 @@ export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [],
         const timeline = buildTimelineForSolicitud(selectedSol);
 
         return (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '640px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-overlay" onClick={() => setSelectedSol(null)}>
+            <div 
+              className="modal-content" 
+              style={{ 
+                maxWidth: '680px', 
+                maxHeight: '90vh', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                padding: 0, 
+                overflow: 'hidden',
+                borderRadius: '16px',
+                boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                background: '#ffffff'
+              }}
+              onClick={(e) => e.stopPropagation()}
+            >
               
-              {/* Encabezado del Modal */}
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.85rem' }}>
+              {/* Encabezado Fijo del Modal - SIEMPRE VISIBLE AL HACER SCROLL */}
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '0.95rem 1.4rem', 
+                borderBottom: '1px solid #e2e8f0', 
+                background: '#ffffff',
+                boxShadow: '0 2px 8px -2px rgba(15, 23, 42, 0.06)',
+                zIndex: 20,
+                flexShrink: 0
+              }}>
                 <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.2rem' }}>
-                    <span style={{ fontFamily: 'monospace', fontWeight: '900', color: '#0f172a', fontSize: '1.2rem' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.15rem' }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: '900', color: '#0f172a', fontSize: '1.25rem' }}>
                       {selectedSol.codigo}
                     </span>
                     {renderBadgeEstado(selectedSol.estado)}
@@ -682,209 +724,276 @@ export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [],
                     Línea de tiempo de auditoría paso a paso
                   </p>
                 </div>
-                <button onClick={() => setSelectedSol(null)} className="btn btn-ghost btn-icon">
-                  <X size={20} />
+
+                <button 
+                  type="button"
+                  onClick={() => setSelectedSol(null)} 
+                  className="btn btn-ghost btn-icon"
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '10px',
+                    border: '1px solid #e2e8f0',
+                    background: '#f8fafc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Cerrar modal (Esc o click afuera)"
+                >
+                  <X size={18} color="#475569" />
                 </button>
               </div>
 
-              {/* Ficha Resumen de la Solicitud */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
-                <div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Solicitante</span>
-                  <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a' }}>{selectedSol.solicitante_nombre}</div>
-                  <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {selectedSol.solicitante_dni}</div>
+              {/* Contenedor Desplazable con Scroll */}
+              <div style={{ padding: '1.25rem 1.4rem', overflowY: 'auto', flex: 1 }}>
+                
+                {/* Ficha Resumen de la Solicitud */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.65rem', marginBottom: '1.25rem', background: '#f8fafc', padding: '0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Solicitante</span>
+                    <div style={{ fontWeight: '700', fontSize: '0.85rem', color: '#0f172a' }}>{selectedSol.solicitante_nombre}</div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-faint)' }}>DNI: {selectedSol.solicitante_dni}</div>
+                  </div>
+
+                  <div>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Importe</span>
+                    <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a' }}>
+                      S/ {Number(selectedSol.monto || 0).toFixed(2)}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                      {selectedSol.categoria?.replace(/_/g, ' ')} {selectedSol.centro_costo ? `[${selectedSol.centro_costo}]` : ''}
+                    </div>
+                  </div>
+
+                  <div style={{ gridColumn: 'span 2' }}>
+                    <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Concepto / Motivo</span>
+                    <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '0.15rem' }}>
+                      {selectedSol.motivo}
+                    </div>
+                  </div>
                 </div>
 
-                <div>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Importe</span>
-                  <div style={{ fontWeight: '800', fontSize: '1.15rem', color: '#0f172a' }}>
-                    S/ {Number(selectedSol.monto || 0).toFixed(2)}
-                  </div>
-                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                    {selectedSol.categoria?.replace(/_/g, ' ')} {selectedSol.centro_costo ? `[${selectedSol.centro_costo}]` : ''}
-                  </div>
-                </div>
+                {/* Línea de Tiempo (TIMELINE VERTICAL) */}
+                <div style={{ padding: '0.5rem 0.25rem' }}>
+                  <h4 style={{ fontSize: '0.92rem', color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <Clock size={16} color="#0284c7" />
+                    <span>Trazabilidad de Hitos y Responsables ({timeline.length} eventos)</span>
+                  </h4>
 
-                <div style={{ gridColumn: 'span 2' }}>
-                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>Concepto / Motivo</span>
-                  <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '0.15rem' }}>
-                    {selectedSol.motivo}
-                  </div>
-                </div>
-              </div>
+                  <div style={{ position: 'relative', paddingLeft: '1.75rem' }}>
+                    {/* Línea vertical conectora continua */}
+                    <div 
+                      style={{ 
+                        position: 'absolute', 
+                        left: '0.55rem', 
+                        top: '0.5rem', 
+                        bottom: '0.5rem', 
+                        width: '2px', 
+                        background: '#cbd5e1' 
+                      }} 
+                    />
 
-              {/* Línea de Tiempo (TIMELINE VERTICAL) */}
-              <div style={{ padding: '0.5rem 0.25rem' }}>
-                <h4 style={{ fontSize: '0.92rem', color: '#0f172a', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <Clock size={16} color="#0284c7" />
-                  <span>Trazabilidad de Hitos y Responsables ({timeline.length} eventos)</span>
-                </h4>
+                    {timeline.map((step, idx) => {
+                      const IconComp = step.icono || CheckCircle2;
+                      let iconBg = '#dcfce7';
+                      let iconColor = '#15803d';
 
-                <div style={{ position: 'relative', paddingLeft: '1.75rem' }}>
-                  {/* Línea vertical conectora continua */}
-                  <div 
-                    style={{ 
-                      position: 'absolute', 
-                      left: '0.55rem', 
-                      top: '0.5rem', 
-                      bottom: '0.5rem', 
-                      width: '2px', 
-                      background: '#cbd5e1' 
-                    }} 
-                  />
+                      if (step.tipo === 'INFO') {
+                        iconBg = '#e0f2fe';
+                        iconColor = '#0369a1';
+                      } else if (step.tipo === 'WARNING') {
+                        iconBg = '#fef3c7';
+                        iconColor = '#b45309';
+                      } else if (step.tipo === 'DANGER') {
+                        iconBg = '#fee2e2';
+                        iconColor = '#dc2626';
+                      }
 
-                  {timeline.map((step, idx) => {
-                    const IconComp = step.icono || CheckCircle2;
-                    let iconBg = '#dcfce7';
-                    let iconColor = '#15803d';
+                      const dateObj = new Date(step.fecha);
+                      const fechaFormatted = isNaN(dateObj.getTime()) ? step.fecha : dateObj.toLocaleDateString('es-PE');
+                      const horaFormatted = isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 
-                    if (step.tipo === 'INFO') {
-                      iconBg = '#e0f2fe';
-                      iconColor = '#0369a1';
-                    } else if (step.tipo === 'WARNING') {
-                      iconBg = '#fef3c7';
-                      iconColor = '#b45309';
-                    } else if (step.tipo === 'DANGER') {
-                      iconBg = '#fee2e2';
-                      iconColor = '#dc2626';
-                    }
-
-                    const dateObj = new Date(step.fecha);
-                    const fechaFormatted = isNaN(dateObj.getTime()) ? step.fecha : dateObj.toLocaleDateString('es-PE');
-                    const horaFormatted = isNaN(dateObj.getTime()) ? '' : dateObj.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-
-                    return (
-                      <div key={step.id || idx} style={{ position: 'relative', marginBottom: '1.5rem' }}>
-                        
-                        {/* Nodo / Icono circular en la línea */}
-                        <div
-                          style={{
-                            position: 'absolute',
-                            left: '-1.75rem',
-                            top: '0',
-                            width: '22px',
-                            height: '22px',
-                            borderRadius: '50%',
-                            background: iconBg,
-                            color: iconColor,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 0 0 3px #ffffff',
-                            zIndex: 1
-                          }}
-                        >
-                          <IconComp size={12} />
-                        </div>
-
-                        {/* Tarjeta del Evento */}
-                        <div 
-                          style={{
-                            background: '#ffffff',
-                            border: '1px solid #e2e8f0',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '0.85rem 1rem',
-                            boxShadow: 'var(--shadow-sm)'
-                          }}
-                        >
-                          {/* Fila superior: Título y Timestamp */}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.35rem' }}>
-                            <div>
-                              <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.88rem' }}>
-                                {step.titulo}
-                              </div>
-                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                                {step.subtitulo}
-                              </div>
-                            </div>
-
-                            <div style={{ textAlign: 'right' }}>
-                              <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0f172a' }}>
-                                {fechaFormatted}
-                              </div>
-                              {horaFormatted && (
-                                <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>
-                                  {horaFormatted}
-                                </div>
-                              )}
-                            </div>
+                      return (
+                        <div key={step.id || idx} style={{ position: 'relative', marginBottom: '1.5rem' }}>
+                          
+                          {/* Nodo / Icono circular en la línea */}
+                          <div
+                            style={{
+                              position: 'absolute',
+                              left: '-1.75rem',
+                              top: '0',
+                              width: '22px',
+                              height: '22px',
+                              borderRadius: '50%',
+                              background: iconBg,
+                              color: iconColor,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 0 0 3px #ffffff',
+                              zIndex: 1
+                            }}
+                          >
+                            <IconComp size={12} />
                           </div>
 
-                          {/* Usuario responsable */}
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem', marginBottom: '0.5rem', padding: '0.4rem 0.6rem', background: '#f8fafc', borderRadius: 'var(--radius-sm)' }}>
-                            <User size={14} color="#64748b" />
-                            <div style={{ fontSize: '0.78rem' }}>
-                              <strong style={{ color: '#0f172a' }}>{step.usuario}</strong>
-                              {step.dni && <span style={{ color: 'var(--text-muted)', marginLeft: '0.3rem' }}>(DNI: {step.dni})</span>}
-                              {step.rol && (
-                                <span className="badge" style={{ marginLeft: '0.4rem', fontSize: '0.65rem', padding: '0.05rem 0.35rem', background: '#e2e8f0', color: '#334155' }}>
-                                  {step.rol}
-                                </span>
-                              )}
-                            </div>
-                          </div>
-
-                          {/* Detalles clave */}
-                          {step.detalles && step.detalles.length > 0 && (
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.4rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                              {step.detalles.map((d, dIdx) => (
-                                <div key={dIdx} style={{ background: '#f8fafc', padding: '0.35rem 0.55rem', borderRadius: '4px' }}>
-                                  <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem' }}>{d.etiqueta}:</span>
-                                  <span style={{ fontWeight: '600', color: '#1e293b' }}>{d.valor}</span>
+                          {/* Tarjeta del Evento */}
+                          <div 
+                            style={{
+                              background: '#ffffff',
+                              border: '1px solid #e2e8f0',
+                              borderRadius: 'var(--radius-md)',
+                              padding: '0.85rem 1rem',
+                              boxShadow: 'var(--shadow-sm)'
+                            }}
+                          >
+                            {/* Fila superior: Título y Timestamp */}
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem', marginBottom: '0.35rem' }}>
+                              <div>
+                                <div style={{ fontWeight: '800', color: '#0f172a', fontSize: '0.88rem' }}>
+                                  {step.titulo}
                                 </div>
-                              ))}
-                            </div>
-                          )}
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                                  {step.subtitulo}
+                                </div>
+                              </div>
 
-                          {/* Si hay comprobantes adjuntos */}
-                          {step.comprobantes && step.comprobantes.length > 0 && (
-                            <div style={{ marginTop: '0.65rem', borderTop: '1px dashed #e2e8f0', paddingTop: '0.5rem' }}>
-                              <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.35rem' }}>
-                                Comprobantes Sustentados ({step.comprobantes.length}):
-                              </span>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-                                {step.comprobantes.map((c, cIdx) => (
-                                  <div key={cIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f1f5f9', padding: '0.35rem 0.55rem', borderRadius: '4px', fontSize: '0.74rem' }}>
-                                    <div>
-                                      <strong>{c.tipo} {c.numero}</strong>
-                                      <span style={{ color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
-                                        {c.razonSocial || '-'} {c.ruc ? `(RUC: ${c.ruc})` : ''} • Fecha comprobante: {c.fecha_emision || c.fecha || '-'}
-                                      </span>
-                                    </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                      <strong style={{ color: '#0f172a' }}>S/ {Number(c.monto || 0).toFixed(2)}</strong>
-                                      {c.archivo && (
-                                        <a href={c.archivo} target="_blank" rel="noreferrer" style={{ color: '#0284c7', fontSize: '0.7rem', textDecoration: 'underline' }}>
-                                          Ver
-                                        </a>
-                                      )}
-                                    </div>
+                              <div style={{ textAlign: 'right' }}>
+                                <div style={{ fontSize: '0.78rem', fontWeight: '700', color: '#0f172a' }}>
+                                  {fechaFormatted}
+                                </div>
+                                {horaFormatted && (
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-faint)' }}>
+                                    {horaFormatted}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Usuario responsable */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginTop: '0.45rem', marginBottom: '0.5rem', padding: '0.4rem 0.6rem', background: '#f8fafc', borderRadius: 'var(--radius-sm)' }}>
+                              <User size={14} color="#64748b" />
+                              <div style={{ fontSize: '0.78rem' }}>
+                                <strong style={{ color: '#0f172a' }}>{step.usuario}</strong>
+                                {step.dni && <span style={{ color: 'var(--text-muted)', marginLeft: '0.3rem' }}>(DNI: {step.dni})</span>}
+                                {step.rol && (
+                                  <span className="badge" style={{ marginLeft: '0.4rem', fontSize: '0.65rem', padding: '0.05rem 0.35rem', background: '#e2e8f0', color: '#334155' }}>
+                                    {step.rol}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {/* Detalles clave */}
+                            {step.detalles && step.detalles.length > 0 && (
+                              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.4rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
+                                {step.detalles.map((d, dIdx) => (
+                                  <div key={dIdx} style={{ background: '#f8fafc', padding: '0.35rem 0.55rem', borderRadius: '4px' }}>
+                                    <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.68rem' }}>{d.etiqueta}:</span>
+                                    <span style={{ fontWeight: '600', color: '#1e293b' }}>{d.valor}</span>
                                   </div>
                                 ))}
                               </div>
-                            </div>
-                          )}
+                            )}
 
-                          {/* Si hay sustento URL */}
-                          {step.adjuntoUrl && (
-                            <div style={{ marginTop: '0.5rem' }}>
-                              <a href={step.adjuntoUrl} target="_blank" rel="noreferrer" style={{ fontSize: '0.72rem', color: '#0284c7', textDecoration: 'underline', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
-                                <FileCheck size={13} />
-                                <span>Ver comprobante / sustento de entrega</span>
-                              </a>
-                            </div>
-                          )}
+                            {/* Si hay comprobantes adjuntos */}
+                            {step.comprobantes && step.comprobantes.length > 0 && (
+                              <div style={{ marginTop: '0.65rem', borderTop: '1px dashed #e2e8f0', paddingTop: '0.5rem' }}>
+                                <span style={{ fontSize: '0.72rem', fontWeight: '700', color: '#475569', display: 'block', marginBottom: '0.35rem' }}>
+                                  Comprobantes Sustentados ({step.comprobantes.length}):
+                                </span>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                  {step.comprobantes.map((c, cIdx) => (
+                                    <div key={cIdx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#f1f5f9', padding: '0.35rem 0.55rem', borderRadius: '4px', fontSize: '0.74rem' }}>
+                                      <div>
+                                        <strong>{c.tipo} {c.numero}</strong>
+                                        <span style={{ color: 'var(--text-muted)', marginLeft: '0.35rem' }}>
+                                          {c.razonSocial || '-'} {c.ruc ? `(RUC: ${c.ruc})` : ''} • Fecha comprobante: {c.fecha_emision || c.fecha || '-'}
+                                        </span>
+                                      </div>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                        <strong style={{ color: '#0f172a' }}>S/ {Number(c.monto || 0).toFixed(2)}</strong>
+                                        {c.archivo && (
+                                          <button
+                                            type="button"
+                                            onClick={() => setComprobanteModal({
+                                              url: c.archivo,
+                                              titulo: `Comprobante ${c.tipo} ${c.numero || ''}`,
+                                              subtitulo: `${c.razonSocial || '-'} ${c.ruc ? `(RUC: ${c.ruc})` : ''} • S/ ${Number(c.monto || 0).toFixed(2)}`
+                                            })}
+                                            style={{
+                                              background: 'none',
+                                              border: 'none',
+                                              padding: '0.15rem 0.4rem',
+                                              cursor: 'pointer',
+                                              color: '#0284c7',
+                                              fontSize: '0.72rem',
+                                              fontWeight: '600',
+                                              textDecoration: 'underline'
+                                            }}
+                                            title="Visualizar comprobante"
+                                          >
+                                            Ver
+                                          </button>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
 
+                            {/* Si hay sustento URL */}
+                            {step.adjuntoUrl && (
+                              <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => setComprobanteModal({
+                                    url: step.adjuntoUrl,
+                                    titulo: 'Sustento de Entrega de Efectivo / Abono',
+                                    subtitulo: `${selectedSol.codigo} • ${step.detalles?.find(d => d.etiqueta === 'Sustento Adjunto')?.valor || 'Comprobante físico/digital'}`
+                                  })}
+                                  style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    padding: '0.2rem 0',
+                                    cursor: 'pointer',
+                                    fontSize: '0.75rem',
+                                    color: '#0284c7',
+                                    fontWeight: '600',
+                                    textDecoration: 'underline',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.35rem'
+                                  }}
+                                  title="Visualizar comprobante de entrega"
+                                >
+                                  <FileCheck size={14} />
+                                  <span>Ver comprobante / sustento de entrega</span>
+                                </button>
+                              </div>
+                            )}
+
+                          </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      );
+                    })}
+                  </div>
                 </div>
+
               </div>
 
-              {/* Botón de Cierre */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1.25rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.85rem' }}>
-                <button onClick={() => setSelectedSol(null)} className="btn btn-secondary">
+              {/* Botón de Cierre en Pie Fijo */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0.75rem 1.4rem', borderTop: '1px solid #e2e8f0', background: '#f8fafc', flexShrink: 0 }}>
+                <button 
+                  type="button"
+                  onClick={() => setSelectedSol(null)} 
+                  className="btn btn-secondary" 
+                  style={{ fontSize: '0.85rem', padding: '0.45rem 1.1rem' }}
+                >
                   Cerrar Ficha
                 </button>
               </div>
@@ -893,6 +1002,136 @@ export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [],
           </div>
         );
       })()}
+
+      {/* Modal Visualizador de Comprobante / Imagen Seguro (Sin Pantalla Negra) */}
+      {comprobanteModal && (
+        <div 
+          className="modal-overlay" 
+          style={{ zIndex: 120, background: 'rgba(15, 23, 42, 0.75)' }} 
+          onClick={() => setComprobanteModal(null)}
+        >
+          <div 
+            className="modal-content" 
+            style={{ 
+              maxWidth: '780px', 
+              maxHeight: '94vh', 
+              display: 'flex', 
+              flexDirection: 'column', 
+              padding: 0, 
+              overflow: 'hidden',
+              borderRadius: '16px',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+              background: '#ffffff'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabecera del visor */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              padding: '0.9rem 1.4rem',
+              borderBottom: '1px solid #e2e8f0',
+              background: '#ffffff',
+              flexShrink: 0
+            }}>
+              <div style={{ minWidth: 0, paddingRight: '1rem' }}>
+                <h4 style={{ margin: 0, fontSize: '0.95rem', fontWeight: 800, color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {comprobanteModal.titulo}
+                </h4>
+                {comprobanteModal.subtitulo && (
+                  <p style={{ margin: '0.15rem 0 0', fontSize: '0.75rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {comprobanteModal.subtitulo}
+                  </p>
+                )}
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                <button
+                  type="button"
+                  onClick={() => abrirArchivoEnNuevaPestana(comprobanteModal.url, comprobanteModal.titulo)}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  title="Abrir en pestaña nueva limpia sin pantalla negra de Chrome"
+                >
+                  <ExternalLink size={13} />
+                  <span>Pestaña nueva</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => descargarArchivo(comprobanteModal.url, comprobanteModal.titulo)}
+                  className="btn btn-secondary"
+                  style={{ fontSize: '0.75rem', padding: '0.35rem 0.65rem', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                  title="Descargar archivo en la computadora"
+                >
+                  <Download size={13} />
+                  <span>Descargar</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setComprobanteModal(null)}
+                  className="btn btn-ghost btn-icon"
+                  style={{ 
+                    width: '32px', 
+                    height: '32px', 
+                    borderRadius: '8px', 
+                    cursor: 'pointer', 
+                    border: '1px solid #e2e8f0', 
+                    background: '#f8fafc',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title="Cerrar visor (Esc o click afuera)"
+                >
+                  <X size={16} color="#475569" />
+                </button>
+              </div>
+            </div>
+
+            {/* Contenedor del documento / imagen */}
+            <div style={{
+              flex: 1,
+              overflowY: 'auto',
+              background: '#090d16',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '1.25rem',
+              minHeight: '380px'
+            }}>
+              {comprobanteModal.url?.startsWith('data:application/pdf') ? (
+                <div style={{ color: '#ffffff', textAlign: 'center', padding: '2rem' }}>
+                  <FileText size={48} color="#94a3b8" style={{ margin: '0 auto 1rem' }} />
+                  <p style={{ margin: '0 0 1rem', fontSize: '0.9rem' }}>Documento en formato PDF adjunto</p>
+                  <button
+                    onClick={() => abrirArchivoEnNuevaPestana(comprobanteModal.url)}
+                    className="btn btn-primary"
+                    style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem' }}
+                  >
+                    <ExternalLink size={15} /> Abrir PDF en visor completo
+                  </button>
+                </div>
+              ) : (
+                <img
+                  src={comprobanteModal.url}
+                  alt={comprobanteModal.titulo}
+                  style={{
+                    maxWidth: '100%',
+                    maxHeight: '74vh',
+                    objectFit: 'contain',
+                    borderRadius: '6px',
+                    boxShadow: '0 10px 25px rgba(0, 0, 0, 0.6)',
+                    display: 'block'
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

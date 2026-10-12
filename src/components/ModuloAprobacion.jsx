@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
+import { abrirArchivoEnNuevaPestana } from '../lib/fileViewer';
 
 export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR');
@@ -492,10 +493,14 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
         const isPending = selectedItem.estado === 'PENDIENTE' || isReembolso;
 
         return (
-          <div className="modal-overlay">
-            <div className="modal-content" style={{ maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div className="modal-overlay" onClick={() => setSelectedItem(null)}>
+            <div 
+              className="modal-content" 
+              style={{ maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto' }}
+              onClick={(e) => e.stopPropagation()}
+            >
               
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', position: 'sticky', top: 0, background: '#ffffff', zIndex: 10 }}>
                 <div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     <span className="badge badge-admin">
@@ -507,7 +512,12 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                     {selectedItem.codigo}
                   </h3>
                 </div>
-                <button onClick={() => setSelectedItem(null)} className="btn btn-ghost btn-icon">
+                <button 
+                  type="button" 
+                  onClick={() => setSelectedItem(null)} 
+                  className="btn btn-ghost btn-icon"
+                  title="Cerrar (Esc o click afuera)"
+                >
                   <X size={18} />
                 </button>
               </div>
@@ -564,9 +574,24 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                         </div>
                         {r.archivo && (
                           <div style={{ marginTop: '0.35rem' }}>
-                            <a href={r.archivo} target="_blank" rel="noreferrer" style={{ fontSize: '0.72rem', color: '#2563eb', textDecoration: 'underline', display: 'inline-block', marginBottom: '0.25rem' }}>
+                            <button
+                              type="button"
+                              onClick={() => abrirArchivoEnNuevaPestana(r.archivo, `Comprobante_${r.tipo}_${r.numero || idx}`)}
+                              style={{ 
+                                fontSize: '0.72rem', 
+                                color: '#2563eb', 
+                                textDecoration: 'underline', 
+                                background: 'none', 
+                                border: 'none', 
+                                padding: 0, 
+                                cursor: 'pointer', 
+                                display: 'inline-block', 
+                                marginBottom: '0.25rem' 
+                              }}
+                              title="Abrir comprobante completo sin pantalla negra"
+                            >
                               Ver comprobante completo
-                            </a>
+                            </button>
                             <img src={r.archivo} alt={`Comprobante ${idx}`} style={{ maxHeight: '120px', maxWidth: '100%', objectFit: 'contain', borderRadius: '4px', border: '1px solid #cbd5e1', display: 'block' }} />
                           </div>
                         )}
