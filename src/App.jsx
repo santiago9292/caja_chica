@@ -4,11 +4,10 @@ import { Navbar } from './components/Navbar';
 import { LoginModal } from './components/LoginModal';
 import { FormularioIngreso } from './components/FormularioIngreso';
 import { ModuloAprobacion } from './components/ModuloAprobacion';
-import { MaestroDni } from './components/MaestroDni';
-import { MaestroCategorias } from './components/MaestroCategorias';
 import { ModuloArqueo } from './components/ModuloArqueo';
 import { ModuloReportes } from './components/ModuloReportes';
 import { MisSolicitudes } from './components/MisSolicitudes';
+import { ModuloAdministracion } from './components/ModuloAdministracion';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { Bell, CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 import { playNotificationSound } from './lib/audioNotifier';
@@ -21,6 +20,7 @@ export function App() {
   const [solicitudes, setSolicitudes] = useState(store.solicitudes);
   const [cajaFondo, setCajaFondo] = useState(store.cajaFondo);
   const [notificaciones, setNotificaciones] = useState(store.notificaciones);
+  const [auditLogs, setAuditLogs] = useState(() => store.getAuditLogs());
   
   // Usuario en sesión
   const [currentUser, setCurrentUser] = useState(() => {
@@ -212,6 +212,7 @@ export function App() {
       setSolicitudes([...store.solicitudes]);
       setCajaFondo({ ...store.cajaFondo });
       setNotificaciones([...store.notificaciones]);
+      setAuditLogs(store.getAuditLogs());
 
       if (!currentUser) return; // No mostrar alertas si no hay sesión activa
 
@@ -308,7 +309,7 @@ export function App() {
     } else if (roles.includes('SOLICITANTE')) {
       setCurrentTab('nuevo');
     } else if (roles.includes('SYSADMIN')) {
-      setCurrentTab('maestro_dni');
+      setCurrentTab('administracion');
     } else {
       setCurrentTab('arqueo');
     }
@@ -443,22 +444,20 @@ export function App() {
               />
             )}
 
-            {currentTab === 'maestro_dni' && (
-              <MaestroDni
+            {(currentTab === 'administracion' || currentTab === 'maestro_dni' || currentTab === 'maestro_categorias') && (
+              <ModuloAdministracion
                 currentUser={currentUser}
+                solicitudes={solicitudes}
                 usuarios={usuarios}
                 onSaveUsuario={handleSaveUsuario}
                 onToggleActivo={handleToggleActivo}
-              />
-            )}
-
-            {currentTab === 'maestro_categorias' && (
-              <MaestroCategorias
-                currentUser={currentUser}
                 categorias={categorias}
                 onSaveCategoria={handleSaveCategoria}
-                onToggleActivo={handleToggleCategoriaActiva}
+                onToggleCategoriaActiva={handleToggleCategoriaActiva}
                 onDeleteCategoria={handleDeleteCategoria}
+                auditLogs={auditLogs}
+                onRefreshAuditoria={() => setAuditLogs(store.getAuditLogs())}
+                initialSubTab={currentTab === 'maestro_categorias' ? 'CATEGORIAS' : 'DNI'}
               />
             )}
 

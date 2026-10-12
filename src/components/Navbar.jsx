@@ -12,7 +12,8 @@ import {
   CheckSquare,
   Clock,
   User,
-  Tag
+  Tag,
+  ShieldCheck
 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/store';
 
@@ -170,7 +171,7 @@ export function Navbar({
             <div className="brand-subtitle" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.1rem' }}>
               <span className="desktop-only">En tiempo real</span>
               <span className="desktop-only" style={{ opacity: 0.5 }}>•</span>
-              <span style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px' }}>v6.0.5</span>
+              <span style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px' }}>v6.1.0</span>
             </div>
           </div>
         </div>
@@ -453,26 +454,6 @@ export function Navbar({
           </button>
         )}
 
-        {isSysadmin && (
-          <button 
-            className={`nav-tab-btn ${currentTab === 'maestro_dni' ? 'active' : ''}`}
-            onClick={() => setCurrentTab('maestro_dni')}
-          >
-            <Users size={15} />
-            <span>Maestro DNIs</span>
-          </button>
-        )}
-
-        {isSysadmin && (
-          <button 
-            className={`nav-tab-btn ${currentTab === 'maestro_categorias' ? 'active' : ''}`}
-            onClick={() => setCurrentTab('maestro_categorias')}
-          >
-            <Tag size={15} />
-            <span>Categorías</span>
-          </button>
-        )}
-
         {(isAdmin || isSysadmin || isUsuario) && (
           <button 
             className={`nav-tab-btn ${currentTab === 'reportes' ? 'active' : ''}`}
@@ -480,6 +461,16 @@ export function Navbar({
           >
             <FileSpreadsheet size={15} />
             <span>Reportes Excel</span>
+          </button>
+        )}
+
+        {(isSysadmin || isAdmin) && (
+          <button 
+            className={`nav-tab-btn ${currentTab === 'administracion' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('administracion')}
+          >
+            <ShieldCheck size={15} />
+            <span>Administración</span>
           </button>
         )}
       </nav>

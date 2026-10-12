@@ -180,7 +180,9 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     const nuevo = {
       tipo,
       numero: (numero || '').trim().toUpperCase(),
-      fecha,
+      fecha, // Fecha fiscal / de emisión del comprobante
+      fecha_emision: fecha,
+      fecha_sustento: new Date().toISOString(),
       ruc: cleanRuc,
       razonSocial: (razonSocial || '').trim().toUpperCase(),
       monto: parseFloat(monto),

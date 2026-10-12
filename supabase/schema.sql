@@ -66,6 +66,11 @@ CREATE TABLE IF NOT EXISTS public.solicitudes (
     abono_observacion TEXT,
     abono_fecha TIMESTAMPTZ,
 
+    -- Datos de Rendición de Gastos (Auditoría)
+    rendicion_fecha TIMESTAMPTZ,
+    rendido_por_dni VARCHAR(15),
+    rendido_por_nombre VARCHAR(200),
+
     -- Liquidación Contable
     liquidacion_codigo VARCHAR(30), -- ej: 'LIQ-2026-001'
     liquidado_fecha TIMESTAMPTZ,
@@ -139,6 +144,18 @@ CREATE TABLE IF NOT EXISTS public.categorias_gastos (
 -- Migraciones seguras para bases de datos existentes:
 ALTER TABLE public.categorias_gastos ADD COLUMN IF NOT EXISTS centro_costo VARCHAR(50) DEFAULT 'CC-GENERAL';
 ALTER TABLE public.solicitudes ADD COLUMN IF NOT EXISTS centro_costo VARCHAR(50) DEFAULT 'CC-GENERAL';
+ALTER TABLE public.solicitudes ADD COLUMN IF NOT EXISTS rendicion_fecha TIMESTAMPTZ;
+ALTER TABLE public.solicitudes ADD COLUMN IF NOT EXISTS rendido_por_dni VARCHAR(15);
+ALTER TABLE public.solicitudes ADD COLUMN IF NOT EXISTS rendido_por_nombre VARCHAR(200);
+
+-- Actualizar registros históricos existentes sin fecha de rendición
+UPDATE public.solicitudes
+SET 
+  rendicion_fecha = COALESCE(pagado_fecha, created_at) + INTERVAL '30 minutes',
+  rendido_por_dni = solicitante_dni,
+  rendido_por_nombre = solicitante_nombre
+WHERE (estado IN ('RENDIDO', 'LIQUIDADO') OR jsonb_array_length(COALESCE(rendiciones, '[]'::jsonb)) > 0)
+  AND rendicion_fecha IS NULL;
 
 -- Permitir lectura y escritura abierta para desarrollo / RLS según conveniencia
 ALTER TABLE public.usuarios ENABLE ROW LEVEL SECURITY;

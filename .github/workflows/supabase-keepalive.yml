@@ -1,0 +1,32 @@
+name: Supabase Keep-Alive
+
+on:
+  schedule:
+    # Se ejecuta automáticamente cada 3 días a las 08:00 UTC (evita la regla de 7 días de inactividad de Supabase)
+    - cron: '0 8 */3 * *'
+  workflow_dispatch: # Permite ejecución manual desde la pestaña Actions de GitHub
+
+jobs:
+  keep-alive:
+    name: Ping Preventivo de Inactividad
+    runs-on: ubuntu-latest
+    steps:
+      - name: Enviar Ping de Actividad a Supabase
+        env:
+          SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL || secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY || secrets.SUPABASE_ANON_KEY }}
+        run: |
+          if [ -z "$SUPABASE_URL" ] || [ -z "$SUPABASE_KEY" ]; then
+            echo "⚠️ INFORMACIÓN: Configura VITE_SUPABASE_URL y VITE_SUPABASE_ANON_KEY en GitHub -> Settings -> Secrets and variables -> Actions para activar el ping automático en GitHub."
+            exit 0
+          fi
+          echo "🚀 Enviando ping preventivo a la API de Supabase..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X GET "${SUPABASE_URL}/rest/v1/usuarios?select=dni&limit=1" \
+            -H "apikey: ${SUPABASE_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_KEY}")
+          echo "Código HTTP recibido: $HTTP_STATUS"
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "✅ Éxito: Ping registrado por Supabase. La base de datos permanecerá activa."
+          else
+            echo "⚠️ Aviso: Código $HTTP_STATUS recibido, pero la interacción con el servidor previene la pausa."
+          fi
