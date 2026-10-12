@@ -89,17 +89,33 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   };
 
   const renderBadgeEstado = (estado) => {
-    if (estado === 'APROBADO') return <span className="badge badge-aprobado">APROBADO</span>;
-    if (estado === 'POR_REEMBOLSAR') return <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>POR REEMBOLSAR</span>;
-    if (estado === 'PENDIENTE_REEMBOLSO') return <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>REEMBOLSO PENDIENTE</span>;
-    if (estado === 'RECHAZADO') return <span className="badge badge-rechazado">RECHAZADO</span>;
-    return <span className="badge badge-pendiente">PENDIENTE</span>;
+    switch (estado) {
+      case 'APROBADO':
+        return <span className="badge badge-aprobado">APROBADO</span>;
+      case 'RENDIDO':
+        return <span className="badge badge-aprobado" style={{ background: '#dcfce7', color: '#15803d', border: '1px solid #86efac' }}>RENDIDO</span>;
+      case 'LIQUIDADO':
+        return <span className="badge badge-liquidado">LIQUIDADO</span>;
+      case 'POR_RENDIR':
+        return <span className="badge" style={{ background: '#eff6ff', color: '#1d4ed8', border: '1px solid #bfdbfe' }}>POR RENDIR</span>;
+      case 'POR_REEMBOLSAR':
+        return <span className="badge" style={{ background: '#e0f2fe', color: '#0369a1', border: '1px solid #bae6fd' }}>POR REEMBOLSAR</span>;
+      case 'PENDIENTE_REEMBOLSO':
+        return <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a' }}>REEMBOLSO PENDIENTE</span>;
+      case 'POR_DEVOLVER':
+        return <span className="badge" style={{ background: '#f5f3ff', color: '#6d28d9', border: '1px solid #ddd6fe' }}>POR DEVOLVER</span>;
+      case 'RECHAZADO':
+        return <span className="badge badge-rechazado">RECHAZADO</span>;
+      case 'PENDIENTE':
+      default:
+        return <span className="badge badge-pendiente">{estado ? estado.replace(/_/g, ' ') : 'PENDIENTE'}</span>;
+    }
   };
 
   const solicitudesFiltradas = solicitudes.filter(s => {
     if (filtroEstado === 'TODOS') return true;
     if (filtroEstado === 'PENDIENTE') return s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO';
-    if (filtroEstado === 'APROBADO') return s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR';
+    if (filtroEstado === 'APROBADO') return ['APROBADO', 'POR_RENDIR', 'POR_REEMBOLSAR', 'POR_DEVOLVER', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado);
     return s.estado === filtroEstado;
   });
 
@@ -481,9 +497,12 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
               
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem' }}>
                 <div>
-                  <span className="badge badge-admin" style={{ marginBottom: '0.25rem' }}>
-                    Evaluación de Solicitud
-                  </span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
+                    <span className="badge badge-admin">
+                      Evaluación de Solicitud
+                    </span>
+                    {renderBadgeEstado(selectedItem.estado)}
+                  </div>
                   <h3 style={{ fontSize: '1.25rem', color: '#0f172a' }}>
                     {selectedItem.codigo}
                   </h3>
