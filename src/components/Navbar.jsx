@@ -171,7 +171,21 @@ export function Navbar({
             <div className="brand-subtitle" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.72rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '0.3rem', marginTop: '0.1rem' }}>
               <span className="desktop-only">En tiempo real</span>
               <span className="desktop-only" style={{ opacity: 0.5 }}>•</span>
-              <span style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px' }}>v6.1.0</span>
+              <span 
+                onClick={() => {
+                  if ('caches' in window) {
+                    caches.keys().then(names => Promise.all(names.map(name => caches.delete(name)))).then(() => {
+                      window.location.reload();
+                    });
+                  } else {
+                    window.location.reload();
+                  }
+                }}
+                title="Versión 6.1.0 (Haz clic para forzar actualización y limpiar caché)"
+                style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px', cursor: 'pointer', userSelect: 'none' }}
+              >
+                v6.1.0
+              </span>
             </div>
           </div>
         </div>

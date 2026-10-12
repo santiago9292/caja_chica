@@ -134,13 +134,32 @@ export function App() {
   // Mensajes del Service Worker (clic en notificación local con la app abierta)
   useEffect(() => {
     if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
+    
+    // Forzar chequeo de actualización inmediata en cada carga
+    navigator.serviceWorker.ready.then((reg) => {
+      reg.update().catch(() => {});
+    }).catch(() => {});
+
+    // Auto-recarga cuando se active un nuevo Service Worker con nueva versión
+    let refreshing = false;
+    const onControllerChange = () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
+    };
+    navigator.serviceWorker.addEventListener('controllerchange', onControllerChange);
+
     const onSwMessage = (event) => {
       if (event.data?.type === 'NOTIF_NAV' && event.data.evento) {
         setPendingNotif({ evento: event.data.evento, sol: event.data.sol || '' });
       }
     };
     navigator.serviceWorker.addEventListener('message', onSwMessage);
-    return () => navigator.serviceWorker.removeEventListener('message', onSwMessage);
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', onSwMessage);
+      navigator.serviceWorker.removeEventListener('controllerchange', onControllerChange);
+    };
   }, []);
 
   const fireNativeNotification = (title, body, evento = null, solicitanteDni = '') => {
