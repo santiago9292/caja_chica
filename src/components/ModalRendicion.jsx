@@ -153,15 +153,15 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     }
   };
 
-  const agregarComprobante = () => {
+  const validarYConstruirComprobante = () => {
     if (!monto || isNaN(monto) || parseFloat(monto) <= 0) {
       alert("Ingrese un monto válido para el comprobante.");
-      return;
+      return null;
     }
     
     if (!archivo) {
-      alert("Es obligatorio adjuntar el sustento (Foto, PDF, Excel o Word) para poder agregar el comprobante.");
-      return;
+      alert("Es obligatorio adjuntar el sustento (Foto, PDF, Excel o Word) para poder rendir.");
+      return null;
     }
 
     const cleanRuc = (ruc || '').toString().trim().replace(/\D/g, '');
@@ -169,15 +169,15 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     // Validación estricta de RUC (siempre 11 dígitos)
     if ((tipo === 'FACTURA' || tipo === 'RECIBO_HONORARIOS') && cleanRuc.length !== 11) {
       alert(`Para ${getTipoLabel(tipo)} es obligatorio ingresar un RUC de exactamente 11 dígitos numéricos.`);
-      return;
+      return null;
     }
 
     if (cleanRuc.length > 0 && cleanRuc.length !== 11) {
       alert(`El RUC ingresado debe tener exactamente 11 dígitos numéricos (has ingresado ${cleanRuc.length}).`);
-      return;
+      return null;
     }
 
-    const nuevo = {
+    return {
       tipo,
       numero: (numero || '').trim().toUpperCase(),
       fecha, // Fecha fiscal / de emisión del comprobante
@@ -190,6 +190,12 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
       archivoNombre,
       archivoTipo
     };
+  };
+
+  const agregarComprobante = () => {
+    const nuevo = validarYConstruirComprobante();
+    if (!nuevo) return;
+
     setComprobantes([...comprobantes, nuevo]);
     // Resetear form parcial
     setNumero('');
@@ -208,14 +214,28 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     setComprobantes(arr);
   };
 
+  const tieneDatosEnFormulario = Boolean((monto && parseFloat(monto) > 0) || archivo);
+
   const handleGuardar = async () => {
-    if (comprobantes.length === 0) {
-      alert("Debe agregar al menos un comprobante para rendir.");
+    let listaFinal = [...comprobantes];
+
+    // Si el usuario tiene datos en el formulario actual, procesarlo directamente
+    if (tieneDatosEnFormulario) {
+      const nuevo = validarYConstruirComprobante();
+      if (!nuevo) {
+        return; // La validación ya mostró el alert
+      }
+      listaFinal.push(nuevo);
+    }
+
+    if (listaFinal.length === 0) {
+      alert("Por favor completa los datos del comprobante y adjunta el sustento para rendir.");
       return;
     }
+
     setSubmitting(true);
     try {
-      await onRendir(solicitud.id, comprobantes);
+      await onRendir(solicitud.id, listaFinal);
       onClose();
     } catch (err) {
       alert("Error al rendir: " + err.message);
@@ -223,7 +243,8 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
     }
   };
 
-  const totalRendido = comprobantes.reduce((sum, c) => sum + c.monto, 0);
+  const totalRendidoEnLista = comprobantes.reduce((sum, c) => sum + c.monto, 0);
+  const totalRendido = comprobantes.length > 0 ? totalRendidoEnLista : (parseFloat(monto) || 0);
   const diferencia = totalRendido - Number(solicitud.monto);
   const fileCategory = getFileCategory(archivo, archivoNombre, archivoTipo);
 
@@ -285,9 +306,17 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
 
         {/* Formulario para agregar un comprobante */}
         <div style={{ background: '#f8fafc', border: '1px dashed #cbd5e1', borderRadius: 'var(--radius-md)', padding: '1.25rem', marginBottom: '1.5rem' }}>
-          <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <Receipt size={16} /> Agregar Comprobante o Sustento
-          </h4>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <h4 style={{ fontSize: '0.95rem', margin: 0, color: '#0f172a', display: 'flex', alignItems: 'center', gap: '0.45rem', fontWeight: '700' }}>
+              <Receipt size={17} color="#2563eb" /> 
+              {comprobantes.length === 0 ? 'Datos del Comprobante o Sustento' : 'Agregar Otro Comprobante'}
+            </h4>
+            {comprobantes.length > 0 && (
+              <span style={{ fontSize: '0.75rem', background: '#ecfdf5', color: '#059669', padding: '2px 8px', borderRadius: '12px', fontWeight: '600', border: '1px solid #a7f3d0' }}>
+                {comprobantes.length} {comprobantes.length === 1 ? 'comprobante añadido' : 'comprobantes añadidos'}
+              </span>
+            )}
+          </div>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '0.75rem', marginBottom: '0.75rem' }}>
             <div className="form-group" style={{ marginBottom: 0 }}>
@@ -535,14 +564,33 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
             )}
           </div>
 
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '1rem' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1.25rem', paddingTop: '0.75rem', borderTop: '1px dashed #cbd5e1', flexWrap: 'wrap', gap: '0.75rem' }}>
+            <span style={{ fontSize: '0.78rem', color: '#64748b', maxWidth: '420px' }}>
+              💡 ¿Tienes varios gastos? Agrégalos uno a uno con este botón azul. Si solo tienes uno, puedes pulsar directamente <strong>"Guardar y Finalizar Rendición"</strong> abajo.
+            </span>
             <button 
               type="button" 
               onClick={agregarComprobante} 
-              className="btn btn-secondary" 
-              style={{ padding: '0.5rem 1rem', display: 'flex', alignItems: 'center', gap: '0.4rem', fontWeight: '600' }}
+              style={{ 
+                background: '#2563eb', 
+                color: '#ffffff', 
+                border: 'none', 
+                borderRadius: 'var(--radius-md)', 
+                padding: '0.55rem 1.15rem', 
+                display: 'inline-flex', 
+                alignItems: 'center', 
+                gap: '0.45rem', 
+                fontWeight: '600',
+                fontSize: '0.85rem',
+                cursor: 'pointer',
+                boxShadow: '0 1px 3px rgba(37,99,235,0.25)',
+                transition: 'background 0.2s ease',
+                whiteSpace: 'nowrap'
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.background = '#1d4ed8'}
+              onMouseLeave={(e) => e.currentTarget.style.background = '#2563eb'}
             >
-              <Plus size={16} /> Agregar a la lista
+              <Plus size={16} /> Agregar Comprobante a la Rendición
             </button>
           </div>
         </div>
@@ -596,22 +644,58 @@ export function ModalRendicion({ solicitud, onClose, onRendir }) {
           </div>
         )}
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem' }}>
-          <button onClick={onClose} className="btn btn-secondary" disabled={submitting}>
-            Cancelar
-          </button>
-          <button 
-            onClick={handleGuardar} 
-            className="btn btn-primary" 
-            disabled={submitting || comprobantes.length === 0}
-            style={{ fontWeight: '700' }}
-          >
-            {submitting 
-              ? 'Guardando...' 
-              : diferencia > 0 
-                ? `Finalizar y Solicitar Reembolso (S/ ${diferencia.toFixed(2)})` 
-                : 'Finalizar Rendición'}
-          </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', borderTop: '1px solid var(--border-subtle)', paddingTop: '1rem', flexWrap: 'wrap' }}>
+          <div>
+            {comprobantes.length === 0 && tieneDatosEnFormulario && (
+              <span style={{ fontSize: '0.78rem', color: '#059669', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+                <CheckCircle size={14} /> Listo para guardar directamente sin pasos extras
+              </span>
+            )}
+          </div>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <button onClick={onClose} className="btn btn-secondary" disabled={submitting}>
+              Cancelar
+            </button>
+            <button 
+              onClick={handleGuardar} 
+              className="btn btn-primary" 
+              disabled={submitting || (comprobantes.length === 0 && !tieneDatosEnFormulario)}
+              style={{ 
+                fontWeight: '700',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                padding: '0.65rem 1.25rem',
+                background: (comprobantes.length === 0 && tieneDatosEnFormulario) ? '#059669' : undefined,
+                borderColor: (comprobantes.length === 0 && tieneDatosEnFormulario) ? '#059669' : undefined,
+                cursor: (submitting || (comprobantes.length === 0 && !tieneDatosEnFormulario)) ? 'not-allowed' : 'pointer'
+              }}
+            >
+              {submitting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" /> Guardando Rendición...
+                </>
+              ) : comprobantes.length === 0 ? (
+                tieneDatosEnFormulario ? (
+                  <>
+                    <CheckCircle size={16} />
+                    {parseFloat(monto) > Number(solicitud.monto)
+                      ? `Guardar, Finalizar y Solicitar Reembolso (S/ ${(parseFloat(monto) - Number(solicitud.monto)).toFixed(2)})`
+                      : 'Guardar y Finalizar Rendición'}
+                  </>
+                ) : (
+                  'Finalizar Rendición'
+                )
+              ) : (
+                <>
+                  <CheckCircle size={16} />
+                  {diferencia > 0 
+                    ? `Finalizar Rendición (${comprobantes.length}) y Solicitar Reembolso (S/ ${diferencia.toFixed(2)})` 
+                    : `Finalizar Rendición (${comprobantes.length} ${comprobantes.length === 1 ? 'comprobante' : 'comprobantes'})`}
+                </>
+              )}
+            </button>
+          </div>
         </div>
       </div>
     </div>
