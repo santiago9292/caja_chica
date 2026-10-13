@@ -60,10 +60,68 @@ export function App() {
           notificationClickHandlerAction: "navigate",
           notifyButton: {
             enable: true,
+            size: 'medium',
+            position: 'bottom-right',
+            showCredit: false,
+            displayPredicate: () => {
+              const isNativeGranted = typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted';
+              const isOneSignalGranted = Boolean(OneSignal?.Notifications?.permission);
+              const isOptedIn = Boolean(OneSignal?.User?.PushSubscription?.optedIn);
+
+              // Si ya ha permitido las notificaciones, NO mostrar la campana
+              if (isNativeGranted || isOneSignalGranted || isOptedIn) {
+                return false;
+              }
+
+              // Si las notificaciones están en 'denied' (bloqueadas) o pendientes, mostrar la campana
+              // para que al hacer clic se active el tooltip nativo de desbloqueo en el navegador
+              return true;
+            },
+            text: {
+              'tip.state.unsubscribed': 'Activar notificaciones',
+              'tip.state.subscribed': 'Notificaciones activadas',
+              'tip.state.blocked': 'Notificaciones bloqueadas (clic para desbloquear)',
+              'message.prenotify': 'Haz clic para suscribirte a las notificaciones',
+              'message.action.subscribed': '¡Gracias por suscribirte!',
+              'message.action.resubscribed': 'Notificaciones reactivadas',
+              'message.action.unsubscribed': 'Notificaciones desactivadas',
+              'dialog.main.title': 'Gestionar Notificaciones',
+              'dialog.main.button.subscribe': 'ACTIVAR',
+              'dialog.main.button.unsubscribe': 'DESACTIVAR',
+              'dialog.blocked.title': 'Desbloquear Notificaciones',
+              'dialog.blocked.message': 'Sigue estas instrucciones para permitir las notificaciones en tu navegador:',
+            },
           },
         });
         window.__onesignal_initialized = true;
         setIsOneSignalInitialized(true);
+
+        // Control dinámico de la campana si el estado de permisos cambia en la misma sesión
+        const syncBellVisibility = (granted) => {
+          const bell = document.getElementById('onesignal-bell-container');
+          if (bell) {
+            if (granted) {
+              bell.style.setProperty('display', 'none', 'important');
+            } else {
+              bell.style.removeProperty('display');
+            }
+          }
+        };
+
+        if (typeof window !== 'undefined' && 'Notification' in window && Notification.permission === 'granted') {
+          syncBellVisibility(true);
+        }
+
+        try {
+          OneSignal.Notifications.addEventListener('permissionChange', (permission) => {
+            syncBellVisibility(Boolean(permission));
+          });
+          OneSignal.User?.PushSubscription?.addEventListener('change', (change) => {
+            if (change?.current?.optedIn) {
+              syncBellVisibility(true);
+            }
+          });
+        } catch (e) {}
 
         // Si la app ya estaba abierta y OneSignal solo la enfoca, cambiar de pestaña aquí
         OneSignal.Notifications.addEventListener('click', (event) => {
