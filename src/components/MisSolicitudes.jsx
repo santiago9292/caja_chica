@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle } from 'lucide-react';
+import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle, CreditCard } from 'lucide-react';
 import { ModalRendicion, getTipoLabel } from './ModalRendicion';
 
 export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
@@ -397,6 +397,69 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                 {selectedItem.motivo}
               </div>
             </div>
+
+            {/* Datos Solicitados para el Abono */}
+            {selectedItem.abono_destinatario_tipo === 'TERCERO' ? (
+              <div style={{ marginBottom: '1rem' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', color: '#b45309' }}>
+                  <CreditCard size={15} /> Abono Solicitado a un Tercero
+                </label>
+                <div style={{ background: '#fffbeb', padding: '0.75rem 0.85rem', borderRadius: 'var(--radius-md)', border: '1px solid #fde68a', fontSize: '0.8rem' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem' }}>
+                    <div>
+                      <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Medio / Banco:</span>
+                      <strong>{selectedItem.abono_banco || 'No especificado'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>A nombre de (Tercero):</span>
+                      <strong>{selectedItem.abono_titular}</strong>
+                    </div>
+                    {selectedItem.abono_cuenta_numero && selectedItem.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' && (
+                      <div>
+                        <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Número a abonar:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0f172a', background: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                          {selectedItem.abono_cuenta_numero}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div style={{ marginBottom: '1rem' }}>
+                <div style={{
+                  background: '#f0fdf4',
+                  padding: '0.75rem 0.85rem',
+                  borderRadius: 'var(--radius-md)',
+                  border: '1px solid #bbf7d0',
+                  fontSize: '0.8rem',
+                  color: '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                    <span>Abono solicitado directamente a tu nombre: <strong>{selectedItem.solicitante_nombre}</strong></span>
+                  </div>
+                  {selectedItem.abono_banco && (
+                    <span style={{
+                      fontWeight: '700',
+                      padding: '0.15rem 0.55rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      background: selectedItem.abono_banco === 'PLIN' ? '#e0f2fe' : selectedItem.abono_banco === 'EFECTIVO_CAJA' ? '#dcfce7' : '#f3e8ff',
+                      color: selectedItem.abono_banco === 'PLIN' ? '#0369a1' : selectedItem.abono_banco === 'EFECTIVO_CAJA' ? '#15803d' : '#7e22ce'
+                    }}>
+                      {selectedItem.abono_banco === 'PLIN' ? '⚡ Plin' : selectedItem.abono_banco === 'YAPE' ? '🟣 Yape' : selectedItem.abono_banco === 'EFECTIVO_CAJA' ? '💵 Retiro en Caja' : selectedItem.abono_banco}
+                      {selectedItem.abono_cuenta_numero && selectedItem.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' ? ` (${selectedItem.abono_cuenta_numero})` : ''}
+                    </span>
+                  )}
+                </div>
+              </div>
+            )}
 
             {selectedItem.observaciones_aprobador && (
               <div style={{

@@ -11,7 +11,9 @@ import {
   X,
   FileText,
   User,
-  DollarSign
+  DollarSign,
+  CreditCard,
+  Copy
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
@@ -281,6 +283,42 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                     <div style={{ fontSize: '0.8rem', color: '#334155', marginTop: '0.35rem', background: '#f8fafc', padding: '0.45rem 0.6rem', borderRadius: 'var(--radius-sm)', border: '1px solid #e2e8f0' }}>
                       {sol.motivo}
                     </div>
+
+                    {sol.abono_destinatario_tipo === 'TERCERO' ? (
+                      <div style={{ 
+                        fontSize: '0.74rem', 
+                        color: '#b45309', 
+                        background: '#fffbeb', 
+                        padding: '0.35rem 0.55rem', 
+                        borderRadius: 'var(--radius-sm)', 
+                        border: '1px solid #fde68a', 
+                        marginTop: '0.35rem', 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '0.35rem', 
+                        flexWrap: 'wrap' 
+                      }}>
+                        <CreditCard size={13} color="#d97706" />
+                        <span><strong>Abono a Tercero:</strong> {sol.abono_titular} ({sol.abono_banco} • {sol.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' ? sol.abono_cuenta_numero : 'Efectivo'})</span>
+                      </div>
+                    ) : (
+                      <div style={{ fontSize: '0.72rem', color: '#059669', marginTop: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.35rem', flexWrap: 'wrap' }}>
+                        <span>👤 Abono directo al solicitante</span>
+                        {sol.abono_banco && (
+                          <span style={{
+                            fontSize: '0.68rem',
+                            fontWeight: '700',
+                            padding: '0.1rem 0.4rem',
+                            borderRadius: '4px',
+                            background: sol.abono_banco === 'PLIN' ? '#e0f2fe' : sol.abono_banco === 'EFECTIVO_CAJA' ? '#dcfce7' : '#f3e8ff',
+                            color: sol.abono_banco === 'PLIN' ? '#0369a1' : sol.abono_banco === 'EFECTIVO_CAJA' ? '#15803d' : '#7e22ce'
+                          }}>
+                            {sol.abono_banco === 'PLIN' ? '⚡ Plin' : sol.abono_banco === 'YAPE' ? '🟣 Yape' : sol.abono_banco === 'EFECTIVO_CAJA' ? '💵 Efectivo en Caja' : sol.abono_banco}
+                            {sol.abono_cuenta_numero && sol.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' ? ` • ${sol.abono_cuenta_numero}` : ''}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Fila 3: Monto e Importe */}
@@ -615,6 +653,74 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                   {selectedItem.motivo}
                 </div>
               </div>
+
+              {/* Datos de Abono Solicitados */}
+              {selectedItem.abono_destinatario_tipo === 'TERCERO' ? (
+                <div style={{
+                  background: '#fffbeb',
+                  border: '1px solid #fde68a',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 0.85rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.8rem'
+                }}>
+                  <div style={{ fontWeight: '700', color: '#b45309', marginBottom: '0.4rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <CreditCard size={15} color="#d97706" />
+                    <span>⚠️ Abono Solicitado a un Tercero</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.5rem' }}>
+                    <div>
+                      <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Medio / Banco:</span>
+                      <strong style={{ color: '#0f172a' }}>{selectedItem.abono_banco || 'No especificado'}</strong>
+                    </div>
+                    <div>
+                      <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>A nombre de (Tercero):</span>
+                      <strong style={{ color: '#0f172a' }}>{selectedItem.abono_titular}</strong>
+                    </div>
+                    {selectedItem.abono_cuenta_numero && selectedItem.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' && (
+                      <div>
+                        <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Número a abonar:</span>
+                        <span style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0f172a', background: '#ffffff', padding: '0.1rem 0.4rem', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                          {selectedItem.abono_cuenta_numero}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div style={{
+                  background: '#f0fdf4',
+                  border: '1px solid #bbf7d0',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '0.75rem 0.85rem',
+                  marginBottom: '1rem',
+                  fontSize: '0.8rem',
+                  color: '#166534',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '0.5rem'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                    <span>Abono solicitado a nombre del colaborador: <strong>{selectedItem.solicitante_nombre}</strong></span>
+                  </div>
+                  {selectedItem.abono_banco && (
+                    <span style={{
+                      fontWeight: '700',
+                      padding: '0.15rem 0.55rem',
+                      borderRadius: '12px',
+                      fontSize: '0.75rem',
+                      background: selectedItem.abono_banco === 'PLIN' ? '#e0f2fe' : selectedItem.abono_banco === 'EFECTIVO_CAJA' ? '#dcfce7' : '#f3e8ff',
+                      color: selectedItem.abono_banco === 'PLIN' ? '#0369a1' : selectedItem.abono_banco === 'EFECTIVO_CAJA' ? '#15803d' : '#7e22ce'
+                    }}>
+                      {selectedItem.abono_banco === 'PLIN' ? '⚡ Plin' : selectedItem.abono_banco === 'YAPE' ? '🟣 Yape' : selectedItem.abono_banco === 'EFECTIVO_CAJA' ? '💵 Retiro en Caja' : selectedItem.abono_banco}
+                      {selectedItem.abono_cuenta_numero && selectedItem.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' ? ` (${selectedItem.abono_cuenta_numero})` : ''}
+                    </span>
+                  )}
+                </div>
+              )}
 
               {/* Comprobante Único (para rendiciones directas previas) */}
               {selectedItem.comprobante_tipo && (

@@ -64,7 +64,10 @@ export function extraerDetalleComprobantes(solicitudes) {
               centroCosto: (r.centro_costo || sol.centro_costo || 'ADMINISTRACIÓN').toUpperCase(),
               monto: Number(r.monto || 0),
               estado: sol.estado,
-              liquidacion_codigo: sol.liquidacion_codigo
+              liquidacion_codigo: sol.liquidacion_codigo,
+              abono_banco: sol.abono_banco || '-',
+              abono_cuenta_numero: sol.abono_cuenta_numero || '-',
+              abono_titular: sol.abono_titular || '-'
             });
           });
         }
@@ -90,7 +93,10 @@ export function extraerDetalleComprobantes(solicitudes) {
         centroCosto: (sol.centro_costo || 'ADMINISTRACIÓN').toUpperCase(),
         monto: Number(montoFinal || 0),
         estado: sol.estado,
-        liquidacion_codigo: sol.liquidacion_codigo
+        liquidacion_codigo: sol.liquidacion_codigo,
+        abono_banco: sol.abono_banco || '-',
+        abono_cuenta_numero: sol.abono_cuenta_numero || '-',
+        abono_titular: sol.abono_titular || '-'
       });
     }
   });

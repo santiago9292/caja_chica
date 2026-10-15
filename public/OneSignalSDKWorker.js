@@ -14,7 +14,7 @@ try {
 }
 
 // Service Worker para PWA Caja Chica DICAR LOGISTIC
-const CACHE_NAME = 'caja-chica-v6.1.3';
+const CACHE_NAME = 'caja-chica-v6.1.4';
 const ASSETS_TO_CACHE = [
   '/',
   '/index.html',

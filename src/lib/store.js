@@ -797,7 +797,8 @@ class DataStore {
       'rendiciones', 'created_at',
       'rendicion_fecha', 'rendido_por_dni', 'rendido_por_nombre',
       'abono_sustento_url', 'abono_sustento_nombre', 'abono_metodo', 'abono_operacion', 'abono_observacion', 'abono_fecha',
-      'liquidacion_codigo', 'liquidado_fecha', 'liquidado_por_dni', 'liquidado_por_nombre'
+      'liquidacion_codigo', 'liquidado_fecha', 'liquidado_por_dni', 'liquidado_por_nombre',
+      'abono_destinatario_tipo', 'abono_banco', 'abono_cuenta_numero', 'abono_titular'
     ];
     const clean = {};
     for (const key of allowed) {
@@ -849,7 +850,20 @@ class DataStore {
     if (supabase) {
       try {
         const cleanPayload = this.sanitizeSolicitudForSupabase(newSolicitud);
-        const { error } = await supabase.from('solicitudes').insert(cleanPayload);
+        let { error } = await supabase.from('solicitudes').insert(cleanPayload);
+        
+        // Si las columnas nuevas aún no existen en la base de Supabase (error 42703), reintentar sin ellas
+        if (error && (error.code === '42703' || error.message?.includes('abono_'))) {
+          console.warn('Columnas de abono no encontradas en Supabase (ejecutar script SQL). Reintentando sin ellas...');
+          const fallbackPayload = { ...cleanPayload };
+          delete fallbackPayload.abono_destinatario_tipo;
+          delete fallbackPayload.abono_banco;
+          delete fallbackPayload.abono_cuenta_numero;
+          delete fallbackPayload.abono_titular;
+          const retryRes = await supabase.from('solicitudes').insert(fallbackPayload);
+          error = retryRes.error;
+        }
+
         if (error) {
           console.error('Error insertando solicitud en Supabase:', error);
           if (error.code === '23505') {

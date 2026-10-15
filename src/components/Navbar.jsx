@@ -181,10 +181,10 @@ export function Navbar({
                     window.location.reload();
                   }
                 }}
-                title="Versión 6.1.3 (Haz clic para forzar actualización y limpiar caché)"
+                title="Versión 6.1.4 (Haz clic para forzar actualización y limpiar caché)"
                 style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px', cursor: 'pointer', userSelect: 'none' }}
               >
-                v6.1.3
+                v6.1.4
               </span>
             </div>
           </div>

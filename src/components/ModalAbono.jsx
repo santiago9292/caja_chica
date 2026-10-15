@@ -10,7 +10,10 @@ import {
   File, 
   Paperclip, 
   Send,
-  Loader2
+  Loader2,
+  Copy,
+  Check,
+  CreditCard
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 
@@ -21,6 +24,8 @@ const METODOS_ABONO = [
   { id: 'BCP', label: 'Transferencia BCP' },
   { id: 'BBVA', label: 'Transferencia BBVA' },
   { id: 'INTERBANK', label: 'Transferencia Interbank' },
+  { id: 'SCOTIABANK', label: 'Transferencia Scotiabank' },
+  { id: 'BANCO_NACION', label: 'Transferencia Banco de la Nación' },
   { id: 'TRANSFERENCIA_OTRO', label: 'Transferencia Otros Bancos' }
 ];
 
@@ -83,7 +88,13 @@ export function ModalAbono({
 
   const montoAEntregar = getMontoEntrega();
 
-  const [metodo, setMetodo] = useState('EFECTIVO_CAJA');
+  const [metodo, setMetodo] = useState(() => {
+    if (solicitud.abono_banco && METODOS_ABONO.some(m => m.id === solicitud.abono_banco)) {
+      return solicitud.abono_banco;
+    }
+    return 'EFECTIVO_CAJA';
+  });
+  const [copiedNumero, setCopiedNumero] = useState(false);
   const [nroOperacion, setNroOperacion] = useState('');
   const [observaciones, setObservaciones] = useState('');
   const [archivo, setArchivo] = useState('');
@@ -262,6 +273,152 @@ export function ModalAbono({
             </div>
           )}
         </div>
+
+        {/* Datos Solicitados para el Depósito por el Colaborador */}
+        {solicitud.abono_destinatario_tipo === 'TERCERO' ? (
+          <div style={{
+            background: '#fffbeb',
+            border: '1.5px solid #f59e0b',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.25rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.45rem', marginBottom: '0.5rem', color: '#b45309', fontWeight: '800', fontSize: '0.82rem' }}>
+              <CreditCard size={16} />
+              <span>⚠️ ATENCIÓN: ABONO SOLICITADO A UN TERCERO</span>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '0.65rem', fontSize: '0.82rem' }}>
+              <div>
+                <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Medio / Banco Solicitado:</span>
+                <strong style={{ color: '#0f172a' }}>{solicitud.abono_banco || 'No especificado'}</strong>
+              </div>
+              <div>
+                <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>A nombre de (Tercero):</span>
+                <strong style={{ color: '#0f172a' }}>{solicitud.abono_titular}</strong>
+              </div>
+              {solicitud.abono_cuenta_numero && solicitud.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' && (
+                <div>
+                  <span style={{ color: '#92400e', fontSize: '0.72rem', display: 'block', fontWeight: '600' }}>Número a Abonar:</span>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', marginTop: '0.15rem' }}>
+                    <span style={{ fontFamily: 'monospace', fontWeight: '800', fontSize: '0.95rem', color: '#0f172a', background: '#ffffff', padding: '0.15rem 0.5rem', borderRadius: '4px', border: '1px solid #fde68a' }}>
+                      {solicitud.abono_cuenta_numero}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(solicitud.abono_cuenta_numero);
+                        setCopiedNumero(true);
+                        setTimeout(() => setCopiedNumero(false), 2000);
+                      }}
+                      style={{
+                        background: '#ffffff',
+                        border: '1px solid #f59e0b',
+                        borderRadius: '4px',
+                        padding: '0.2rem 0.5rem',
+                        fontSize: '0.72rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        color: '#b45309',
+                        fontWeight: '600'
+                      }}
+                      title="Copiar número"
+                    >
+                      {copiedNumero ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
+                      <span>{copiedNumero ? '¡Copiado!' : 'Copiar'}</span>
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div style={{
+            background: '#f0fdf4',
+            border: '1.5px solid #86efac',
+            borderRadius: 'var(--radius-md)',
+            padding: '0.85rem 1rem',
+            marginBottom: '1.25rem',
+            fontSize: '0.82rem',
+            color: '#166534',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.5rem'
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', flexShrink: 0 }} />
+                <span>Abono directo al solicitante: <strong>{solicitud.solicitante_nombre}</strong></span>
+              </div>
+              {solicitud.abono_banco && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  fontWeight: '800',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: '12px',
+                  background: solicitud.abono_banco === 'PLIN' ? '#e0f2fe' : solicitud.abono_banco === 'EFECTIVO_CAJA' ? '#dcfce7' : '#f3e8ff',
+                  color: solicitud.abono_banco === 'PLIN' ? '#0369a1' : solicitud.abono_banco === 'EFECTIVO_CAJA' ? '#15803d' : '#7e22ce',
+                  border: `1px solid ${solicitud.abono_banco === 'PLIN' ? '#bae6fd' : solicitud.abono_banco === 'EFECTIVO_CAJA' ? '#86efac' : '#e9d5ff'}`
+                }}>
+                  {solicitud.abono_banco === 'PLIN' ? '⚡ Billetera PLIN' : solicitud.abono_banco === 'YAPE' ? '🟣 Billetera YAPE' : solicitud.abono_banco === 'EFECTIVO_CAJA' ? '💵 Retiro en Caja' : solicitud.abono_banco}
+                </span>
+              )}
+            </div>
+
+            {solicitud.abono_banco === 'EFECTIVO_CAJA' ? (
+              <div style={{ fontSize: '0.78rem', color: '#15803d', display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.15rem' }}>
+                <span>💵</span>
+                <span><strong>Entrega en Efectivo:</strong> El colaborador recogerá el dinero físico directamente en ventanilla de caja chica.</span>
+              </div>
+            ) : (
+              solicitud.abono_cuenta_numero && solicitud.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                  <span style={{ fontSize: '0.75rem', color: '#15803d', fontWeight: '700' }}>
+                    Número de {solicitud.abono_banco === 'PLIN' ? 'Plin' : 'Yape'} confirmado:
+                  </span>
+                  <span style={{
+                    fontFamily: 'monospace',
+                    fontWeight: '800',
+                    fontSize: '0.98rem',
+                    color: '#0f172a',
+                    background: '#ffffff',
+                    padding: '0.15rem 0.55rem',
+                    borderRadius: '4px',
+                    border: '1px solid #86efac'
+                  }}>
+                    {solicitud.abono_cuenta_numero}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(solicitud.abono_cuenta_numero);
+                      setCopiedNumero(true);
+                      setTimeout(() => setCopiedNumero(false), 2000);
+                    }}
+                    style={{
+                      background: '#ffffff',
+                      border: '1px solid #16a34a',
+                      borderRadius: '4px',
+                      padding: '0.2rem 0.55rem',
+                      fontSize: '0.72rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      color: '#166534',
+                      fontWeight: '700'
+                    }}
+                    title="Copiar número de abono"
+                  >
+                    {copiedNumero ? <Check size={13} color="#16a34a" /> : <Copy size={13} />}
+                    <span>{copiedNumero ? '¡Copiado!' : 'Copiar'}</span>
+                  </button>
+                </div>
+              )
+            )}
+          </div>
+        )}
 
         <form onSubmit={handleGuardar}>
           

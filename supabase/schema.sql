@@ -39,6 +39,12 @@ CREATE TABLE IF NOT EXISTS public.solicitudes (
     motivo TEXT NOT NULL,
     categoria VARCHAR(50) NOT NULL, -- 'TRANSPORTE', 'ALIMENTACION', 'MATERIALES_OFICINA', 'SERVICIOS_URGENTES', 'REPRESENTACION', 'OTROS'
     
+    -- Datos de Destino para el Abono (Llenados por el Solicitante al pedir el adelanto)
+    abono_destinatario_tipo VARCHAR(20) DEFAULT 'A_MI', -- 'A_MI' | 'TERCERO'
+    abono_banco VARCHAR(50), -- 'YAPE', 'PLIN', 'BCP', 'BBVA', 'INTERBANK', 'SCOTIABANK', 'BANCO_NACION', 'EFECTIVO_CAJA', 'OTRO'
+    abono_cuenta_numero VARCHAR(100), -- Número celular Yape/Plin, Nro de cuenta o CCI a donde abonar
+    abono_titular VARCHAR(200), -- A nombre de quién debe salir la transferencia / Titular
+    
     -- Datos del Comprobante (Relevante para Rendición de Gastos)
     comprobante_tipo VARCHAR(40), -- 'FACTURA', 'BOLETA', 'RECIBO_HONORARIOS', 'TICKET_VALE', 'PLANILLA_MOVILIDAD', 'SIN_COMPROBANTE'
     comprobante_numero VARCHAR(50),
@@ -205,6 +211,10 @@ ON CONFLICT (codigo) DO NOTHING;
 -- (Copiar y ejecutar en el SQL Editor de Supabase si la base ya estaba creada)
 -- ============================================================================
 ALTER TABLE public.solicitudes 
+ADD COLUMN IF NOT EXISTS abono_destinatario_tipo VARCHAR(20) DEFAULT 'A_MI',
+ADD COLUMN IF NOT EXISTS abono_banco VARCHAR(50),
+ADD COLUMN IF NOT EXISTS abono_cuenta_numero VARCHAR(100),
+ADD COLUMN IF NOT EXISTS abono_titular VARCHAR(200),
 ADD COLUMN IF NOT EXISTS abono_sustento_url TEXT,
 ADD COLUMN IF NOT EXISTS abono_sustento_nombre VARCHAR(200),
 ADD COLUMN IF NOT EXISTS abono_metodo VARCHAR(50),
