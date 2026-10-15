@@ -1,4 +1,5 @@
-import * as XLSX from 'xlsx';
+import XLSXStyle from 'xlsx-js-style';
+const XLSX = XLSXStyle.default || XLSXStyle;
 
 export const NOMBRE_EMPRESA = 'CORPORACION CADILLO & ROJO SAC';
 
@@ -177,7 +178,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     // Fila 3: Area y Código de Liquidación
     [`Area :`, areaText, '', '', '', `LIQUIDACION CAJA N.°: ${liqCodigo}`, '', ''],
     // Fila 4: Nombre del Responsable y Cargo
-    [`Nombre y Apellidos:`, nombreText, '', '', '', `Cargo: ${cargoText}`, '', ''],
+    [`Nombre`, nombreText, '', '', '', `Cargo: ${cargoText}`, '', ''],
     // Fila 5: Encabezados de Columna
     ['N°', 'Fecha', 'Tipo', 'Nro. De Comprobante', 'Razón Social', 'Descripción', 'Centro de Costos', 'Importe S/']
   ];
@@ -204,6 +205,107 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
 
   const wsLibro = XLSX.utils.aoa_to_sheet(aoaLibroCajaChica);
 
+  // Estilos de bordes y formatos idénticos a la plantilla oficial
+  const borderThin = {
+    top: { style: 'thin', color: { rgb: '000000' } },
+    bottom: { style: 'thin', color: { rgb: '000000' } },
+    left: { style: 'thin', color: { rgb: '000000' } },
+    right: { style: 'thin', color: { rgb: '000000' } }
+  };
+
+  // Fila 2: Título Corporativo (A2:H2)
+  for (let c = 0; c <= 7; c++) {
+    const ref = XLSX.utils.encode_cell({ r: 1, c });
+    if (!wsLibro[ref]) wsLibro[ref] = { t: 's', v: '' };
+    wsLibro[ref].s = {
+      font: { bold: true, sz: 10.5, name: 'Calibri' },
+      alignment: { horizontal: 'center', vertical: 'center' },
+      border: borderThin
+    };
+  }
+
+  // Fila 3: Área (A3, B3..E3) y Liquidación (F3..H3)
+  for (let c = 0; c <= 7; c++) {
+    const ref = XLSX.utils.encode_cell({ r: 2, c });
+    if (!wsLibro[ref]) wsLibro[ref] = { t: 's', v: '' };
+    wsLibro[ref].s = {
+      font: { bold: c === 0 || c >= 5, sz: 9.5, name: 'Calibri' },
+      alignment: { horizontal: 'left', vertical: 'center' },
+      border: borderThin
+    };
+  }
+
+  // Fila 4: Nombre (A4, B4..E4) y Cargo (F4..H4)
+  for (let c = 0; c <= 7; c++) {
+    const ref = XLSX.utils.encode_cell({ r: 3, c });
+    if (!wsLibro[ref]) wsLibro[ref] = { t: 's', v: '' };
+    wsLibro[ref].s = {
+      font: { bold: c === 0 || c >= 5, sz: 9.5, name: 'Calibri' },
+      alignment: { horizontal: 'left', vertical: 'center' },
+      border: borderThin
+    };
+  }
+
+  // Fila 5: Encabezados de Columna (A5..H5)
+  for (let c = 0; c <= 7; c++) {
+    const ref = XLSX.utils.encode_cell({ r: 4, c });
+    if (!wsLibro[ref]) wsLibro[ref] = { t: 's', v: '' };
+    wsLibro[ref].s = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      alignment: { 
+        horizontal: (c === 0 || c === 1) ? 'center' : c === 7 ? 'right' : 'left', 
+        vertical: 'center' 
+      },
+      border: borderThin
+    };
+  }
+
+  // Filas de comprobantes con bordes finos y dos decimales garantizados en Importe S/
+  comprobantes.forEach((comp, idx) => {
+    const r = 5 + idx;
+    for (let c = 0; c <= 7; c++) {
+      const ref = XLSX.utils.encode_cell({ r, c });
+      if (!wsLibro[ref]) wsLibro[ref] = { t: 's', v: '' };
+      const isImporte = c === 7;
+      wsLibro[ref].s = {
+        font: { sz: 9.5, name: 'Calibri' },
+        alignment: { 
+          horizontal: (c === 0 || c === 1) ? 'center' : isImporte ? 'right' : 'left', 
+          vertical: 'center' 
+        },
+        border: borderThin,
+        ...(isImporte ? { numFmt: '0.00' } : {})
+      };
+      if (isImporte) {
+        wsLibro[ref].t = 'n';
+        wsLibro[ref].z = '0.00';
+      }
+    }
+  });
+
+  // Fila de TOTAL (Row 5 + comprobantes.length)
+  const rTotal = 5 + comprobantes.length;
+  // Col G: TOTAL
+  const refTotalG = XLSX.utils.encode_cell({ r: rTotal, c: 6 });
+  if (!wsLibro[refTotalG]) wsLibro[refTotalG] = { t: 's', v: 'TOTAL' };
+  wsLibro[refTotalG].s = {
+    font: { bold: true, sz: 10, name: 'Calibri' },
+    alignment: { horizontal: 'left', vertical: 'center' },
+    border: borderThin
+  };
+
+  // Col H: Importe Total con 2 decimales y borde
+  const refTotalH = XLSX.utils.encode_cell({ r: rTotal, c: 7 });
+  if (!wsLibro[refTotalH]) wsLibro[refTotalH] = { t: 'n', v: Number(totalImporte.toFixed(2)) };
+  wsLibro[refTotalH].t = 'n';
+  wsLibro[refTotalH].z = '0.00';
+  wsLibro[refTotalH].s = {
+    font: { bold: true, sz: 10, name: 'Calibri' },
+    alignment: { horizontal: 'right', vertical: 'center' },
+    border: borderThin,
+    numFmt: '0.00'
+  };
+
   // Merges idénticos a la plantilla de la imagen
   wsLibro['!merges'] = [
     // Fila 2 (A2:H2) -> Título corporativo
@@ -220,15 +322,42 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
 
   // Anchos óptimos de columna para visualización profesional
   wsLibro['!cols'] = [
-    { wch: 6 },  // A: N°
+    { wch: 8 },  // A: N° (con Area : y Nombre)
     { wch: 14 }, // B: Fecha
-    { wch: 14 }, // C: Tipo
+    { wch: 16 }, // C: Tipo
     { wch: 22 }, // D: Nro. De Comprobante
     { wch: 42 }, // E: Razón Social
     { wch: 48 }, // F: Descripción
     { wch: 32 }, // G: Centro de Costos
     { wch: 16 }  // H: Importe S/
   ];
+
+  // Función auxiliar para aplicar bordes y formatos a tablas secundarias
+  function aplicarEstilosTabla(ws, numColsMoneda = []) {
+    if (!ws || !ws['!ref']) return;
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for (let r = range.s.r; r <= range.e.r; r++) {
+      const isHeader = r === range.s.r;
+      for (let c = range.s.c; c <= range.e.c; c++) {
+        const ref = XLSX.utils.encode_cell({ r, c });
+        if (!ws[ref]) continue;
+        const isMoneda = !isHeader && numColsMoneda.includes(c);
+        ws[ref].s = {
+          font: { bold: isHeader, sz: 10, name: 'Calibri' },
+          alignment: { 
+            horizontal: isMoneda ? 'right' : (isHeader ? 'center' : 'left'), 
+            vertical: 'center' 
+          },
+          border: borderThin,
+          ...(isMoneda ? { numFmt: '0.00' } : {})
+        };
+        if (isMoneda && typeof ws[ref].v === 'number') {
+          ws[ref].t = 'n';
+          ws[ref].z = '0.00';
+        }
+      }
+    }
+  }
 
   // 2. Hoja de Arqueo y Control General
   const totalSolicitado = solicitudes.reduce((acc, cur) => acc + getMontoLiquidado(cur), 0);
@@ -249,6 +378,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
 
   const wsControl = XLSX.utils.json_to_sheet(controlData);
   wsControl['!cols'] = [{ wch: 45 }, { wch: 35 }];
+  aplicarEstilosTabla(wsControl);
 
   // 3. Hoja de Resumen por Categoría
   const catTotales = {};
@@ -265,8 +395,15 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     }
   });
 
-  const wsCat = XLSX.utils.json_to_sheet(Object.values(catTotales));
+  const catRows = Object.values(catTotales).map(c => ({
+    ...c,
+    'Total S/': Number(c['Total S/'].toFixed(2)),
+    'Aprobados S/': Number(c['Aprobados S/'].toFixed(2))
+  }));
+
+  const wsCat = XLSX.utils.json_to_sheet(catRows);
   wsCat['!cols'] = [{ wch: 28 }, { wch: 16 }, { wch: 18 }, { wch: 16 }];
+  aplicarEstilosTabla(wsCat, [1, 3]);
 
   // 4. Hoja de Resumen por Solicitante
   const solTotales = {};
@@ -290,8 +427,15 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     solTotales[dni]['Registros'] += 1;
   });
 
-  const wsSol = XLSX.utils.json_to_sheet(Object.values(solTotales));
+  const solRows = Object.values(solTotales).map(s => ({
+    ...s,
+    'Total Solicitado S/': Number(s['Total Solicitado S/'].toFixed(2)),
+    'Total Aprobado S/': Number(s['Total Aprobado S/'].toFixed(2))
+  }));
+
+  const wsSol = XLSX.utils.json_to_sheet(solRows);
   wsSol['!cols'] = [{ wch: 14 }, { wch: 32 }, { wch: 20 }, { wch: 20 }, { wch: 12 }];
+  aplicarEstilosTabla(wsSol, [2, 3]);
 
   // Añadir hojas al libro (Libro Caja Chica como hoja principal)
   XLSX.utils.book_append_sheet(wb, wsLibro, 'Libro Caja Chica');

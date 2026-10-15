@@ -1,5 +1,6 @@
 import JSZip from 'jszip';
-import * as XLSX from 'xlsx';
+import XLSXStyle from 'xlsx-js-style';
+const XLSX = XLSXStyle.default || XLSXStyle;
 import { generarCajaChicaWorkbook } from './excelExporter';
 
 function getExtensionFromDataUrl(dataUrl, defaultExt = 'jpg', fileName = '') {
