@@ -1,6 +1,6 @@
 # 📘 Manual de Usuario y Flujo Operativo - Caja Chica
 **CORPORACION CADILLO & ROJO SAC | Sistema PWA de Gestión, Rendición y Liquidación en Tiempo Real**  
-*Versión del Sistema: 6.1.4*
+*Versión del Sistema: 6.1.5*
 
 ---
 
@@ -348,4 +348,4 @@ El sistema incluye consulta directa al servicio Factiliza conectado a SUNAT. Si 
 Los registros en estado `LIQUIDADO` quedan protegidos por integridad contable. Si se requiere una corrección excepcional, debe ser gestionada por el usuario con rol `SYSADMIN`.
 
 ---
-*Manual elaborado para CORPORACION CADILLO & ROJO SAC - Sistema Caja Chica v6.1.4*
+*Manual elaborado para CORPORACION CADILLO & ROJO SAC - Sistema Caja Chica v6.1.5*

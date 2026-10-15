@@ -34,6 +34,34 @@ function normalizarTipoComprobante(tipo) {
   return t;
 }
 
+function normalizarCategoria(cat) {
+  if (!cat) return '';
+  let str = String(cat).trim();
+  if (str.includes('_') && !str.includes(' ')) {
+    if (str.endsWith('_ADMINISTRACION') || str.endsWith('_ADMINISTRACIÓN')) return 'ADMINISTRACIÓN';
+    if (str.endsWith('_VENTAS')) return 'VENTAS';
+    if (str.endsWith('_PRODUCCION') || str.endsWith('_PRODUCCIÓN')) return 'PRODUCCION';
+  }
+  return str.replace(/_/g, ' ');
+}
+
+/**
+ * Retorna el texto combinado según el estándar: "CENTRO DE COSTO - CATEGORÍA DEL GASTO"
+ * Ejemplo: "ALM 1 - ADMINISTRACIÓN"
+ */
+export function formatearCentroCostoYCategoria(centroCosto, categoria) {
+  const cc = (centroCosto || '').toString().trim().toUpperCase();
+  const cat = normalizarCategoria(categoria).toUpperCase();
+
+  if (cc && cat) {
+    if (cc === cat || cc.includes(` - ${cat}`) || cc.endsWith(`-${cat}`)) {
+      return cc;
+    }
+    return `${cc} - ${cat}`;
+  }
+  return cc || cat || 'ADMINISTRACIÓN';
+}
+
 /**
  * Desglosa todas las solicitudes en items individuales de comprobantes
  */
@@ -49,6 +77,8 @@ export function extraerDetalleComprobantes(solicitudes) {
         if (Array.isArray(rList) && rList.length > 0) {
           tieneRendiciones = true;
           rList.forEach((r) => {
+            const cc = r.centro_costo || sol.centro_costo;
+            const cat = r.categoria || sol.categoria;
             items.push({
               solicitud_id: sol.id,
               solicitud_codigo: sol.codigo,
@@ -61,7 +91,7 @@ export function extraerDetalleComprobantes(solicitudes) {
               numero: r.numero || sol.comprobante_numero || '-',
               razonSocial: (r.razonSocial || r.proveedor || sol.comprobante_razon_social || (r.ruc ? `RUC ${r.ruc}` : sol.solicitante_nombre || '-')).toUpperCase(),
               descripcion: (r.concepto || r.descripcion || sol.motivo || '-').toUpperCase(),
-              centroCosto: (r.centro_costo || sol.centro_costo || 'ADMINISTRACIÓN').toUpperCase(),
+              centroCosto: formatearCentroCostoYCategoria(cc, cat),
               monto: Number(r.monto || 0),
               estado: sol.estado,
               liquidacion_codigo: sol.liquidacion_codigo,
@@ -90,7 +120,7 @@ export function extraerDetalleComprobantes(solicitudes) {
         numero: sol.comprobante_numero || '-',
         razonSocial: (sol.comprobante_razon_social || (sol.comprobante_ruc_emisor ? `RUC ${sol.comprobante_ruc_emisor}` : sol.solicitante_nombre || '-')).toUpperCase(),
         descripcion: (sol.motivo || '-').toUpperCase(),
-        centroCosto: (sol.centro_costo || 'ADMINISTRACIÓN').toUpperCase(),
+        centroCosto: formatearCentroCostoYCategoria(sol.centro_costo, sol.categoria),
         monto: Number(montoFinal || 0),
         estado: sol.estado,
         liquidacion_codigo: sol.liquidacion_codigo,
@@ -196,7 +226,7 @@ export function generarCajaChicaWorkbook(solicitudes, cajaFondo, usuarioGenerado
     { wch: 22 }, // D: Nro. De Comprobante
     { wch: 42 }, // E: Razón Social
     { wch: 48 }, // F: Descripción
-    { wch: 26 }, // G: Centro de Costos
+    { wch: 32 }, // G: Centro de Costos
     { wch: 16 }  // H: Importe S/
   ];
 
