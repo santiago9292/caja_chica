@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Wallet, 
   TrendingDown, 
@@ -18,6 +18,7 @@ import {
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 import { ModalAbono } from './ModalAbono';
+import { store } from '../lib/store';
 
 export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo }) {
   const montoTotal = Number(cajaFondo?.monto_total || 500);
@@ -35,6 +36,34 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   // Modal de Abono / Entrega con Sustento Obligatorio
   const [solicitudAbonoModal, setSolicitudAbonoModal] = useState(null);
   const [sustentoModalUrl, setSustentoModalUrl] = useState(null);
+  const [loadingSustentoId, setLoadingSustentoId] = useState(null);
+
+  useEffect(() => {
+    // Si hay alguna solicitud pendiente de reembolso o devolución por recibir en caja,
+    // cargar sus rendiciones on-demand para calcular con exactitud el diferencial a pagar/devolver
+    const especiales = solicitudes.filter(s => (s.estado === 'POR_REEMBOLSAR' || s.estado === 'POR_DEVOLVER') && s.rendiciones === undefined);
+    if (especiales.length > 0) {
+      store.fetchMultipleSolicitudesHeavyFields(especiales.map(s => s.id));
+    }
+  }, [solicitudes]);
+
+  const handleVerSustento = async (sol) => {
+    if (sol.abono_sustento_url) {
+      setSustentoModalUrl(sol.abono_sustento_url);
+      return;
+    }
+    setLoadingSustentoId(sol.id);
+    try {
+      const full = await store.fetchSolicitudHeavyFields(sol.id);
+      if (full?.abono_sustento_url) {
+        setSustentoModalUrl(full.abono_sustento_url);
+      } else {
+        alert('No se encontró archivo de comprobante de abono adjunto.');
+      }
+    } finally {
+      setLoadingSustentoId(null);
+    }
+  };
 
   const getTotalRendido = (sol) => {
     let lista = [];
@@ -547,16 +576,17 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                                 {sol.abono_metodo} {sol.abono_operacion ? `• ${sol.abono_operacion}` : ''}
                               </div>
                             )}
-                            {sol.abono_sustento_url && (
+                            {(sol.abono_sustento_url || sol.abono_sustento_nombre) && (
                               <div>
                                 <button
                                   type="button"
-                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  onClick={() => handleVerSustento(sol)}
+                                  disabled={loadingSustentoId === sol.id}
                                   className="btn btn-secondary"
                                   style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
                                   title="Ver sustento de entrega / comprobante de abono"
                                 >
-                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                  <Paperclip size={12} color="#059669" /> {loadingSustentoId === sol.id ? 'Cargando...' : 'Sustento Abono'}
                                 </button>
                               </div>
                             )}
@@ -567,16 +597,17 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             <span className="badge badge-liquidado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                               <CheckCircle2 size={13} /> Liquidado Contable
                             </span>
-                            {sol.abono_sustento_url && (
+                            {(sol.abono_sustento_url || sol.abono_sustento_nombre) && (
                               <div>
                                 <button
                                   type="button"
-                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  onClick={() => handleVerSustento(sol)}
+                                  disabled={loadingSustentoId === sol.id}
                                   className="btn btn-secondary"
                                   style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
                                   title="Ver sustento de entrega / comprobante de abono"
                                 >
-                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                  <Paperclip size={12} color="#059669" /> {loadingSustentoId === sol.id ? 'Cargando...' : 'Sustento Abono'}
                                 </button>
                               </div>
                             )}
@@ -587,16 +618,17 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                               <CheckCircle2 size={13} /> Rendido (Por Liquidar)
                             </span>
-                            {sol.abono_sustento_url && (
+                            {(sol.abono_sustento_url || sol.abono_sustento_nombre) && (
                               <div>
                                 <button
                                   type="button"
-                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  onClick={() => handleVerSustento(sol)}
+                                  disabled={loadingSustentoId === sol.id}
                                   className="btn btn-secondary"
                                   style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
                                   title="Ver sustento de entrega / comprobante de abono"
                                 >
-                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                  <Paperclip size={12} color="#059669" /> {loadingSustentoId === sol.id ? 'Cargando...' : 'Sustento Abono'}
                                 </button>
                               </div>
                             )}
@@ -607,16 +639,17 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                               <Check size={13} /> Pagado
                             </span>
-                            {sol.abono_sustento_url && (
+                            {(sol.abono_sustento_url || sol.abono_sustento_nombre) && (
                               <div>
                                 <button
                                   type="button"
-                                  onClick={() => setSustentoModalUrl(sol.abono_sustento_url)}
+                                  onClick={() => handleVerSustento(sol)}
+                                  disabled={loadingSustentoId === sol.id}
                                   className="btn btn-secondary"
                                   style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', marginTop: '0.25rem' }}
                                   title="Ver sustento de entrega / comprobante de abono"
                                 >
-                                  <Paperclip size={12} color="#059669" /> Sustento Abono
+                                  <Paperclip size={12} color="#059669" /> {loadingSustentoId === sol.id ? 'Cargando...' : 'Sustento Abono'}
                                 </button>
                               </div>
                             )}

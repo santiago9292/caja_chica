@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { exportarReporteCompletoZip, getSustentosDeSolicitud } from '../lib/zipExporter';
+import { store } from '../lib/store';
 
 export function ModalLiquidacion({ 
   isOpen, 
@@ -69,6 +70,12 @@ export function ModalLiquidacion({
     setSelectedIds(gastosRendidos.map(g => g.id));
     setCodigoLiquidacion(calcularSiguienteCodigo());
     setErrorMsg('');
+    if (isOpen && gastosRendidos.length > 0) {
+      const faltantes = gastosRendidos.filter(g => g.rendiciones === undefined);
+      if (faltantes.length > 0) {
+        store.fetchMultipleSolicitudesHeavyFields(faltantes.map(g => g.id));
+      }
+    }
   }, [isOpen]);
 
   const toggleSelect = (id) => {

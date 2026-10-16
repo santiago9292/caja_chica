@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldAlert, 
   CheckCircle, 
@@ -13,11 +13,13 @@ import {
   User,
   DollarSign,
   CreditCard,
-  Copy
+  Copy,
+  Loader2
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
 import { abrirArchivoEnNuevaPestana } from '../lib/fileViewer';
+import { store } from '../lib/store';
 
 export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR');
@@ -75,6 +77,24 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
   const [itemToAprobar, setItemToAprobar] = useState(null);
   const [comentarioAprobacion, setComentarioAprobacion] = useState('Aprobado conforme');
   const [processingId, setProcessingId] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    if (!selectedItem?.id) return;
+    if (selectedItem.rendiciones !== undefined && selectedItem.abono_sustento_url !== undefined && selectedItem.comprobante_archivo_url !== undefined) {
+      return;
+    }
+    let active = true;
+    setLoadingDetails(true);
+    store.fetchSolicitudHeavyFields(selectedItem.id).then(full => {
+      if (active && full) {
+        setSelectedItem(prev => prev && prev.id === full.id ? { ...prev, ...full } : prev);
+      }
+    }).finally(() => {
+      if (active) setLoadingDetails(false);
+    });
+    return () => { active = false; };
+  }, [selectedItem?.id]);
 
   const getInfoRendicion = (item) => {
     if (!item?.rendiciones) return { totalRendido: 0, exceso: 0, lista: [] };
@@ -580,6 +600,13 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
                   </div>
                 </div>
               </div>
+
+              {loadingDetails && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px dashed #cbd5e1', marginBottom: '1rem', color: '#64748b', fontSize: '0.8rem' }}>
+                  <Loader2 size={15} className="animate-spin" />
+                  <span>Cargando comprobantes adjuntos bajo demanda...</span>
+                </div>
+              )}
 
               {/* Si es reembolso o tiene rendiciones registradas */}
               {infoRend.lista.length > 0 && (

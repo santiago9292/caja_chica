@@ -24,7 +24,8 @@ import {
   Building,
   FolderArchive,
   Activity,
-  ExternalLink
+  ExternalLink,
+  Loader2
 } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { store } from '../lib/store';
@@ -39,6 +40,24 @@ export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [],
   const [comprobanteModal, setComprobanteModal] = useState(null);
   const [pingLoading, setPingLoading] = useState(false);
   const [lastPingTime, setLastPingTime] = useState(() => store.getLastKeepAlivePing());
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    if (!selectedSol?.id) return;
+    if (selectedSol.rendiciones !== undefined && selectedSol.abono_sustento_url !== undefined && selectedSol.comprobante_archivo_url !== undefined) {
+      return;
+    }
+    let active = true;
+    setLoadingDetails(true);
+    store.fetchSolicitudHeavyFields(selectedSol.id).then(full => {
+      if (active && full) {
+        setSelectedSol(prev => prev && prev.id === full.id ? { ...prev, ...full } : prev);
+      }
+    }).finally(() => {
+      if (active) setLoadingDetails(false);
+    });
+    return () => { active = false; };
+  }, [selectedSol?.id]);
 
   // Soporte para cerrar modales con la tecla Escape
   useEffect(() => {
@@ -775,6 +794,13 @@ export function ModuloAuditoria({ currentUser, solicitudes = [], auditLogs = [],
                     </div>
                   </div>
                 </div>
+
+                {loadingDetails && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px dashed #cbd5e1', marginBottom: '1rem', color: '#64748b', fontSize: '0.8rem' }}>
+                    <Loader2 size={15} className="animate-spin" />
+                    <span>Cargando comprobantes y sustentos adjuntos bajo demanda...</span>
+                  </div>
+                )}
 
                 {/* Línea de Tiempo (TIMELINE VERTICAL) */}
                 <div style={{ padding: '0.5rem 0.25rem' }}>

@@ -2,6 +2,7 @@ import JSZip from 'jszip';
 import XLSXStyle from 'xlsx-js-style';
 const XLSX = XLSXStyle.default || XLSXStyle;
 import { generarCajaChicaWorkbook } from './excelExporter';
+import { store } from './store';
 
 function getExtensionFromDataUrl(dataUrl, defaultExt = 'jpg', fileName = '') {
   if (fileName && fileName.includes('.')) {
@@ -148,10 +149,17 @@ export function getSustentosDeSolicitud(sol) {
  * Descarga el sustento o sustentos de una sola fila
  */
 export async function descargarSustentosSolicitud(sol) {
-  const sustentos = getSustentosDeSolicitud(sol);
+  if (!sol) return false;
+  let targetSol = sol;
+  if (!targetSol.rendiciones && !targetSol.abono_sustento_url && !targetSol.comprobante_archivo_url) {
+    const full = await store.fetchSolicitudHeavyFields(targetSol.id);
+    if (full) targetSol = full;
+  }
+
+  const sustentos = getSustentosDeSolicitud(targetSol);
 
   if (sustentos.length === 0) {
-    alert(`La solicitud ${sol.codigo} no tiene comprobantes ni imágenes adjuntas.`);
+    alert(`La solicitud ${targetSol.codigo} no tiene comprobantes ni imágenes adjuntas.`);
     return false;
   }
 
@@ -169,7 +177,7 @@ export async function descargarSustentosSolicitud(sol) {
   }
 
   const blob = await zip.generateAsync({ type: 'blob' });
-  downloadBlob(blob, `Sustentos_${sol.codigo}.zip`);
+  downloadBlob(blob, `Sustentos_${targetSol.codigo}.zip`);
   return true;
 }
 
@@ -179,6 +187,11 @@ export async function descargarSustentosSolicitud(sol) {
  * 2. Una carpeta 'sustentos/' con todas las imágenes de rendiciones adjuntas.
  */
 export async function exportarReporteCompletoZip(solicitudes, cajaFondo, usuarioGenerador, customName = null) {
+  // Asegurar que las solicitudes a exportar tengan sus adjuntos cargados bajo demanda
+  if (solicitudes && solicitudes.length > 0) {
+    await store.fetchMultipleSolicitudesHeavyFields(solicitudes.map(s => s.id));
+  }
+
   const zip = new JSZip();
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
 

@@ -282,6 +282,17 @@ class DataStore {
   persist(key, data) {
     if (typeof window === 'undefined') return;
     try {
+      if (key === 'caja_solicitudes' && Array.isArray(data)) {
+        const sanitized = data.map(s => {
+          const c = { ...s };
+          delete c.rendiciones;
+          delete c.abono_sustento_url;
+          delete c.comprobante_archivo_url;
+          return c;
+        });
+        localStorage.setItem(key, JSON.stringify(sanitized));
+        return;
+      }
       localStorage.setItem(key, JSON.stringify(data));
     } catch (e) {
       console.warn('LocalStorage error:', e);
@@ -809,11 +820,92 @@ class DataStore {
         const heavy = {};
         for (const c of heavyCols) if (row[c] !== undefined) heavy[c] = row[c];
         this._heavyCache.set(row.id, heavy);
+        const sol = this.solicitudes.find(s => s.id === row.id);
+        if (sol) Object.assign(sol, heavy);
       }
     }
   }
 
-  // Si ya hay una carga en curso, reutilizarla (evita descargar adjuntos 2 veces en paralelo)
+  /**
+   * Carga bajo demanda (ON DEMAND) los campos pesados (imágenes base64, comprobantes y sustento)
+   * de una solicitud individual para evitar descargas masivas de ancho de banda.
+   */
+  fetchSolicitudHeavyFields(id) {
+    if (!id || !supabase) return Promise.resolve(this.solicitudes.find(s => s.id === id) || null);
+    this._ensureSolCaches();
+
+    const cached = this._heavyCache.get(id);
+    const heavyCols = this._heavySolicitudColumns();
+    const isComplete = cached && heavyCols.every(c => c in cached);
+    if (isComplete) {
+      const sol = this.solicitudes.find(s => s.id === id);
+      if (sol) Object.assign(sol, cached);
+      return Promise.resolve(sol || { id, ...cached });
+    }
+
+    if (!this._solHeavyInFlight) this._solHeavyInFlight = new Map();
+    if (this._solHeavyInFlight.has(id)) {
+      return this._solHeavyInFlight.get(id);
+    }
+
+    const promise = (async () => {
+      try {
+        const { data, error } = await this._selectSolicitudCols(
+          ['id', ...heavyCols],
+          q => q.eq('id', id).maybeSingle()
+        );
+        if (!error && data) {
+          const heavy = {};
+          for (const c of heavyCols) {
+            if (data[c] !== undefined) heavy[c] = data[c];
+          }
+          this._heavyCache.set(id, heavy);
+          const sol = this.solicitudes.find(s => s.id === id);
+          if (sol) {
+            Object.assign(sol, heavy);
+            this.notifyListeners({ type: 'SOLICITUD_ATTACHMENTS_LOADED', id, solicitud: sol });
+            return sol;
+          }
+          return { id, ...heavy };
+        }
+      } catch (e) {
+        console.warn('Error fetching heavy fields on demand:', id, e);
+      }
+      return this.solicitudes.find(s => s.id === id) || null;
+    })().finally(() => {
+      this._solHeavyInFlight.delete(id);
+    });
+
+    this._solHeavyInFlight.set(id, promise);
+    return promise;
+  }
+
+  /**
+   * Carga bajo demanda múltiples solicitudes (para exportación de reportes ZIP o Liquidación de lote)
+   */
+  async fetchMultipleSolicitudesHeavyFields(ids) {
+    if (!ids || ids.length === 0 || !supabase) return [];
+    this._ensureSolCaches();
+    const heavyCols = this._heavySolicitudColumns();
+    const needed = Array.from(new Set(ids)).filter(id => {
+      const cached = this._heavyCache.get(id);
+      return !cached || !heavyCols.every(c => c in cached);
+    });
+
+    if (needed.length > 0) {
+      await this._fetchHeavyFields(needed);
+      for (const sol of this.solicitudes) {
+        if (this._heavyCache.has(sol.id)) {
+          Object.assign(sol, this._heavyCache.get(sol.id));
+        }
+      }
+      this.notifyListeners({ type: 'DATA_LOADED' });
+    }
+
+    return this.solicitudes.filter(s => ids.includes(s.id));
+  }
+
+  // Si ya hay una carga en curso, reutilizarla (evita descargar en paralelo)
   getSolicitudes() {
     if (this._solicitudesInFlight) return this._solicitudesInFlight;
     this._solicitudesInFlight = this._getSolicitudesImpl().finally(() => {
@@ -829,22 +921,9 @@ class DataStore {
       const lightCols = this._solicitudColumns().filter(c => !heavySet.has(c));
       const { data, error } = await this._selectSolicitudCols(lightCols, q => q.order('created_at', { ascending: false }));
       if (!error && data) {
-        // Descargar columnas pesadas solo de solicitudes nuevas o que cambiaron desde la última vez
-        const toFetch = [];
-        const fingerprints = new Map();
-        for (const row of data) {
-          const fp = this._solFingerprint(row);
-          fingerprints.set(row.id, fp);
-          if (!this._heavyCache.has(row.id) || this._solFingerprints.get(row.id) !== fp) {
-            toFetch.push(row.id);
-          }
-        }
-        if (toFetch.length > 0) {
-          await this._fetchHeavyFields(toFetch);
-        }
+        // Enlazar exclusivamente los campos pesados que ya residan en la caché en memoria (on-demand previo)
         for (const row of data) {
           if (this._heavyCache.has(row.id)) {
-            this._solFingerprints.set(row.id, fingerprints.get(row.id));
             Object.assign(row, this._heavyCache.get(row.id));
           }
         }

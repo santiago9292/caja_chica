@@ -1,11 +1,30 @@
-import React, { useState } from 'react';
-import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle, CreditCard } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle, CreditCard, Loader2 } from 'lucide-react';
 import { ModalRendicion, getTipoLabel } from './ModalRendicion';
+import { store } from '../lib/store';
 
 export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [rendicionItem, setRendicionItem] = useState(null);
+  const [loadingDetails, setLoadingDetails] = useState(false);
+
+  useEffect(() => {
+    if (!selectedItem?.id) return;
+    if (selectedItem.rendiciones !== undefined && selectedItem.abono_sustento_url !== undefined && selectedItem.comprobante_archivo_url !== undefined) {
+      return;
+    }
+    let active = true;
+    setLoadingDetails(true);
+    store.fetchSolicitudHeavyFields(selectedItem.id).then(full => {
+      if (active && full) {
+        setSelectedItem(prev => prev && prev.id === full.id ? { ...prev, ...full } : prev);
+      }
+    }).finally(() => {
+      if (active) setLoadingDetails(false);
+    });
+    return () => { active = false; };
+  }, [selectedItem?.id]);
 
   const misItems = solicitudes.filter(s => s.solicitante_dni === currentUser.dni);
 
@@ -479,6 +498,13 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                     Por: {selectedItem.aprobado_por_nombre} el {new Date(selectedItem.aprobado_fecha).toLocaleString('es-PE')}
                   </div>
                 )}
+              </div>
+            )}
+
+            {loadingDetails && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.75rem', background: '#f8fafc', borderRadius: 'var(--radius-md)', border: '1px dashed #cbd5e1', marginBottom: '1rem', color: '#64748b', fontSize: '0.8rem' }}>
+                <Loader2 size={15} className="animate-spin" />
+                <span>Cargando comprobantes y sustentos adjuntos bajo demanda...</span>
               </div>
             )}
 
