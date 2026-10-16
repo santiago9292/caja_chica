@@ -243,6 +243,8 @@ h1, h2, h3, h4, .font-heading {
 .badge-admin { background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; }
 .badge-solicitante { background: #fffbeb; border: 1px solid #fde68a; color: #b45309; }
 .badge-usuario { background: #f1f5f9; border: 1px solid #e2e8f0; color: #475569; }
+.badge-reciclaje { background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; }
+.badge-ingreso { background: #dcfce7; border: 1px solid #86efac; color: #166534; font-weight: 700; }
 .badge-pendiente { background: #fffbeb; border: 1px solid #fde68a; color: #b45309; }
 .badge-aprobado { background: #ecfdf5; border: 1px solid #a7f3d0; color: #047857; }
 .badge-liquidado { background: #dcfce7; border: 1px solid #86efac; color: #166534; }

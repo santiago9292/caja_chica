@@ -119,8 +119,8 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
     const map = {};
 
     solicitudes.forEach(s => {
-      // Exclusivamente solicitudes cuyo estado actual sea LIQUIDADO
-      if (s.estado === 'LIQUIDADO') {
+      // Exclusivamente solicitudes de gastos cuyo estado actual sea LIQUIDADO
+      if (s.estado === 'LIQUIDADO' && s.tipo !== 'INGRESO_RECICLAJE') {
         let codigo = s.liquidacion_codigo;
         if (!codigo && s.observaciones_aprobador) {
           const match = s.observaciones_aprobador.match(/\[Liquidado\s+(LIQ-[A-Z0-9_-]+)/i);
@@ -239,7 +239,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
     return `${estadosSeleccionados.length} seleccionados`;
   };
 
-  const solicitudesFiltradas = solicitudes.filter(s => {
+  const solicitudesFiltradas = solicitudes.filter(s => s.tipo !== 'INGRESO_RECICLAJE').filter(s => {
     if (estadosSeleccionados.length > 0 && estadosSeleccionados.length < OPCIONES_ESTADO.length) {
       const match = estadosSeleccionados.some(est => {
         if (est === 'POR_RENDIR') {

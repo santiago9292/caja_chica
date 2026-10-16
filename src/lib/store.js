@@ -1638,6 +1638,179 @@ class DataStore {
     return this.cajaFondo;
   }
 
+  // --- MÓDULO DE VENTA DE RECICLAJE (CARTÓN Y MATERIALES) ---
+  async registrarVentaReciclaje(ventaData) {
+    const {
+      monto,
+      peso_kg = 0,
+      precio_kg = 0,
+      material = 'Cartón',
+      comprador = '',
+      ticket_numero = '',
+      sustento_url = null,
+      sustento_nombre = null,
+      observaciones = '',
+      usuario,
+      fecha
+    } = ventaData;
+
+    const montoVal = Number(monto || 0);
+    if (montoVal <= 0) throw new Error('El importe de la venta debe ser mayor a 0');
+
+    // Generar correlativo REC-2026-001
+    let maxNum = 0;
+    const anioActual = new Date().getFullYear();
+    for (const s of this.solicitudes) {
+      if (s.codigo && s.codigo.startsWith(`REC-${anioActual}-`)) {
+        const match = s.codigo.match(/REC-\d+-(\d+)/);
+        if (match) {
+          const n = parseInt(match[1], 10);
+          if (n > maxNum) maxNum = n;
+        }
+      }
+    }
+    const correlativo = String(maxNum + 1).padStart(3, '0');
+    const codigo = `REC-${anioActual}-${correlativo}`;
+
+    const ahora = new Date().toISOString();
+    const fechaVenta = fecha ? new Date(fecha).toISOString() : ahora;
+
+    const newReciclaje = {
+      id: 'rec-' + Date.now(),
+      codigo,
+      tipo: 'INGRESO_RECICLAJE',
+      solicitante_dni: usuario?.dni || '00000000',
+      solicitante_nombre: usuario ? `${usuario.nombres} ${usuario.apellidos}`.trim() : 'Operador Reciclaje',
+      monto: montoVal,
+      moneda: 'PEN',
+      motivo: `Venta de reciclaje: ${peso_kg ? `${peso_kg} Kg de ${material}` : material}`,
+      categoria: 'RECICLAJE',
+      centro_costo: 'ALMACEN',
+      estado: 'INGRESADO_CAJA',
+      comprobante_tipo: 'TICKET_RECICLAJE',
+      comprobante_numero: ticket_numero || correlativo,
+      comprobante_ruc_emisor: '-',
+      comprobante_razon_social: comprador || 'Venta Reciclaje Local',
+      comprobante_fecha: fecha || ahora.slice(0, 10),
+      abono_sustento_url: sustento_url || null,
+      abono_sustento_nombre: sustento_nombre || null,
+      abono_metodo: 'Efectivo en Caja',
+      abono_operacion: ticket_numero || correlativo,
+      abono_fecha: ahora,
+      observaciones_aprobador: JSON.stringify({
+        peso_kg: Number(peso_kg || 0),
+        precio_kg: Number(precio_kg || 0),
+        material: material || 'Cartón',
+        comprador: comprador || '',
+        ticket_numero: ticket_numero || '',
+        notas: observaciones || ''
+      }),
+      created_at: fechaVenta
+    };
+
+    // 1. Sumar inmediatamente el importe al saldo disponible de Caja Chica
+    this.cajaFondo.monto_disponible = Number((Number(this.cajaFondo.monto_disponible || 0) + montoVal).toFixed(2));
+    this.persist('caja_fondo', this.cajaFondo);
+
+    // 2. Registrar en la lista de solicitudes
+    this.solicitudes.unshift(newReciclaje);
+    this.persist('caja_solicitudes', this.solicitudes);
+
+    // 3. Sincronizar en Supabase
+    if (supabase) {
+      try {
+        await this.syncCajaFondoToSupabase();
+        const clean = this.sanitizeSolicitudForSupabase(newReciclaje);
+        const { error } = await supabase.from('solicitudes').insert(clean);
+        if (error) {
+          console.warn('Error insertando venta de reciclaje en Supabase:', error);
+        }
+      } catch (err) {
+        console.warn('Error sincronizando reciclaje a Supabase:', err);
+      }
+    }
+
+    // 4. Auditoría y Notificaciones
+    this.logAudit({
+      accion: 'VENTA_RECICLAJE',
+      modulo: 'CAJA',
+      codigo,
+      entidad_id: newReciclaje.id,
+      usuario_dni: usuario?.dni || '',
+      usuario_nombre: newReciclaje.solicitante_nombre,
+      detalle: `Ingreso por venta de reciclaje (${codigo}): ${newReciclaje.motivo} por S/ ${montoVal.toFixed(2)}. Saldo en Caja Chica incrementado a S/ ${this.cajaFondo.monto_disponible.toFixed(2)}.`,
+      tipo: 'SUCCESS'
+    });
+
+    this.addNotification({
+      titulo: `Ingreso por Reciclaje: S/ ${montoVal.toFixed(2)}`,
+      mensaje: `${newReciclaje.solicitante_nombre} registró S/ ${montoVal.toFixed(2)} por venta de ${material} (${codigo}). Dinero sumado a Caja Chica.`,
+      tipo: 'SUCCESS',
+      usuario_dni: 'ADMINS',
+      referencia_id: newReciclaje.id
+    });
+
+    const adminYCajerosDnis = this.usuarios
+      .filter(u => u.roles?.includes('ADMINISTRADOR') || u.roles?.includes('USUARIO'))
+      .map(u => u.dni);
+
+    this.sendOneSignalPush(
+      `Ingreso Reciclaje: S/ ${montoVal.toFixed(2)}`,
+      `${newReciclaje.solicitante_nombre} sumó S/ ${montoVal.toFixed(2)} a Caja Chica por venta de ${material}.`,
+      adminYCajerosDnis,
+      { evento: 'VENTA_RECICLAJE', codigo }
+    );
+
+    this.broadcastSync({ type: 'VENTA_RECICLAJE_SAVED', solicitud: newReciclaje, fondo: this.cajaFondo });
+    this.notifyListeners({ type: 'DATA_LOADED' });
+
+    return newReciclaje;
+  }
+
+  async anularVentaReciclaje(id, adminUser, motivo = '') {
+    const sol = this.solicitudes.find(s => s.id === id);
+    if (!sol) throw new Error('Registro de reciclaje no encontrado');
+    if (sol.estado === 'ANULADO') throw new Error('Esta venta ya se encuentra anulada');
+
+    const montoAnular = Number(sol.monto || 0);
+
+    sol.estado = 'ANULADO';
+    sol.observaciones_aprobador = `${sol.observaciones_aprobador || ''} | [ANULADO por ${adminUser?.nombres || 'Admin'}: ${motivo || 'Error de registro'}]`;
+
+    // Descontar del saldo disponible
+    this.cajaFondo.monto_disponible = Math.max(0, Number((this.cajaFondo.monto_disponible - montoAnular).toFixed(2)));
+    this.persist('caja_fondo', this.cajaFondo);
+    this.persist('caja_solicitudes', this.solicitudes);
+
+    if (supabase) {
+      try {
+        await this.syncCajaFondoToSupabase();
+        await supabase.from('solicitudes').update({
+          estado: 'ANULADO',
+          observaciones_aprobador: sol.observaciones_aprobador
+        }).eq('id', id);
+      } catch (e) {
+        console.warn('Error anulando reciclaje en Supabase:', e);
+      }
+    }
+
+    this.logAudit({
+      accion: 'ANULACION_VENTA_RECICLAJE',
+      modulo: 'CAJA',
+      codigo: sol.codigo,
+      entidad_id: sol.id,
+      usuario_dni: adminUser?.dni || '',
+      usuario_nombre: adminUser ? `${adminUser.nombres} ${adminUser.apellidos}` : 'Administrador',
+      detalle: `Venta de reciclaje ${sol.codigo} anulada por S/ ${montoAnular.toFixed(2)}. Motivo: ${motivo || 'Error de registro'}. Saldo disponible ajustado a S/ ${this.cajaFondo.monto_disponible.toFixed(2)}`,
+      tipo: 'WARNING'
+    });
+
+    this.broadcastSync({ type: 'VENTA_RECICLAJE_ANULADA', solicitud: sol, fondo: this.cajaFondo });
+    this.notifyListeners({ type: 'DATA_LOADED' });
+
+    return sol;
+  }
+
   // --- NOTIFICACIONES ---
   addNotification(notifData) {
     const notif = {
