@@ -16,7 +16,7 @@ import {
   HelpCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { exportarReporteCompletoZip, getSustentosDeSolicitud } from '../lib/zipExporter';
+import { exportarReporteCompletoZip, getSustentosDeSolicitud, contarSustentosDeSolicitud } from '../lib/zipExporter';
 import { store } from '../lib/store';
 
 export function ModalLiquidacion({ 
@@ -110,8 +110,8 @@ export function ModalLiquidacion({
   
   // Total de comprobantes físicos en los seleccionados
   const totalComprobantes = seleccionadosList.reduce((acc, cur) => {
-    const sustentos = getSustentosDeSolicitud(cur);
-    return acc + (sustentos.length > 0 ? sustentos.length : 1);
+    const count = contarSustentosDeSolicitud(cur);
+    return acc + (count > 0 ? count : 1);
   }, 0);
 
   const handleProcesarLiquidacion = async () => {
@@ -490,10 +490,15 @@ export function ModalLiquidacion({
                                   const r = typeof sol.rendiciones === 'string' ? JSON.parse(sol.rendiciones) : sol.rendiciones;
                                   if (Array.isArray(r) && r.length > 0) {
                                     return r.length === 1 
-                                      ? `${r[0].tipo} ${r[0].numero}` 
+                                      ? `${r[0].tipo} ${r[0].numero || ''}`.trim() 
                                       : `${r.length} Comprobantes`;
                                   }
                                 } catch (e) {}
+                              }
+                              if (sol.comprobante_tipo) {
+                                return sol.comprobante_tipo.includes('Comprobantes')
+                                  ? sol.comprobante_tipo
+                                  : `${sol.comprobante_tipo} ${sol.comprobante_numero || ''}`.trim();
                               }
                               return sol.comprobante_numero || 'Comprobante adjunto';
                             })()}

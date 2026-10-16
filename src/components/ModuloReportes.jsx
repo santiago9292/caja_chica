@@ -25,7 +25,8 @@ import { exportarCajaChicaExcel } from '../lib/excelExporter';
 import { 
   exportarReporteCompletoZip, 
   descargarSustentosSolicitud, 
-  getSustentosDeSolicitud 
+  getSustentosDeSolicitud,
+  contarSustentosDeSolicitud 
 } from '../lib/zipExporter';
 import { ModalLiquidacion } from './ModalLiquidacion';
 import { getTipoLabel } from './ModalRendicion';
@@ -145,7 +146,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
 
     return Object.values(map).map(liq => {
       const totalMonto = liq.items.reduce((sum, item) => sum + getMontoReal(item), 0);
-      const totalSustentos = liq.items.reduce((sum, item) => sum + getSustentosDeSolicitud(item).length, 0);
+      const totalSustentos = liq.items.reduce((sum, item) => sum + contarSustentosDeSolicitud(item), 0);
       return {
         ...liq,
         totalMonto,
@@ -767,11 +768,13 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                       </td>
                       <td>
                         {(() => {
-                          let compText = s.comprobante_tipo ? `${s.comprobante_tipo} ${s.comprobante_numero || ''}` : '-';
+                          let compText = s.comprobante_tipo 
+                            ? (s.comprobante_tipo.includes('Comprobantes') ? s.comprobante_tipo : `${getTipoLabel(s.comprobante_tipo)} ${s.comprobante_numero || ''}`.trim())
+                            : '-';
                           if (s.rendiciones) {
                             try {
                               let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
-                              if (r.length > 0) compText = r.length === 1 ? `${getTipoLabel(r[0].tipo)} ${r[0].numero || ''}` : `${r.length} Comprobantes`;
+                              if (r.length > 0) compText = r.length === 1 ? `${getTipoLabel(r[0].tipo)} ${r[0].numero || ''}`.trim() : `${r.length} Comprobantes`;
                             } catch(e) {}
                           }
                           return compText;
@@ -817,8 +820,8 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
-                          const sustentos = getSustentosDeSolicitud(s);
-                          const tieneSustento = sustentos.length > 0;
+                          const numSustentos = contarSustentosDeSolicitud(s);
+                          const tieneSustento = numSustentos > 0;
                           return (
                             <button
                               type="button"
@@ -837,9 +840,9 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                               title={
                                 !tieneSustento 
                                   ? 'Sin sustento adjunto' 
-                                  : sustentos.length === 1 
+                                  : numSustentos === 1 
                                     ? 'Descargar comprobante adjunto' 
-                                    : `Descargar ${sustentos.length} sustentos (.zip)`
+                                    : `Descargar ${numSustentos} sustentos (.zip)`
                               }
                             >
                               <FileDown size={14} />
@@ -847,7 +850,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                                 {downloadingId === s.id 
                                   ? '...' 
                                   : tieneSustento 
-                                    ? (sustentos.length > 1 ? `${sustentos.length} Archivos` : 'Descargar') 
+                                    ? (numSustentos > 1 ? `${numSustentos} Archivos` : 'Descargar') 
                                     : 'Sin archivo'}
                               </span>
                             </button>
@@ -1183,7 +1186,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                 </thead>
                 <tbody>
                   {selectedLiquidacionDetalle.items.map((s) => {
-                    const sustentos = getSustentosDeSolicitud(s);
+                    const numSustentos = contarSustentosDeSolicitud(s);
                     return (
                       <tr key={s.id}>
                         <td style={{ fontFamily: 'monospace', fontWeight: '700' }}>{s.codigo}</td>
@@ -1206,7 +1209,17 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                                 }
                               } catch(e) {}
                             }
-                            return s.comprobante_tipo ? `${s.comprobante_tipo} ${s.comprobante_numero || ''}` : '-';
+                            if (s.comprobante_tipo) {
+                              return (
+                                <div>
+                                  <strong>{s.comprobante_tipo.includes('Comprobantes') ? s.comprobante_tipo : getTipoLabel(s.comprobante_tipo)}</strong>
+                                  <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                                    {s.comprobante_numero ? `${s.comprobante_numero} | ` : ''}{s.comprobante_ruc_emisor ? `RUC: ${s.comprobante_ruc_emisor}` : ''}
+                                  </div>
+                                </div>
+                              );
+                            }
+                            return '-';
                           })()}
                         </td>
                         <td style={{ maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -1216,7 +1229,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                           <strong>S/ {getMontoReal(s).toFixed(2)}</strong>
                         </td>
                         <td style={{ textAlign: 'center' }}>
-                          {sustentos.length > 0 ? (
+                          {numSustentos > 0 ? (
                             <button
                               type="button"
                               onClick={() => handleDescargarSustentoFila(s)}
@@ -1226,7 +1239,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                               title="Descargar sustento individual"
                             >
                               <FileDown size={12} />
-                              <span>{downloadingId === s.id ? '...' : sustentos.length > 1 ? `${sustentos.length} docs` : 'Descargar'}</span>
+                              <span>{downloadingId === s.id ? '...' : numSustentos > 1 ? `${numSustentos} docs` : 'Descargar'}</span>
                             </button>
                           ) : (
                             <span style={{ fontSize: '0.7rem', color: '#94a3b8' }}>-</span>

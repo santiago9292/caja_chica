@@ -1316,6 +1316,28 @@ class DataStore {
     sol.rendido_por_dni = sol.solicitante_dni;
     sol.rendido_por_nombre = sol.solicitante_nombre;
 
+    // Sincronizar campos principales de comprobante para que sean visibles inmediatamente sin descargar base64
+    let compTipo = '', compNumero = '', compRuc = '', compRazon = '', compFecha = null;
+    if (comprobantesArray.length === 1) {
+      compTipo = comprobantesArray[0].tipo || 'COMPROBANTE';
+      compNumero = comprobantesArray[0].numero || '';
+      compRuc = comprobantesArray[0].ruc || '';
+      compRazon = comprobantesArray[0].razonSocial || '';
+      compFecha = comprobantesArray[0].fecha || null;
+    } else if (comprobantesArray.length > 1) {
+      compTipo = `${comprobantesArray.length} Comprobantes`;
+      compNumero = `${comprobantesArray.length} Comprobantes`;
+      compRuc = 'Varios';
+      compRazon = 'Varios Proveedores';
+      compFecha = comprobantesArray[0].fecha || null;
+    }
+
+    sol.comprobante_tipo = compTipo;
+    sol.comprobante_numero = compNumero;
+    sol.comprobante_ruc_emisor = compRuc;
+    sol.comprobante_razon_social = compRazon;
+    sol.comprobante_fecha = compFecha;
+
     // Si gastó más del adelanto (diferencia > 0): pasa a PENDIENTE_REEMBOLSO para visto bueno del Admin
     // Si gastó menos (diferencia < 0): pasa a POR_DEVOLVER hasta que el Cajero confirme la recepción del sobrante
     // Si gastó exacto: pasa a RENDIDO
@@ -1336,7 +1358,12 @@ class DataStore {
           estado: nuevoEstado,
           rendicion_fecha: ahora,
           rendido_por_dni: sol.rendido_por_dni,
-          rendido_por_nombre: sol.rendido_por_nombre
+          rendido_por_nombre: sol.rendido_por_nombre,
+          comprobante_tipo: compTipo,
+          comprobante_numero: compNumero,
+          comprobante_ruc_emisor: compRuc,
+          comprobante_razon_social: compRazon,
+          comprobante_fecha: compFecha
         };
         if (nuevoEstado === 'RENDIDO') {
           updatePayload.monto = totalRendido;
@@ -1351,7 +1378,10 @@ class DataStore {
         if (error && error.code === '42703') {
           const fallbackPayload = {
             rendiciones: comprobantesArray,
-            estado: nuevoEstado
+            estado: nuevoEstado,
+            comprobante_tipo: compTipo,
+            comprobante_numero: compNumero,
+            comprobante_ruc_emisor: compRuc
           };
           if (nuevoEstado === 'RENDIDO') {
             fallbackPayload.monto = totalRendido;

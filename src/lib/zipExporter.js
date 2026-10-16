@@ -146,12 +146,59 @@ export function getSustentosDeSolicitud(sol) {
 }
 
 /**
- * Descarga el sustento o sustentos de una sola fila
+ * Conteo rápido de sustentos de una solicitud, compatible con el modo on-demand.
+ * Si las columnas pesadas aún no están en memoria, infiere los archivos presentes
+ * a partir de las columnas livianas (abono_sustento_nombre, estado, rendicion_fecha, comprobante_tipo).
+ */
+export function contarSustentosDeSolicitud(sol) {
+  if (!sol) return 0;
+
+  // 1. Si los sustentos ya están cargados en memoria
+  if (sol.rendiciones || sol.abono_sustento_url || sol.comprobante_archivo_url) {
+    const list = getSustentosDeSolicitud(sol);
+    if (list.length > 0) return list.length;
+  }
+
+  // 2. Conteo inferido on-demand sin descargar imágenes
+  let count = 0;
+
+  // Sustento de entrega de fondos (Abono / Caja chica / Yape)
+  if (sol.abono_sustento_nombre || sol.abono_sustento_url) {
+    count++;
+  }
+
+  // Comprobante inicial (para reembolsos / compras directas)
+  if (sol.comprobante_archivo_url) {
+    count++;
+  }
+
+  // Comprobantes rendidos (para adelantos que ya fueron rendidos o liquidados)
+  if (['RENDIDO', 'LIQUIDADO', 'PENDIENTE_REEMBOLSO', 'POR_DEVOLVER', 'POR_REEMBOLSAR'].includes(sol.estado) || sol.rendicion_fecha) {
+    if (sol.comprobante_tipo && sol.comprobante_tipo.includes('Comprobantes')) {
+      const match = sol.comprobante_tipo.match(/(\d+)/);
+      count += match ? parseInt(match[1], 10) : 1;
+    } else {
+      count += 1;
+    }
+  }
+
+  return count;
+}
+
+/**
+ * Descarga el sustento o sustentos de una sola fila (carga bajo demanda si no están en memoria)
  */
 export async function descargarSustentosSolicitud(sol) {
   if (!sol) return false;
   let targetSol = sol;
-  if (!targetSol.rendiciones && !targetSol.abono_sustento_url && !targetSol.comprobante_archivo_url) {
+
+  const tieneRendicion = ['RENDIDO', 'LIQUIDADO', 'PENDIENTE_REEMBOLSO', 'POR_DEVOLVER', 'POR_REEMBOLSAR'].includes(targetSol.estado) || !!targetSol.rendicion_fecha;
+  const tieneAbono = !!targetSol.abono_sustento_nombre;
+  const faltanCamposPesados = 
+    (tieneRendicion && !targetSol.rendiciones) ||
+    (tieneAbono && !targetSol.abono_sustento_url);
+
+  if (faltanCamposPesados) {
     const full = await store.fetchSolicitudHeavyFields(targetSol.id);
     if (full) targetSol = full;
   }
