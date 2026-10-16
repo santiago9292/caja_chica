@@ -1,19 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import { 
-  Recycle, 
-  Plus, 
-  Search, 
-  Calendar, 
-  Scale, 
-  DollarSign, 
-  FileText, 
-  Building2, 
-  Camera, 
-  X, 
-  CheckCircle2, 
-  AlertCircle, 
-  Eye, 
-  Download, 
+import {
+  Recycle,
+  Plus,
+  Search,
+  Calendar,
+  Scale,
+  DollarSign,
+  FileText,
+  Building2,
+  Camera,
+  X,
+  CheckCircle2,
+  AlertCircle,
+  Eye,
+  Download,
   Trash2,
   TrendingUp,
   Wallet,
@@ -35,10 +35,10 @@ const MATERIALES_RECICLAJE = [
   { id: 'Otros', label: 'Otros Materiales', icon: '♻️' }
 ];
 
-export function ModuloReciclaje({ 
-  currentUser, 
-  cajaFondo, 
-  solicitudes = [], 
+export function ModuloReciclaje({
+  currentUser,
+  cajaFondo,
+  solicitudes = [],
   onRegistrarVentaReciclaje,
   onAnularVentaReciclaje,
   onRecepcionarVentaReciclaje
@@ -196,7 +196,7 @@ export function ModuloReciclaje({
           origin: { y: 0.6 }
         });
         playNotificationSound('success');
-      } catch (e) {}
+      } catch (e) { }
 
       setSuccessMsg(`¡Venta de ${material} registrada exitosamente por S/ ${total.toFixed(2)}! El registro queda PENDIENTE hasta que el dinero sea entregado físicamente y recepcionado en Caja Chica.`);
       setTimeout(() => setSuccessMsg(''), 8000);
@@ -227,7 +227,7 @@ export function ModuloReciclaje({
           origin: { y: 0.6 }
         });
         playNotificationSound('success');
-      } catch (e) {}
+      } catch (e) { }
 
       setSuccessMsg(`¡Dinero recepcionado en Caja Chica! Se sumaron S/ ${Number(solicitudARecepcionar.monto).toFixed(2)} al saldo disponible.`);
       setTimeout(() => setSuccessMsg(''), 8000);
@@ -247,7 +247,7 @@ export function ModuloReciclaje({
   const handleAnular = async (sol) => {
     if (!isAdmin) return;
     const yaIngreso = sol.estado === 'INGRESADO_CAJA';
-    const msgConfirm = yaIngreso 
+    const msgConfirm = yaIngreso
       ? `¿Está seguro de anular la venta ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)}?\n\nEsta venta YA había ingresado a Caja Chica, por lo que este importe SE DESCONTARÁ del saldo disponible.\n\nIngrese el motivo de anulación:`
       : `¿Está seguro de anular la venta ${sol.codigo} por S/ ${Number(sol.monto).toFixed(2)}?\n\n(Aún no había ingresado al saldo de caja).\n\nIngrese el motivo de anulación:`;
 
@@ -275,7 +275,7 @@ export function ModuloReciclaje({
 
   const totalMontoRecepcionado = ventasRecepcionadas.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
   const totalMontoPendiente = ventasPendientes.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
-  
+
   const totalKilos = ventasActivas.reduce((acc, cur) => {
     let peso = 0;
     try {
@@ -283,7 +283,7 @@ export function ModuloReciclaje({
         const parsed = JSON.parse(cur.observaciones_aprobador);
         peso = Number(parsed.peso_kg || 0);
       }
-    } catch (e) {}
+    } catch (e) { }
     return acc + peso;
   }, 0);
 
@@ -573,7 +573,7 @@ export function ModuloReciclaje({
                   let parsed = {};
                   try {
                     parsed = JSON.parse(s.observaciones_aprobador || '{}');
-                  } catch (e) {}
+                  } catch (e) { }
 
                   const isAnulado = s.estado === 'ANULADO';
                   const isPendiente = s.estado === 'PENDIENTE_RECEPCION';
@@ -624,7 +624,7 @@ export function ModuloReciclaje({
                         </strong>
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
-                        <div 
+                        <div
                           style={{ fontSize: '0.76rem', fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}
                           title={parsed.comprador || s.comprobante_razon_social || 'Reciclador'}
                         >
@@ -664,7 +664,7 @@ export function ModuloReciclaje({
                               <CheckCircle2 size={11} /> EN CAJA CHICA
                             </span>
                             {s.pagado_por_nombre && (
-                              <div 
+                              <div
                                 style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.1rem', maxWidth: '135px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
                                 title={`Recibió: ${s.pagado_por_nombre}`}
                               >
@@ -752,8 +752,8 @@ export function ModuloReciclaje({
           ========================================================================= */}
       {modalNuevoOpen && (
         <div className="modal-overlay" onClick={() => setModalNuevoOpen(false)}>
-          <div 
-            className="modal-content" 
+          <div
+            className="modal-content"
             style={{ maxWidth: '580px', padding: '1.75rem' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -864,9 +864,9 @@ export function ModuloReciclaje({
                     Fecha de Venta *
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <Calendar 
-                      size={17} 
-                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    <Calendar
+                      size={17}
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}
                     />
                     <input
                       type="date"
@@ -910,9 +910,9 @@ export function ModuloReciclaje({
                     Peso Total (Kg)
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <Scale 
-                      size={17} 
-                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    <Scale
+                      size={17}
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}
                     />
                     <input
                       type="number"
@@ -932,15 +932,15 @@ export function ModuloReciclaje({
                     Precio por Kg (S/)
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <span style={{ 
-                      position: 'absolute', 
-                      left: '0.95rem', 
-                      top: '50%', 
-                      transform: 'translateY(-50%)', 
-                      fontWeight: '700', 
-                      color: '#94a3b8', 
-                      pointerEvents: 'none', 
-                      fontSize: '0.9rem' 
+                    <span style={{
+                      position: 'absolute',
+                      left: '0.95rem',
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      fontWeight: '700',
+                      color: '#94a3b8',
+                      pointerEvents: 'none',
+                      fontSize: '0.9rem'
                     }}>
                       S/
                     </span>
@@ -966,32 +966,32 @@ export function ModuloReciclaje({
                 padding: '1.15rem 1.25rem',
                 marginBottom: '1.25rem'
               }}>
-                <div style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  marginBottom: '0.5rem', 
-                  flexWrap: 'wrap', 
-                  gap: '0.4rem' 
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  marginBottom: '0.5rem',
+                  flexWrap: 'wrap',
+                  gap: '0.4rem'
                 }}>
-                  <label style={{ 
-                    fontSize: '0.8rem', 
-                    fontWeight: '800', 
-                    color: '#166534', 
-                    textTransform: 'uppercase', 
-                    letterSpacing: '0.03em', 
-                    margin: 0 
+                  <label style={{
+                    fontSize: '0.8rem',
+                    fontWeight: '800',
+                    color: '#166534',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.03em',
+                    margin: 0
                   }}>
                     Total a Entregar a Caja Chica (Efectivo Físico) *
                   </label>
                   {pesoKg && precioKg && !isNaN(parseFloat(pesoKg)) && !isNaN(parseFloat(precioKg)) && (
-                    <span style={{ 
-                      fontSize: '0.72rem', 
-                      background: '#dcfce7', 
-                      color: '#15803d', 
-                      padding: '2px 8px', 
-                      borderRadius: '999px', 
-                      fontWeight: '700' 
+                    <span style={{
+                      fontSize: '0.72rem',
+                      background: '#dcfce7',
+                      color: '#15803d',
+                      padding: '2px 8px',
+                      borderRadius: '999px',
+                      fontWeight: '700'
                     }}>
                       Auto: {pesoKg} Kg × S/ {precioKg}
                     </span>
@@ -1032,14 +1032,14 @@ export function ModuloReciclaje({
                     }}
                   />
                 </div>
-                <p style={{ 
-                  fontSize: '0.75rem', 
-                  color: '#15803d', 
-                  margin: 0, 
-                  marginTop: '0.45rem', 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: '0.35rem' 
+                <p style={{
+                  fontSize: '0.75rem',
+                  color: '#15803d',
+                  margin: 0,
+                  marginTop: '0.45rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem'
                 }}>
                   <span>💡</span>
                   <span>Este importe en efectivo deberá ser recibido y confirmado por el encargado de Caja Chica.</span>
@@ -1058,9 +1058,9 @@ export function ModuloReciclaje({
                     Comprador / Empresa
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <Building2 
-                      size={17} 
-                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    <Building2
+                      size={17}
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}
                     />
                     <input
                       type="text"
@@ -1078,9 +1078,9 @@ export function ModuloReciclaje({
                     N° Ticket / Boleta Pesaje
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <FileText 
-                      size={17} 
-                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    <FileText
+                      size={17}
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }}
                     />
                     <input
                       type="text"
@@ -1251,8 +1251,8 @@ export function ModuloReciclaje({
           ========================================================================= */}
       {modalRecepcionOpen && solicitudARecepcionar && (
         <div className="modal-overlay" onClick={() => setModalRecepcionOpen(false)}>
-          <div 
-            className="modal-content" 
+          <div
+            className="modal-content"
             style={{ maxWidth: '520px', padding: '1.75rem' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1403,8 +1403,8 @@ export function ModuloReciclaje({
           ========================================================================= */}
       {selectedDetalle && (
         <div className="modal-overlay" onClick={() => setSelectedDetalle(null)}>
-          <div 
-            className="modal-content" 
+          <div
+            className="modal-content"
             style={{ maxWidth: '540px', padding: '1.75rem' }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -1438,7 +1438,7 @@ export function ModuloReciclaje({
               let p = {};
               try {
                 p = JSON.parse(selectedDetalle.observaciones_aprobador || '{}');
-              } catch (e) {}
+              } catch (e) { }
 
               const isPend = selectedDetalle.estado === 'PENDIENTE_RECEPCION';
               const isIngr = selectedDetalle.estado === 'INGRESADO_CAJA';

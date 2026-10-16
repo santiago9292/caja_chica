@@ -14,14 +14,16 @@ import {
   DollarSign,
   CreditCard,
   Copy,
-  Loader2
+  Loader2,
+  RotateCcw
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
 import { abrirArchivoEnNuevaPestana } from '../lib/fileViewer';
+import { ModalReversaRendicion } from './ModalReversaRendicion';
 import { store } from '../lib/store';
 
-export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
+export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado, onRevertirRendicion }) {
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR');
 
   if (!isAdmin) {
@@ -195,6 +197,26 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
       alert('Error al rechazar: ' + err.message);
     } finally {
       setProcessingId(null);
+    }
+  };
+
+  const [revertirItem, setRevertirItem] = useState(null);
+  const [isRevertiendo, setIsRevertiendo] = useState(false);
+
+  const handleConfirmarReversa = async (motivo) => {
+    if (!revertirItem || !onRevertirRendicion) return;
+    setIsRevertiendo(true);
+    try {
+      const res = await onRevertirRendicion(revertirItem.id, motivo);
+      if (res && res.error) throw new Error(res.error);
+      playNotificationSound('success');
+      alert(`¡Rendición de ${revertirItem.codigo} revertida exitosamente! La solicitud volvió a POR RENDIR.`);
+      setRevertirItem(null);
+      setSelectedItem(null);
+    } catch (e) {
+      alert('Error al revertir: ' + e.message);
+    } finally {
+      setIsRevertiendo(false);
     }
   };
 
@@ -792,6 +814,29 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
 
               {/* Acciones */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', borderTop: '1px solid #e2e8f0', paddingTop: '0.85rem' }}>
+                {/* Botón Revertir Rendición si ya fue rendida */}
+                {['POR_DEVOLVER', 'PENDIENTE_REEMBOLSO', 'POR_REEMBOLSAR', 'RENDIDO'].includes(selectedItem.estado) && (
+                  <button
+                    type="button"
+                    onClick={() => setRevertirItem(selectedItem)}
+                    className="btn btn-warning"
+                    style={{
+                      background: '#fffbeb',
+                      borderColor: '#fde68a',
+                      color: '#b45309',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.4rem',
+                      fontSize: '0.82rem',
+                      fontWeight: '700'
+                    }}
+                    title="Revertir comprobantes ingresados por error y devolver la solicitud a Por Rendir"
+                  >
+                    <RotateCcw size={15} />
+                    <span>Revertir a Por Rendir</span>
+                  </button>
+                )}
+
                 <button type="button" onClick={() => setSelectedItem(null)} className="btn btn-secondary">
                   Cerrar
                 </button>
@@ -961,6 +1006,16 @@ export function ModuloAprobacion({ currentUser, solicitudes, onUpdateEstado }) {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Reversa de Rendición */}
+      {revertirItem && (
+        <ModalReversaRendicion
+          solicitud={revertirItem}
+          onClose={() => setRevertirItem(null)}
+          onConfirm={handleConfirmarReversa}
+          isProcessing={isRevertiendo}
+        />
       )}
 
     </div>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle, CreditCard, Loader2 } from 'lucide-react';
+import { Clock, CheckCircle2, FileText, Eye, Search, Receipt, FileSpreadsheet, Paperclip, Download, AlertTriangle, CreditCard, Loader2, RotateCcw } from 'lucide-react';
 import { ModalRendicion, getTipoLabel } from './ModalRendicion';
 import { store } from '../lib/store';
 
-export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
+export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto, onRevertirRendicion }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedItem, setSelectedItem] = useState(null);
   const [rendicionItem, setRendicionItem] = useState(null);
@@ -25,6 +25,23 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
     });
     return () => { active = false; };
   }, [selectedItem?.id]);
+
+  const handleCorregirRendicion = async (item) => {
+    const ok = window.confirm(
+      `¿Deseas corregir la rendición de ${item.codigo}?\n\nLa solicitud volverá al estado 'Por Rendir' para que puedas registrar los comprobantes e importes correctos.`
+    );
+    if (!ok) return;
+    try {
+      if (onRevertirRendicion) {
+        await onRevertirRendicion(item.id, 'Corrección de rendición iniciada por el colaborador');
+      }
+      alert('¡Listo! La solicitud volvió a Por Rendir. Se abrirá la ventana para que ingreses los datos correctos.');
+      const solActualizada = { ...item, estado: 'POR_RENDIR', rendiciones: [] };
+      setRendicionItem(solActualizada);
+    } catch (e) {
+      alert('Error al corregir la rendición: ' + e.message);
+    }
+  };
 
   const misItems = solicitudes.filter(s => s.solicitante_dni === currentUser.dni && s.tipo !== 'INGRESO_RECICLAJE');
 
@@ -318,6 +335,26 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                           <span>Rendir</span>
                         </button>
                       )}
+                      {(item.estado === 'POR_DEVOLVER' || item.estado === 'PENDIENTE_REEMBOLSO') && (
+                        <button
+                          onClick={() => handleCorregirRendicion(item)}
+                          className="btn btn-secondary"
+                          style={{ 
+                            padding: '0.35rem 0.65rem', 
+                            fontSize: '0.78rem',
+                            color: '#b45309',
+                            borderColor: '#fde68a',
+                            background: '#fffbeb',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '0.25rem'
+                          }}
+                          title="¿Te equivocaste en el importe o comprobante? Corregir rendición"
+                        >
+                          <RotateCcw size={13} />
+                          <span>Corregir</span>
+                        </button>
+                      )}
                       <button
                         onClick={() => setSelectedItem(item)}
                         className="btn btn-secondary"
@@ -391,7 +428,34 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                   fontSize: '0.825rem',
                   color: '#5b21b6'
                 }}>
-                  <strong>💵 Devolución Pendiente:</strong> Rendiste S/ {rendido.toFixed(2)}. Acércate a Caja a devolver <strong>S/ {aDevolver.toFixed(2)}</strong>. Tu rendición quedará conforme cuando el cajero confirme la recepción.
+                  <div>
+                    <strong>💵 Devolución Pendiente:</strong> Rendiste S/ {rendido.toFixed(2)}. Acércate a Caja a devolver <strong>S/ {aDevolver.toFixed(2)}</strong>. Tu rendición quedará conforme cuando el cajero confirme la recepción.
+                  </div>
+                  <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const sol = selectedItem;
+                        setSelectedItem(null);
+                        handleCorregirRendicion(sol);
+                      }}
+                      className="btn btn-ghost"
+                      style={{
+                        padding: '0.25rem 0.55rem',
+                        fontSize: '0.75rem',
+                        color: '#b45309',
+                        background: '#fffbeb',
+                        border: '1px solid #fde68a',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.3rem',
+                        borderRadius: 'var(--radius-sm)'
+                      }}
+                    >
+                      <RotateCcw size={13} />
+                      <span>¿Te equivocaste? Corregir Rendición</span>
+                    </button>
+                  </div>
                 </div>
               );
             })()}
@@ -406,7 +470,34 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
                 fontSize: '0.825rem',
                 color: '#92400e'
               }}>
-                <strong>⏳ Reembolso en Revisión:</strong> Has rendido un monto superior a tu adelanto. Administración está validando tus comprobantes para autorizar la entrega de tu dinero en Caja.
+                <div>
+                  <strong>⏳ Reembolso en Revisión:</strong> Has rendido un monto superior a tu adelanto. Administración está validando tus comprobantes para autorizar la entrega de tu dinero en Caja.
+                </div>
+                <div style={{ marginTop: '0.5rem', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const sol = selectedItem;
+                      setSelectedItem(null);
+                      handleCorregirRendicion(sol);
+                    }}
+                    className="btn btn-ghost"
+                    style={{
+                      padding: '0.25rem 0.55rem',
+                      fontSize: '0.75rem',
+                      color: '#b45309',
+                      background: '#fffbeb',
+                      border: '1px solid #fde68a',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.3rem',
+                      borderRadius: 'var(--radius-sm)'
+                    }}
+                  >
+                    <RotateCcw size={13} />
+                    <span>¿Te equivocaste? Corregir Rendición</span>
+                  </button>
+                </div>
               </div>
             )}
 

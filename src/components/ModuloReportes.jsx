@@ -33,6 +33,7 @@ import {
   contarSustentosDeSolicitud 
 } from '../lib/zipExporter';
 import { ModalLiquidacion } from './ModalLiquidacion';
+import { ModalReversaRendicion } from './ModalReversaRendicion';
 import { getTipoLabel } from './ModalRendicion';
 
 const OPCIONES_ESTADO = [
@@ -48,7 +49,7 @@ const OPCIONES_ESTADO = [
   { value: 'RECHAZADO', label: 'Rechazado', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' }
 ];
 
-export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [], onLiquidarSolicitudes, onRevertirLiquidacion }) {
+export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias = [], onLiquidarSolicitudes, onRevertirLiquidacion, onRevertirRendicion }) {
   // Pestaña activa: 'REPORTES' | 'HISTORIAL_LIQUIDACIONES'
   const [activeTab, setActiveTab] = useState('REPORTES');
 
@@ -102,6 +103,25 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
       setReversaError(err.message || 'Error al revertir la liquidación');
     } finally {
       setIsReverting(false);
+    }
+  };
+
+  // Estados para modal de Reversa de Rendición (Gasto individual)
+  const [revertirRendicionSol, setRevertirRendicionSol] = useState(null);
+  const [isRevertiendoRendicion, setIsRevertiendoRendicion] = useState(false);
+
+  const handleConfirmarReversaRendicion = async (motivo) => {
+    if (!revertirRendicionSol || !onRevertirRendicion) return;
+    setIsRevertiendoRendicion(true);
+    try {
+      const res = await onRevertirRendicion(revertirRendicionSol.id, motivo);
+      if (res && res.error) throw new Error(res.error);
+      alert(`¡Rendición de ${revertirRendicionSol.codigo} revertida exitosamente! La solicitud volvió a POR RENDIR.`);
+      setRevertirRendicionSol(null);
+    } catch (err) {
+      alert('Error al revertir la rendición: ' + err.message);
+    } finally {
+      setIsRevertiendoRendicion(false);
     }
   };
 
@@ -752,7 +772,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                     <th style={{ whiteSpace: 'nowrap' }}>Concepto</th>
                     <th style={{ width: '85px', textAlign: 'right', whiteSpace: 'nowrap' }}>Monto S/</th>
                     <th style={{ width: '110px', textAlign: 'center', whiteSpace: 'nowrap' }}>Estado</th>
-                    <th style={{ width: '90px', textAlign: 'center', whiteSpace: 'nowrap' }}>Sustento</th>
+                    <th style={{ width: isAdmin ? '160px' : '90px', textAlign: 'center', whiteSpace: 'nowrap' }}>{isAdmin ? 'Acciones / Sustento' : 'Sustento'}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -875,43 +895,69 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                           </span>
                         </td>
                         <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
-                          {(() => {
-                            const numSustentos = contarSustentosDeSolicitud(s);
-                            const tieneSustento = numSustentos > 0;
-                            return (
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', justifyContent: 'center' }}>
+                            {/* Botón Revertir Rendición para Admin si está en estado reversible */}
+                            {isAdmin && ['POR_DEVOLVER', 'PENDIENTE_REEMBOLSO', 'POR_REEMBOLSAR', 'RENDIDO'].includes(s.estado) && (
                               <button
                                 type="button"
-                                onClick={() => handleDescargarSustentoFila(s)}
-                                disabled={!tieneSustento || downloadingId === s.id}
-                                className={`btn ${tieneSustento ? 'btn-secondary' : 'btn-ghost'}`}
+                                onClick={() => setRevertirRendicionSol(s)}
+                                className="btn btn-ghost"
                                 style={{
                                   padding: '0.2rem 0.45rem',
                                   fontSize: '0.7rem',
                                   display: 'inline-flex',
                                   alignItems: 'center',
-                                  gap: '0.25rem',
-                                  opacity: tieneSustento ? 1 : 0.4,
-                                  cursor: tieneSustento ? 'pointer' : 'not-allowed'
+                                  gap: '0.2rem',
+                                  color: '#b45309',
+                                  border: '1px solid #fde68a',
+                                  background: '#fffbeb',
+                                  borderRadius: 'var(--radius-sm)'
                                 }}
-                                title={
-                                  !tieneSustento 
-                                    ? 'Sin sustento adjunto' 
-                                    : numSustentos === 1 
-                                      ? 'Descargar comprobante adjunto' 
-                                      : `Descargar ${numSustentos} sustentos (.zip)`
-                                }
+                                title="Revertir comprobantes ingresados por error y regresar la solicitud a Por Rendir"
                               >
-                                <FileDown size={12} />
-                                <span>
-                                  {downloadingId === s.id 
-                                    ? '...' 
-                                    : tieneSustento 
-                                      ? (numSustentos > 1 ? `${numSustentos} Arch.` : 'Descargar') 
-                                      : 'Sin arch.'}
-                                </span>
+                                <RotateCcw size={12} />
+                                <span>Revertir</span>
                               </button>
-                            );
-                          })()}
+                            )}
+
+                            {(() => {
+                              const numSustentos = contarSustentosDeSolicitud(s);
+                              const tieneSustento = numSustentos > 0;
+                              return (
+                                <button
+                                  type="button"
+                                  onClick={() => handleDescargarSustentoFila(s)}
+                                  disabled={!tieneSustento || downloadingId === s.id}
+                                  className={`btn ${tieneSustento ? 'btn-secondary' : 'btn-ghost'}`}
+                                  style={{
+                                    padding: '0.2rem 0.45rem',
+                                    fontSize: '0.7rem',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                    opacity: tieneSustento ? 1 : 0.4,
+                                    cursor: tieneSustento ? 'pointer' : 'not-allowed'
+                                  }}
+                                  title={
+                                    !tieneSustento 
+                                      ? 'Sin sustento adjunto' 
+                                      : numSustentos === 1 
+                                        ? 'Descargar comprobante adjunto' 
+                                        : `Descargar ${numSustentos} sustentos (.zip)`
+                                  }
+                                >
+                                  <FileDown size={12} />
+                                  <span>
+                                    {downloadingId === s.id 
+                                      ? '...' 
+                                      : tieneSustento 
+                                        ? (numSustentos > 1 ? `${numSustentos} Arch.` : 'Descargar') 
+                                        : 'Sin arch.'}
+                                  </span>
+                                </button>
+                              );
+                            })()}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -1527,6 +1573,16 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
             </div>
           </div>
         </div>
+      )}
+
+      {/* Modal de Reversa de Rendición de Gasto Individual */}
+      {revertirRendicionSol && (
+        <ModalReversaRendicion
+          solicitud={revertirRendicionSol}
+          onClose={() => setRevertirRendicionSol(null)}
+          onConfirm={handleConfirmarReversaRendicion}
+          isProcessing={isRevertiendoRendicion}
+        />
       )}
 
     </div>

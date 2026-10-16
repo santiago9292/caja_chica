@@ -473,6 +473,10 @@ export function App() {
     return await store.anularVentaReciclaje(id, adminUser, motivo);
   };
 
+  const handleRevertirRendicion = async (solId, motivo) => {
+    return await store.revertirRendicion(solId, currentUser, motivo);
+  };
+
   const pendientesCount = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO').length;
   const porRendirCount = solicitudes.filter(s => s.solicitante_dni === currentUser?.dni && s.estado === 'POR_RENDIR').length;
 
@@ -520,6 +524,7 @@ export function App() {
                 currentUser={currentUser}
                 solicitudes={solicitudes}
                 onRendirAdelanto={handleRendirAdelanto}
+                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
 
@@ -539,6 +544,7 @@ export function App() {
                 currentUser={currentUser}
                 solicitudes={solicitudes}
                 onUpdateEstado={handleUpdateEstado}
+                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
 
@@ -551,6 +557,7 @@ export function App() {
                 onAsignarFondo={async (monto) => await store.updateFondoAsignado(monto)}
                 onReponerFondo={async (monto) => await store.reponerFondo(monto)}
                 onRecepcionarVentaReciclaje={handleRecepcionarVentaReciclaje}
+                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
 
@@ -579,6 +586,7 @@ export function App() {
                 categorias={categorias}
                 onLiquidarSolicitudes={async (data) => await store.liquidarSolicitudesBatch({ ...data, adminUser: currentUser })}
                 onRevertirLiquidacion={async (codigo, motivo) => await store.revertirLiquidacion(codigo, currentUser, motivo)}
+                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
           </main>

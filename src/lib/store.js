@@ -1598,6 +1598,129 @@ class DataStore {
     return { success: true, count: actualizadas.length, solicitudes: actualizadas };
   }
 
+  // --- REVERSA DE RENDICIÓN DE GASTOS (ADMIN / CAJERO / SOLICITANTE) ---
+  async revertirRendicion(solicitudId, usuario, motivo = '') {
+    const sol = this.solicitudes.find(s => s.id === solicitudId);
+    if (!sol) return { success: false, error: 'Solicitud no encontrada' };
+
+    const estadosValidos = ['POR_DEVOLVER', 'PENDIENTE_REEMBOLSO', 'POR_REEMBOLSAR', 'RENDIDO'];
+    if (!estadosValidos.includes(sol.estado)) {
+      if (sol.estado === 'LIQUIDADO') {
+        return { 
+          success: false, 
+          error: `Esta solicitud ya está LIQUIDADA en el lote ${sol.liquidacion_codigo || ''}. Primero debe revertir la liquidación contable.` 
+        };
+      }
+      return { 
+        success: false, 
+        error: `No se puede revertir una solicitud en estado ${sol.estado}.` 
+      };
+    }
+
+    const usuarioNombre = usuario ? `${usuario.nombres} ${usuario.apellidos}` : 'Administrador';
+    const usuarioDni = usuario?.dni || '';
+
+    // Si ya estaba en RENDIDO y hubo movimiento de caja previo (devolución recibida o reembolso pagado):
+    let ajusteCaja = 0;
+    if (sol.estado === 'RENDIDO') {
+      const matchDev = sol.observaciones_aprobador?.match(/\[Devolución S\/\s*([\d.]+)\s*recibida/i);
+      if (matchDev && matchDev[1]) {
+        const montoDevuelto = parseFloat(matchDev[1]);
+        if (montoDevuelto > 0) {
+          this.cajaFondo.monto_disponible = Math.max(0, this.cajaFondo.monto_disponible - montoDevuelto);
+          sol.monto = Number((Number(sol.monto || 0) + montoDevuelto).toFixed(2));
+          ajusteCaja = -montoDevuelto;
+        }
+      }
+      const matchReemb = sol.observaciones_aprobador?.match(/\[Reembolso S\/\s*([\d.]+)\s*entregado/i);
+      if (matchReemb && matchReemb[1]) {
+        const montoReembolso = parseFloat(matchReemb[1]);
+        if (montoReembolso > 0) {
+          this.cajaFondo.monto_disponible = Math.min(this.cajaFondo.monto_total, this.cajaFondo.monto_disponible + montoReembolso);
+          sol.monto = Number((Number(sol.monto || 0) - montoReembolso).toFixed(2));
+          ajusteCaja = montoReembolso;
+        }
+      }
+    }
+
+    const estadoAnterior = sol.estado;
+    sol.estado = 'POR_RENDIR';
+    sol.rendiciones = [];
+    sol.rendicion_fecha = null;
+    sol.rendido_por_dni = null;
+    sol.rendido_por_nombre = null;
+    sol.comprobante_tipo = null;
+    sol.comprobante_numero = null;
+    sol.comprobante_ruc_emisor = null;
+    sol.comprobante_razon_social = null;
+    sol.comprobante_fecha = null;
+    sol.comprobante_archivo_url = null;
+
+    if (sol.observaciones_aprobador) {
+      sol.observaciones_aprobador = sol.observaciones_aprobador
+        .replace(/\s*\|?\s*\[Devolución S\/[^\]]*\]/gi, '')
+        .trim();
+    }
+
+    const notaReversa = `[Rendición revertida el ${new Date().toLocaleDateString('es-PE')} por ${usuarioNombre}${motivo ? ': ' + motivo : ''}]`;
+    sol.observaciones_aprobador = sol.observaciones_aprobador
+      ? `${sol.observaciones_aprobador} | ${notaReversa}`
+      : notaReversa;
+
+    this.persist('caja_solicitudes', this.solicitudes);
+
+    if (ajusteCaja !== 0) {
+      this.persist('caja_fondo', this.cajaFondo);
+      await this.syncCajaFondoToSupabase();
+    }
+
+    if (supabase) {
+      try {
+        await supabase.from('solicitudes').update({
+          estado: 'POR_RENDIR',
+          monto: sol.monto,
+          rendiciones: null,
+          rendicion_fecha: null,
+          rendido_por_dni: null,
+          rendido_por_nombre: null,
+          comprobante_tipo: null,
+          comprobante_numero: null,
+          comprobante_ruc_emisor: null,
+          comprobante_razon_social: null,
+          comprobante_fecha: null,
+          comprobante_archivo_url: null,
+          observaciones_aprobador: sol.observaciones_aprobador
+        }).eq('id', sol.id);
+      } catch (e) {
+        console.warn('Error revirtiendo rendición en Supabase:', e);
+      }
+    }
+
+    this.addNotification({
+      titulo: `Rendición Devuelta: ${sol.codigo}`,
+      mensaje: `Tu rendición fue devuelta para corrección por ${usuarioNombre}. ${motivo ? 'Motivo: ' + motivo : ''}`,
+      tipo: 'WARNING',
+      usuario_dni: sol.solicitante_dni,
+      referencia_id: sol.id
+    });
+
+    this.logAudit({
+      accion: 'REVERSA_RENDICION',
+      modulo: 'RENDICIONES',
+      tipo: 'WARNING',
+      codigo: sol.codigo,
+      entidad_id: sol.id,
+      usuario_dni: usuarioDni,
+      usuario_nombre: usuarioNombre,
+      detalle: `Rendición de ${sol.codigo} (estado previo: ${estadoAnterior}) devuelta a POR_RENDIR por ${usuarioNombre}. Motivo: ${motivo || 'Sin motivo especificado'}`
+    });
+
+    this.broadcastSync({ type: 'SOLICITUD_STATUS_CHANGED', solicitudId: sol.id, nuevoEstado: 'POR_RENDIR' });
+    this.notifyListeners({ type: 'DATA_LOADED' });
+
+    return { success: true, solicitud: sol };
+  }
+
   // --- ASIGNACIÓN DE FONDOS (ADMIN) ---
   async updateFondoAsignado(nuevoMonto) {
     // Calculamos el monto gastado histórico o recalculamos en base a la diferencia
