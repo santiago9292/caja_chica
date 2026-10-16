@@ -344,20 +344,26 @@ export function App() {
       }
     });
 
-    // Auto-actualización al retomar ventana y sondeo de respaldo periódico cada 15s
+    // Auto-actualización al retomar ventana y sondeo de respaldo.
+    // Realtime ya mantiene los datos al día; el sondeo es solo un respaldo (cada 5 min)
+    // para no disparar el egress de Supabase. Throttle de 30s para focus/visibilitychange.
+    let lastSync = Date.now();
+    const syncNow = () => {
+      lastSync = Date.now();
+      store.getSolicitudes();
+      store.getCajaFondo();
+    };
     const handleSync = () => {
-      if (document.visibilityState === 'visible') {
-        store.getSolicitudes();
-        store.getCajaFondo();
+      if (document.visibilityState === 'visible' && Date.now() - lastSync > 30000) {
+        syncNow();
       }
     };
     document.addEventListener('visibilitychange', handleSync);
     window.addEventListener('focus', handleSync);
 
     const pollInterval = setInterval(() => {
-      store.getSolicitudes();
-      store.getCajaFondo();
-    }, 15000);
+      if (document.visibilityState === 'visible') syncNow();
+    }, 5 * 60 * 1000);
 
     return () => {
       unsubscribe();

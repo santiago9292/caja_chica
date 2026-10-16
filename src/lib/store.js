@@ -415,6 +415,7 @@ class DataStore {
   handleSupabaseSolicitudEvent(payload) {
     const { eventType, new: newRec, old: oldRec } = payload;
     if (eventType === 'INSERT') {
+      this._absorbServerSolicitud(newRec);
       this.solicitudes = [newRec, ...this.solicitudes.filter(s => s.id !== newRec.id)];
       this.persist('caja_solicitudes', this.solicitudes);
 
@@ -439,7 +440,9 @@ class DataStore {
       return;
     } else if (eventType === 'UPDATE') {
       const prevSol = this.solicitudes.find(s => s.id === newRec.id);
-      this.solicitudes = this.solicitudes.map(s => s.id === newRec.id ? newRec : s);
+      this._absorbServerSolicitud(newRec);
+      // Merge: Realtime puede omitir columnas grandes (TOAST) no modificadas
+      this.solicitudes = this.solicitudes.map(s => s.id === newRec.id ? { ...s, ...newRec } : s);
       this.persist('caja_solicitudes', this.solicitudes);
 
       if (prevSol && prevSol.estado !== newRec.estado) {
@@ -739,10 +742,113 @@ class DataStore {
   }
 
   // --- MÉTODOS DE SOLICITUDES Y CAJA CHICA ---
-  async getSolicitudes() {
+  // --- OPTIMIZACIÓN DE EGRESS ---
+  // Columnas con imágenes en base64. NO se descargan en el listado periódico:
+  // se piden solo para solicitudes nuevas/modificadas y se cachean en memoria.
+  _heavySolicitudColumns() {
+    return ['rendiciones', 'abono_sustento_url', 'comprobante_archivo_url'];
+  }
+
+  // Campos que cambian cuando cambian las columnas pesadas (rendición, abono, etc.)
+  _solFingerprint(row) {
+    return [row.estado, row.monto, row.rendicion_fecha, row.abono_fecha, row.pagado_fecha, row.liquidado_fecha, row.abono_sustento_nombre].join('|');
+  }
+
+  _ensureSolCaches() {
+    if (!this._heavyCache) this._heavyCache = new Map();
+    if (!this._solFingerprints) this._solFingerprints = new Map();
+    if (!this._missingSolCols) this._missingSolCols = new Set();
+  }
+
+  // Registra en caché las columnas pesadas de una fila recibida del servidor (p.ej. Realtime)
+  _absorbServerSolicitud(rec) {
+    if (!rec?.id) return;
+    this._ensureSolCaches();
+    const heavyCols = this._heavySolicitudColumns().filter(c => !this._missingSolCols.has(c));
+    const cached = this._heavyCache.get(rec.id);
+    const heavy = { ...(cached || {}) };
+    let complete = true;
+    for (const c of heavyCols) {
+      if (rec[c] !== undefined) heavy[c] = rec[c];
+      else if (!cached || !(c in cached)) complete = false;
+    }
+    this._heavyCache.set(rec.id, heavy);
+    if (complete) this._solFingerprints.set(rec.id, this._solFingerprint(rec));
+    else this._solFingerprints.delete(rec.id);
+  }
+
+  // SELECT sobre solicitudes que se auto-corrige si alguna columna aún no existe en la BD (42703)
+  async _selectSolicitudCols(cols, build) {
+    this._ensureSolCaches();
+    for (let attempt = 0; attempt < 10; attempt++) {
+      const usable = cols.filter(c => !this._missingSolCols.has(c));
+      const res = await build(supabase.from('solicitudes').select(usable.join(',')));
+      if (!res.error) return res;
+      const m = res.error.message?.match(/column\s+(?:solicitudes\.)?"?(\w+)"?\s+does not exist/i);
+      if (m && usable.includes(m[1]) && m[1] !== 'id') {
+        console.warn(`Columna ${m[1]} no existe en Supabase, se omite del SELECT.`);
+        this._missingSolCols.add(m[1]);
+        continue;
+      }
+      return res;
+    }
+    return { data: null, error: new Error('No se pudieron resolver las columnas de solicitudes') };
+  }
+
+  async _fetchHeavyFields(ids) {
+    const heavyCols = this._heavySolicitudColumns();
+    const CHUNK = 20;
+    for (let i = 0; i < ids.length; i += CHUNK) {
+      const chunk = ids.slice(i, i + CHUNK);
+      const { data, error } = await this._selectSolicitudCols(['id', ...heavyCols], q => q.in('id', chunk));
+      if (error || !data) {
+        console.warn('Error descargando adjuntos de solicitudes:', error);
+        continue;
+      }
+      for (const row of data) {
+        const heavy = {};
+        for (const c of heavyCols) if (row[c] !== undefined) heavy[c] = row[c];
+        this._heavyCache.set(row.id, heavy);
+      }
+    }
+  }
+
+  // Si ya hay una carga en curso, reutilizarla (evita descargar adjuntos 2 veces en paralelo)
+  getSolicitudes() {
+    if (this._solicitudesInFlight) return this._solicitudesInFlight;
+    this._solicitudesInFlight = this._getSolicitudesImpl().finally(() => {
+      this._solicitudesInFlight = null;
+    });
+    return this._solicitudesInFlight;
+  }
+
+  async _getSolicitudesImpl() {
     if (supabase) {
-      const { data, error } = await supabase.from('solicitudes').select('*').order('created_at', { ascending: false });
+      this._ensureSolCaches();
+      const heavySet = new Set(this._heavySolicitudColumns());
+      const lightCols = this._solicitudColumns().filter(c => !heavySet.has(c));
+      const { data, error } = await this._selectSolicitudCols(lightCols, q => q.order('created_at', { ascending: false }));
       if (!error && data) {
+        // Descargar columnas pesadas solo de solicitudes nuevas o que cambiaron desde la última vez
+        const toFetch = [];
+        const fingerprints = new Map();
+        for (const row of data) {
+          const fp = this._solFingerprint(row);
+          fingerprints.set(row.id, fp);
+          if (!this._heavyCache.has(row.id) || this._solFingerprints.get(row.id) !== fp) {
+            toFetch.push(row.id);
+          }
+        }
+        if (toFetch.length > 0) {
+          await this._fetchHeavyFields(toFetch);
+        }
+        for (const row of data) {
+          if (this._heavyCache.has(row.id)) {
+            this._solFingerprints.set(row.id, fingerprints.get(row.id));
+            Object.assign(row, this._heavyCache.get(row.id));
+          }
+        }
+
         // Asegurar que si una solicitud ya está RENDIDO, su monto refleje el total de comprobantes rendidos
         data.forEach(sol => {
           if (sol.rendiciones) {
@@ -787,7 +893,18 @@ class DataStore {
   }
 
   sanitizeSolicitudForSupabase(sol) {
-    const allowed = [
+    const allowed = this._solicitudColumns();
+    const clean = {};
+    for (const key of allowed) {
+      if (sol[key] !== undefined) {
+        clean[key] = sol[key];
+      }
+    }
+    return clean;
+  }
+
+  _solicitudColumns() {
+    return [
       'id', 'codigo', 'tipo', 'solicitante_dni', 'solicitante_nombre',
       'monto', 'moneda', 'motivo', 'categoria', 'centro_costo',
       'comprobante_tipo', 'comprobante_numero', 'comprobante_ruc_emisor',
@@ -800,13 +917,6 @@ class DataStore {
       'liquidacion_codigo', 'liquidado_fecha', 'liquidado_por_dni', 'liquidado_por_nombre',
       'abono_destinatario_tipo', 'abono_banco', 'abono_cuenta_numero', 'abono_titular'
     ];
-    const clean = {};
-    for (const key of allowed) {
-      if (sol[key] !== undefined) {
-        clean[key] = sol[key];
-      }
-    }
-    return clean;
   }
 
   async createSolicitud(solData) {
