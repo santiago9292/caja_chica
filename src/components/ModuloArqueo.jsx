@@ -14,7 +14,9 @@ import {
   History,
   Paperclip,
   Download,
-  X
+  X,
+  Recycle,
+  ArrowDownLeft
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 import { ModalAbono } from './ModalAbono';
@@ -92,35 +94,40 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   // Consideramos pagados los que están en estado PAGADO, POR_RENDIR, POR_DEVOLVER, RENDIDO o LIQUIDADO (para arqueo egresos)
   const ESTADOS_EGRESO = ['PAGADO', 'POR_RENDIR', 'POR_DEVOLVER', 'RENDIDO', 'LIQUIDADO'];
   const totalPagado = solicitudes
-    .filter(s => ESTADOS_EGRESO.includes(s.estado))
+    .filter(s => ESTADOS_EGRESO.includes(s.estado) && s.tipo !== 'INGRESO_RECICLAJE')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
+  // Ventas de reciclaje que ingresan efectivo a caja chica
+  const ventasReciclaje = solicitudes.filter(s => s.tipo === 'INGRESO_RECICLAJE' && s.estado !== 'ANULADO');
+  const totalReciclaje = ventasReciclaje.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
+
   const totalPendienteOAprobado = solicitudes
-    .filter(s => s.estado === 'PENDIENTE' || s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR' || s.estado === 'PENDIENTE_REEMBOLSO')
+    .filter(s => (s.estado === 'PENDIENTE' || s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR' || s.estado === 'PENDIENTE_REEMBOLSO') && s.tipo !== 'INGRESO_RECICLAJE')
     .reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const porcentajeConsumido = Math.min(100, Math.round(((montoTotal - montoDisponible) / montoTotal) * 100));
 
   const categoriasMap = {};
-  solicitudes.filter(s => ESTADOS_EGRESO.includes(s.estado)).forEach(s => {
+  solicitudes.filter(s => ESTADOS_EGRESO.includes(s.estado) && s.tipo !== 'INGRESO_RECICLAJE').forEach(s => {
     const cat = s.categoria.replace(/_/g, ' ');
     if (!categoriasMap[cat]) categoriasMap[cat] = { total: 0, count: 0 };
     categoriasMap[cat].total += Number(s.monto || 0);
     categoriasMap[cat].count += 1;
   });
 
-  const solicitudesAprobadas = solicitudes.filter(s => s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR');
-  const solicitudesDevolucion = solicitudes.filter(s => s.estado === 'POR_DEVOLVER');
-  const solicitudesPendientes = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO');
-  const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'RECHAZADO');
-  const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado));
+  const solicitudesAprobadas = solicitudes.filter(s => (s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR') && s.tipo !== 'INGRESO_RECICLAJE');
+  const solicitudesDevolucion = solicitudes.filter(s => s.estado === 'POR_DEVOLVER' && s.tipo !== 'INGRESO_RECICLAJE');
+  const solicitudesPendientes = solicitudes.filter(s => (s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO') && s.tipo !== 'INGRESO_RECICLAJE');
+  const solicitudesRechazadas = solicitudes.filter(s => s.estado === 'RECHAZADO' && s.tipo !== 'INGRESO_RECICLAJE');
+  const solicitudesHistorial = solicitudes.filter(s => ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado) && s.tipo !== 'INGRESO_RECICLAJE');
 
   const solicitudesFiltradasBandeja = solicitudes.filter(s => {
-    if (filtroBandeja === 'APROBADO') return s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR';
-    if (filtroBandeja === 'DEVOLUCION') return s.estado === 'POR_DEVOLVER';
-    if (filtroBandeja === 'PENDIENTE') return s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO';
-    if (filtroBandeja === 'RECHAZADO') return s.estado === 'RECHAZADO';
-    if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado);
+    if (filtroBandeja === 'APROBADO') return (s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR') && s.tipo !== 'INGRESO_RECICLAJE';
+    if (filtroBandeja === 'DEVOLUCION') return s.estado === 'POR_DEVOLVER' && s.tipo !== 'INGRESO_RECICLAJE';
+    if (filtroBandeja === 'PENDIENTE') return (s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO') && s.tipo !== 'INGRESO_RECICLAJE';
+    if (filtroBandeja === 'RECHAZADO') return s.estado === 'RECHAZADO' && s.tipo !== 'INGRESO_RECICLAJE';
+    if (filtroBandeja === 'HISTORIAL') return ['POR_RENDIR', 'RENDIDO', 'LIQUIDADO', 'PAGADO'].includes(s.estado) && s.tipo !== 'INGRESO_RECICLAJE';
+    if (filtroBandeja === 'RECICLAJE') return s.tipo === 'INGRESO_RECICLAJE';
     return true; // TODOS
   });
 
@@ -279,6 +286,18 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
             <div className="stat-label">Comprometido (Pendiente/Aprob.)</div>
           </div>
         </div>
+
+        {totalReciclaje > 0 && (
+          <div className="stat-card">
+            <div className="stat-icon-wrapper" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
+              <Recycle size={22} />
+            </div>
+            <div>
+              <div className="stat-value" style={{ color: '#15803d' }}>+ S/ {totalReciclaje.toFixed(2)}</div>
+              <div className="stat-label">Ingresos por Reciclaje</div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Barra de Progreso */}
@@ -426,6 +445,26 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
 
               <button
                 type="button"
+                className={`btn btn-sm ${filtroBandeja === 'RECICLAJE' ? 'btn-primary' : 'btn-ghost'}`}
+                onClick={() => setFiltroBandeja('RECICLAJE')}
+                style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
+              >
+                <Recycle size={14} />
+                <span>Reciclaje (+S/)</span>
+                <span style={{ 
+                  background: filtroBandeja === 'RECICLAJE' ? 'rgba(255,255,255,0.25)' : '#ecfdf5', 
+                  color: filtroBandeja === 'RECICLAJE' ? '#fff' : '#059669',
+                  padding: '1px 6px', 
+                  borderRadius: '999px', 
+                  fontWeight: '700', 
+                  fontSize: '0.75rem' 
+                }}>
+                  {ventasReciclaje.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
                 className={`btn btn-sm ${filtroBandeja === 'TODOS' ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setFiltroBandeja('TODOS')}
                 style={{ fontSize: '0.8rem', padding: '0.35rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.35rem' }}
@@ -495,7 +534,16 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                         )}
                       </td>
                       <td style={{ whiteSpace: 'nowrap' }}>
-                        {sol.estado === 'POR_REEMBOLSAR' ? (
+                        {sol.tipo === 'INGRESO_RECICLAJE' ? (
+                          <div>
+                            <div style={{ fontWeight: '800', color: '#16a34a', fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.2rem' }}>
+                              <ArrowDownLeft size={16} /> + S/ {Number(sol.monto).toFixed(2)}
+                            </div>
+                            <div style={{ fontSize: '0.7rem', color: '#15803d' }}>
+                              Ingreso a Caja
+                            </div>
+                          </div>
+                        ) : sol.estado === 'POR_REEMBOLSAR' ? (
                           <div>
                             <div style={{ fontWeight: '800', color: '#16a34a', fontSize: '1.1rem' }}>
                               S/ {getMontoEntrega(sol).toFixed(2)}
@@ -529,7 +577,26 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                         )}
                       </td>
                       <td>
-                        {sol.estado === 'APROBADO' && (
+                        {sol.tipo === 'INGRESO_RECICLAJE' && (
+                          <div>
+                            <span className={`badge ${sol.estado === 'ANULADO' ? 'badge-rechazado' : 'badge-ingreso'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <Recycle size={13} /> {sol.estado === 'ANULADO' ? 'Reciclaje Anulado' : 'Ingreso Reciclaje'}
+                            </span>
+                            {sol.abono_sustento_url && (
+                              <div style={{ marginTop: '0.25rem' }}>
+                                <button
+                                  type="button"
+                                  onClick={() => handleVerSustento(sol)}
+                                  className="btn btn-secondary"
+                                  style={{ padding: '0.2rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}
+                                >
+                                  <Paperclip size={12} color="#059669" /> Ticket Pesaje
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {sol.tipo !== 'INGRESO_RECICLAJE' && sol.estado === 'APROBADO' && (
                           <span className="badge badge-aprobado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
                             <CheckCircle2 size={13} /> Listo para Abonar
                           </span>

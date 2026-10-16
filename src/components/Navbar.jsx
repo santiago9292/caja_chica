@@ -13,7 +13,8 @@ import {
   Clock,
   User,
   Tag,
-  ShieldCheck
+  ShieldCheck,
+  Recycle
 } from 'lucide-react';
 import { isSupabaseConfigured } from '../lib/store';
 
@@ -109,6 +110,7 @@ export function Navbar({
   const isAdmin = userRoles.includes('ADMINISTRADOR');
   const isSolicitante = userRoles.includes('SOLICITANTE');
   const isUsuario = userRoles.includes('USUARIO');
+  const isReciclaje = userRoles.includes('RECICLAJE');
 
   const unreadNotifs = notificaciones.filter(n => !n.leido);
   
@@ -181,10 +183,10 @@ export function Navbar({
                     window.location.reload();
                   }
                 }}
-                title="Versión 6.1.8 (Haz clic para forzar actualización y limpiar caché)"
+                title="Versión 6.1.9 (Haz clic para forzar actualización y limpiar caché)"
                 style={{ fontWeight: '700', color: '#2563eb', background: '#eff6ff', padding: '0.1rem 0.35rem', borderRadius: '4px', fontSize: '0.65rem', letterSpacing: '0.5px', cursor: 'pointer', userSelect: 'none' }}
               >
-                v6.1.8
+                v6.1.9
               </span>
             </div>
           </div>
@@ -396,7 +398,8 @@ export function Navbar({
             className={`badge ${
               r === 'SYSADMIN' ? 'badge-sysadmin' :
               r === 'ADMINISTRADOR' ? 'badge-admin' :
-              r === 'SOLICITANTE' ? 'badge-solicitante' : 'badge-usuario'
+              r === 'SOLICITANTE' ? 'badge-solicitante' :
+              r === 'RECICLAJE' ? 'badge-reciclaje' : 'badge-usuario'
             }`}
           >
             {r}
@@ -440,6 +443,16 @@ export function Navbar({
                 {porRendirCount}
               </span>
             )}
+          </button>
+        )}
+
+        {(isReciclaje || isAdmin || isSysadmin) && (
+          <button 
+            className={`nav-tab-btn ${currentTab === 'reciclaje' ? 'active' : ''}`}
+            onClick={() => setCurrentTab('reciclaje')}
+          >
+            <Recycle size={15} />
+            <span>Venta de Reciclaje</span>
           </button>
         )}
 

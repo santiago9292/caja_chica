@@ -8,6 +8,7 @@ import { ModuloArqueo } from './components/ModuloArqueo';
 import { ModuloReportes } from './components/ModuloReportes';
 import { MisSolicitudes } from './components/MisSolicitudes';
 import { ModuloAdministracion } from './components/ModuloAdministracion';
+import { ModuloReciclaje } from './components/ModuloReciclaje';
 import { SupabaseConfigModal } from './components/SupabaseConfigModal';
 import { Bell, CheckCircle2, AlertTriangle, Info, X } from 'lucide-react';
 import { playNotificationSound } from './lib/audioNotifier';
@@ -391,6 +392,8 @@ export function App() {
       setCurrentTab('aprobaciones');
     } else if (roles.includes('SOLICITANTE')) {
       setCurrentTab('nuevo');
+    } else if (roles.includes('RECICLAJE')) {
+      setCurrentTab('reciclaje');
     } else if (roles.includes('SYSADMIN')) {
       setCurrentTab('administracion');
     } else {
@@ -458,6 +461,14 @@ export function App() {
     store.marcarNotificacionesLeidas();
   };
 
+  const handleRegistrarVentaReciclaje = async (ventaData) => {
+    return await store.registrarVentaReciclaje(ventaData);
+  };
+
+  const handleAnularVentaReciclaje = async (id, adminUser, motivo) => {
+    return await store.anularVentaReciclaje(id, adminUser, motivo);
+  };
+
   const pendientesCount = solicitudes.filter(s => s.estado === 'PENDIENTE' || s.estado === 'PENDIENTE_REEMBOLSO').length;
   const porRendirCount = solicitudes.filter(s => s.solicitante_dni === currentUser?.dni && s.estado === 'POR_RENDIR').length;
 
@@ -505,6 +516,16 @@ export function App() {
                 currentUser={currentUser}
                 solicitudes={solicitudes}
                 onRendirAdelanto={handleRendirAdelanto}
+              />
+            )}
+
+            {currentTab === 'reciclaje' && (
+              <ModuloReciclaje
+                currentUser={currentUser}
+                cajaFondo={cajaFondo}
+                solicitudes={solicitudes}
+                onRegistrarVentaReciclaje={handleRegistrarVentaReciclaje}
+                onAnularVentaReciclaje={handleAnularVentaReciclaje}
               />
             )}
 

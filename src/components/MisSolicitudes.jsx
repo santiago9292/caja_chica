@@ -26,7 +26,7 @@ export function MisSolicitudes({ currentUser, solicitudes, onRendirAdelanto }) {
     return () => { active = false; };
   }, [selectedItem?.id]);
 
-  const misItems = solicitudes.filter(s => s.solicitante_dni === currentUser.dni);
+  const misItems = solicitudes.filter(s => s.solicitante_dni === currentUser.dni && s.tipo !== 'INGRESO_RECICLAJE');
 
   const itemsFiltrados = misItems.filter(s => {
     const q = searchTerm.toLowerCase();
