@@ -15,8 +15,7 @@ const TODOS_LOS_ROLES = [
   { id: 'SYSADMIN', label: 'SYSADMIN', desc: 'Gestión maestro de DNIs, roles y parámetros del sistema' },
   { id: 'ADMINISTRADOR', label: 'ADMINISTRADOR', desc: 'Módulo exclusivo de aprobación de gastos y arqueo' },
   { id: 'SOLICITANTE', label: 'SOLICITANTE', desc: 'Registro de solicitudes y rendición con comprobantes' },
-  { id: 'USUARIO', label: 'USUARIO', desc: 'Consulta de balances, historial y reportes' },
-  { id: 'RECICLAJE', label: 'RECICLAJE', desc: 'Venta de reciclaje (cartón) e ingreso de fondos a Caja Chica' }
+  { id: 'USUARIO', label: 'USUARIO', desc: 'Consulta de balances, historial y reportes' }
 ];
 
 export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActivo }) {
@@ -224,8 +223,7 @@ export function MaestroDni({ currentUser, usuarios, onSaveUsuario, onToggleActiv
                           className={`badge ${
                             r === 'SYSADMIN' ? 'badge-sysadmin' :
                             r === 'ADMINISTRADOR' ? 'badge-admin' :
-                            r === 'SOLICITANTE' ? 'badge-solicitante' :
-                            r === 'RECICLAJE' ? 'badge-reciclaje' : 'badge-usuario'
+                            r === 'SOLICITANTE' ? 'badge-solicitante' : 'badge-usuario'
                           }`}
                         >
                           {r}

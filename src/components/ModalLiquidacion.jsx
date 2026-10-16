@@ -30,7 +30,7 @@ export function ModalLiquidacion({
   if (!isOpen) return null;
 
   // Filtrar exclusivamente los gastos que ya están RENDIDOS y listos para liquidar contablemente
-  const gastosRendidos = solicitudes.filter(s => s.estado === 'RENDIDO' && s.tipo !== 'INGRESO_RECICLAJE');
+  const gastosRendidos = solicitudes.filter(s => s.estado === 'RENDIDO');
 
   // Calcular el siguiente código correlativo de liquidación
   const calcularSiguienteCodigo = () => {
