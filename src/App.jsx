@@ -525,7 +525,6 @@ export function App() {
                 currentUser={currentUser}
                 solicitudes={solicitudes}
                 onRendirAdelanto={handleRendirAdelanto}
-                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
 
@@ -545,7 +544,6 @@ export function App() {
                 currentUser={currentUser}
                 solicitudes={solicitudes}
                 onUpdateEstado={handleUpdateEstado}
-                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
 
@@ -558,7 +556,6 @@ export function App() {
                 onAsignarFondo={async (monto) => await store.updateFondoAsignado(monto)}
                 onReponerFondo={async (monto) => await store.reponerFondo(monto)}
                 onRecepcionarVentaReciclaje={handleRecepcionarVentaReciclaje}
-                onRevertirRendicion={handleRevertirRendicion}
               />
             )}
 

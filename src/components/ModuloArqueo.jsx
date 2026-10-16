@@ -16,15 +16,13 @@ import {
   Download,
   X,
   Recycle,
-  ArrowDownLeft,
-  RotateCcw
+  ArrowDownLeft
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 import { ModalAbono } from './ModalAbono';
-import { ModalReversaRendicion } from './ModalReversaRendicion';
 import { store } from '../lib/store';
 
-export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo, onRecepcionarVentaReciclaje, onRevertirRendicion }) {
+export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo, onRecepcionarVentaReciclaje }) {
   const montoTotal = Number(cajaFondo?.monto_total || 500);
   const montoDisponible = Number(cajaFondo?.monto_disponible || 0);
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN');
@@ -46,28 +44,6 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [reciclajeModalSol, setReciclajeModalSol] = useState(null);
   const [reciclajeNotas, setReciclajeNotas] = useState('');
   const [isRecepcionandoReciclaje, setIsRecepcionandoReciclaje] = useState(false);
-
-  // Modal de Reversa de Rendición
-  const [revertirModalSol, setRevertirModalSol] = useState(null);
-  const [isRevertiendo, setIsRevertiendo] = useState(false);
-
-  const handleConfirmarReversaRendicion = async (motivo) => {
-    if (!revertirModalSol || !onRevertirRendicion) return;
-    setIsRevertiendo(true);
-    try {
-      const res = await onRevertirRendicion(revertirModalSol.id, motivo);
-      if (res && res.error) {
-        throw new Error(res.error);
-      }
-      playNotificationSound('success');
-      alert(`¡Rendición de ${revertirModalSol.codigo} revertida exitosamente! La solicitud volvió al estado POR RENDIR.`);
-      setRevertirModalSol(null);
-    } catch (err) {
-      alert('Error al revertir la rendición: ' + err.message);
-    } finally {
-      setIsRevertiendo(false);
-    }
-  };
 
   useEffect(() => {
     // Si hay alguna solicitud pendiente de reembolso o devolución por recibir en caja,
@@ -843,36 +819,14 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                             <Check size={16} /> {sol.estado === 'POR_REEMBOLSAR' ? 'Entregar Reembolso' : 'Entregar Dinero'}
                           </button>
                         ) : sol.estado === 'POR_DEVOLVER' ? (
-                          <div style={{ display: 'inline-flex', gap: '0.4rem', alignItems: 'center' }}>
-                            <button 
-                              className="btn btn-success" 
-                              onClick={() => handleRecibirDevolucion(sol)}
-                              disabled={processingId === sol.id}
-                              style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
-                            >
-                              <Check size={16} /> Confirmar Recepción
-                            </button>
-                            <button
-                              type="button"
-                              className="btn btn-ghost"
-                              onClick={() => setRevertirModalSol(sol)}
-                              disabled={processingId === sol.id}
-                              title="Revertir rendición errónea y regresar a Por Rendir"
-                              style={{ 
-                                color: '#b45309', 
-                                border: '1px solid #fde68a', 
-                                background: '#fffbeb', 
-                                padding: '0.35rem 0.55rem',
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '0.25rem',
-                                fontSize: '0.75rem',
-                                borderRadius: 'var(--radius-sm)'
-                              }}
-                            >
-                              <RotateCcw size={14} /> Revertir
-                            </button>
-                          </div>
+                          <button 
+                            className="btn btn-success" 
+                            onClick={() => handleRecibirDevolucion(sol)}
+                            disabled={processingId === sol.id}
+                            style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}
+                          >
+                            <Check size={16} /> Confirmar Recepción
+                          </button>
                         ) : (sol.estado === 'PENDIENTE' || sol.estado === 'PENDIENTE_REEMBOLSO') ? (
                           <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontStyle: 'italic' }}>
                             Requiere visto bueno de Admin
@@ -1083,15 +1037,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
         </div>
       )}
 
-      {/* Modal de Reversa de Rendición */}
-      {revertirModalSol && (
-        <ModalReversaRendicion
-          solicitud={revertirModalSol}
-          onClose={() => setRevertirModalSol(null)}
-          onConfirm={handleConfirmarReversaRendicion}
-          isProcessing={isRevertiendo}
-        />
-      )}
+
 
     </div>
   );

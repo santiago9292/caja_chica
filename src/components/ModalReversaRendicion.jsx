@@ -60,7 +60,7 @@ export function ModalReversaRendicion({ solicitud, onClose, onConfirm, isProcess
             </div>
             <div>
               <h3 style={{ fontSize: '1.15rem', color: '#0f172a', margin: 0, fontWeight: '800' }}>
-                Revertir Rendición de Gasto
+                Corregir / Revertir Rendición
               </h3>
               <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                 {solicitud.codigo} • Colaborador: {solicitud.solicitante_nombre}

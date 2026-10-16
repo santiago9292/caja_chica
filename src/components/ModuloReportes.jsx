@@ -913,10 +913,10 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
                                   background: '#fffbeb',
                                   borderRadius: 'var(--radius-sm)'
                                 }}
-                                title="Revertir comprobantes ingresados por error y regresar la solicitud a Por Rendir"
+                                title="Corregir o revertir rendición errónea y regresar la solicitud a Por Rendir"
                               >
                                 <RotateCcw size={12} />
-                                <span>Revertir</span>
+                                <span>Corregir</span>
                               </button>
                             )}
 
