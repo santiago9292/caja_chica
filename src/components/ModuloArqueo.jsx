@@ -279,68 +279,68 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
         </div>
       )}
 
-      {/* Tarjetas Métricas */}
-      <div className="stats-grid">
-        <div className="stat-card">
+      {/* Tarjetas Métricas en Fila Compacta */}
+      <div className="stats-grid-row">
+        <div className="stat-card-compact" title="Fondo Fijo Asignado">
           <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
-            <Wallet size={22} />
+            <Wallet size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value">S/ {montoTotal.toFixed(2)}</div>
             <div className="stat-label">Fondo Fijo Asignado</div>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card-compact" title="Saldo Disponible en Caja">
           <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669' }}>
-            <CheckCircle2 size={22} />
+            <CheckCircle2 size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value">S/ {montoDisponible.toFixed(2)}</div>
             <div className="stat-label">Saldo Disponible en Caja</div>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card-compact" title="Gastos Pagados / Entregados">
           <div className="stat-icon-wrapper" style={{ background: '#fef2f2', color: '#dc2626' }}>
-            <TrendingDown size={22} />
+            <TrendingDown size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value">S/ {totalPagado.toFixed(2)}</div>
-            <div className="stat-label">Gastos Pagados / Entregados</div>
+            <div className="stat-label">Gastos Pagados</div>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div className="stat-card-compact" title="Comprometido (Pendiente/Aprob.)">
           <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706' }}>
-            <Clock size={22} />
+            <Clock size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value">S/ {totalPendienteOAprobado.toFixed(2)}</div>
-            <div className="stat-label">Comprometido (Pendiente/Aprob.)</div>
+            <div className="stat-label">Comprometido</div>
           </div>
         </div>
 
         {totalReciclaje > 0 && (
-          <div className="stat-card">
+          <div className="stat-card-compact" title="Ingresos Reciclaje en Caja" style={{ borderColor: '#bbf7d0' }}>
             <div className="stat-icon-wrapper" style={{ background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0' }}>
-              <Recycle size={22} />
+              <Recycle size={18} />
             </div>
-            <div>
+            <div className="stat-content">
               <div className="stat-value" style={{ color: '#15803d' }}>+ S/ {totalReciclaje.toFixed(2)}</div>
-              <div className="stat-label">Ingresos Reciclaje (Caja)</div>
+              <div className="stat-label">Reciclaje (Caja)</div>
             </div>
           </div>
         )}
 
         {totalReciclajePendiente > 0 && (
-          <div className="stat-card" style={{ borderColor: '#fde68a' }}>
+          <div className="stat-card-compact" title={`Reciclaje por Recepcionar (${ventasReciclajePendientes.length})`} style={{ borderColor: '#fde68a' }}>
             <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}>
-              <Clock size={22} />
+              <Clock size={18} />
             </div>
-            <div>
+            <div className="stat-content">
               <div className="stat-value" style={{ color: '#b45309' }}>S/ {totalReciclajePendiente.toFixed(2)}</div>
-              <div className="stat-label">Reciclaje por Recepcionar ({ventasReciclajePendientes.length})</div>
+              <div className="stat-label">Reciclaje por Recep. ({ventasReciclajePendientes.length})</div>
             </div>
           </div>
         )}

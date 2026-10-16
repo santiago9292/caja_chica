@@ -19,7 +19,11 @@ import {
   Receipt,
   X,
   Paperclip,
-  FolderArchive
+  FolderArchive,
+  Recycle,
+  TrendingDown,
+  TrendingUp,
+  Wallet
 } from 'lucide-react';
 import { exportarCajaChicaExcel } from '../lib/excelExporter';
 import { 
@@ -36,7 +40,9 @@ const OPCIONES_ESTADO = [
   { value: 'RENDIDO', label: 'Rendido (Por Liquidar)', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
   { value: 'POR_RENDIR', label: 'Por Rendir', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   { value: 'APROBADO', label: 'Aprobado', color: '#047857', bg: '#ecfdf5', border: '#a7f3d0' },
-  { value: 'PENDIENTE', label: 'Pendiente', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+  { value: 'INGRESADO_CAJA', label: 'Ingresado en Caja (Reciclaje)', color: '#15803d', bg: '#f0fdf4', border: '#bbf7d0' },
+  { value: 'PENDIENTE_RECEPCION', label: 'Por Recepcionar (Reciclaje)', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
+  { value: 'PENDIENTE', label: 'Pendiente Gasto', color: '#b45309', bg: '#fffbeb', border: '#fde68a' },
   { value: 'POR_REEMBOLSAR', label: 'Por Reembolsar', color: '#1d4ed8', bg: '#eff6ff', border: '#bfdbfe' },
   { value: 'POR_DEVOLVER', label: 'Por Devolver', color: '#6d28d9', bg: '#f5f3ff', border: '#ddd6fe' },
   { value: 'RECHAZADO', label: 'Rechazado', color: '#b91c1c', bg: '#fef2f2', border: '#fecaca' }
@@ -239,7 +245,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
     return `${estadosSeleccionados.length} seleccionados`;
   };
 
-  const solicitudesFiltradas = solicitudes.filter(s => s.tipo !== 'INGRESO_RECICLAJE').filter(s => {
+  const solicitudesFiltradas = solicitudes.filter(s => {
     if (estadosSeleccionados.length > 0 && estadosSeleccionados.length < OPCIONES_ESTADO.length) {
       const match = estadosSeleccionados.some(est => {
         if (est === 'POR_RENDIR') {
@@ -266,12 +272,12 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
       if (fechaSol > fechaHasta) return false;
     }
     return true;
-  });
+  }).sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
-  const totalFiltrado = solicitudesFiltradas.reduce((acc, cur) => acc + getMontoReal(cur), 0);
+  const totalFiltrado = solicitudesFiltradas.reduce((acc, cur) => acc + (cur.tipo === 'INGRESO_RECICLAJE' ? Number(cur.monto || 0) : getMontoReal(cur)), 0);
   const totalAprobadoFiltrado = solicitudesFiltradas
-    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR', 'POR_DEVOLVER'].includes(s.estado))
-    .reduce((acc, cur) => acc + getMontoReal(cur), 0);
+    .filter(s => ['APROBADO', 'RENDIDO', 'LIQUIDADO', 'PAGADO', 'POR_RENDIR', 'POR_REEMBOLSAR', 'POR_DEVOLVER', 'INGRESADO_CAJA'].includes(s.estado))
+    .reduce((acc, cur) => acc + (cur.tipo === 'INGRESO_RECICLAJE' ? Number(cur.monto || 0) : getMontoReal(cur)), 0);
 
   const handleExportZip = async () => {
     setIsExporting(true);
@@ -715,7 +721,7 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
               </div>
               <div>
                 <div className="stat-value">S/ {totalAprobadoFiltrado.toFixed(2)}</div>
-                <div className="stat-label">Total Aprobado</div>
+                <div className="stat-label">Total Aprobado / Ingresado</div>
               </div>
             </div>
 
@@ -731,134 +737,185 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
           </div>
 
           {/* Tabla Previa */}
-          <div className="glass-panel" style={{ padding: '0.75rem' }}>
-            <div className="table-responsive sticky-page-scroll">
-              <table className="data-table">
+          {/* Tabla Previa Compacta sin Scroll Horizontal */}
+          <div className="glass-panel" style={{ padding: '0.65rem' }}>
+            <div className="table-responsive">
+              <table className="data-table table-compact" style={{ width: '100%' }}>
                 <thead>
                   <tr>
-                    <th>Código</th>
-                    <th>Fecha</th>
-                    <th>Solicitante</th>
-                    <th>Categoría</th>
-                    <th>Comprobante</th>
-                    <th>RUC Emisor</th>
-                    <th>Concepto</th>
-                    <th>Monto S/</th>
-                    <th>Estado</th>
-                    <th style={{ textAlign: 'center' }}>Sustento</th>
+                    <th style={{ width: '85px', whiteSpace: 'nowrap' }}>Código</th>
+                    <th style={{ width: '75px', whiteSpace: 'nowrap' }}>Fecha</th>
+                    <th style={{ maxWidth: '125px', whiteSpace: 'nowrap' }}>Solicitante</th>
+                    <th style={{ width: '105px', whiteSpace: 'nowrap' }}>Categoría</th>
+                    <th style={{ maxWidth: '115px', whiteSpace: 'nowrap' }}>Comprobante</th>
+                    <th style={{ width: '90px', whiteSpace: 'nowrap' }}>RUC Emisor</th>
+                    <th style={{ whiteSpace: 'nowrap' }}>Concepto</th>
+                    <th style={{ width: '85px', textAlign: 'right', whiteSpace: 'nowrap' }}>Monto S/</th>
+                    <th style={{ width: '110px', textAlign: 'center', whiteSpace: 'nowrap' }}>Estado</th>
+                    <th style={{ width: '90px', textAlign: 'center', whiteSpace: 'nowrap' }}>Sustento</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {solicitudesFiltradas.map((s) => (
-                    <tr key={s.id}>
-                      <td style={{ fontFamily: 'monospace', fontWeight: '700', color: '#0f172a' }}>
-                        {s.codigo}
-                      </td>
-                      <td>{new Date(s.created_at).toLocaleDateString('es-PE')}</td>
-                      <td>{s.solicitante_nombre}</td>
-                      <td>
-                        <div style={{ fontWeight: '600', color: '#0f172a' }}>
-                          {s.categoria ? s.categoria.replace(/_/g, ' ') : '-'}
-                        </div>
-                        {s.centro_costo && (
-                          <div style={{ fontSize: '0.72rem', color: '#0284c7', fontFamily: 'monospace', fontWeight: '700' }}>
-                            {s.centro_costo}
+                  {solicitudesFiltradas.map((s) => {
+                    const isIngreso = s.tipo === 'INGRESO_RECICLAJE';
+                    const isAnulado = s.estado === 'ANULADO';
+
+                    return (
+                      <tr key={s.id}>
+                        <td style={{ fontFamily: 'monospace', fontWeight: '700', whiteSpace: 'nowrap', fontSize: '0.76rem' }}>
+                          <span style={{ 
+                            color: isAnulado ? '#94a3b8' : isIngreso ? '#15803d' : '#0f172a',
+                            textDecoration: isAnulado ? 'line-through' : 'none' 
+                          }}>
+                            {s.codigo}
+                          </span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap', fontSize: '0.74rem' }}>
+                          {new Date(s.created_at).toLocaleDateString('es-PE')}
+                        </td>
+                        <td 
+                          style={{ maxWidth: '125px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.76rem', fontWeight: '600' }} 
+                          title={s.solicitante_nombre}
+                        >
+                          {s.solicitante_nombre}
+                        </td>
+                        <td style={{ fontSize: '0.74rem', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontWeight: '600', color: isAnulado ? '#94a3b8' : isIngreso ? '#15803d' : '#0f172a' }}>
+                            {s.categoria ? s.categoria.replace(/_/g, ' ') : '-'}
                           </div>
-                        )}
-                      </td>
-                      <td>
-                        {(() => {
-                          let compText = s.comprobante_tipo 
-                            ? (s.comprobante_tipo.includes('Comprobantes') ? s.comprobante_tipo : `${getTipoLabel(s.comprobante_tipo)} ${s.comprobante_numero || ''}`.trim())
-                            : '-';
-                          if (s.rendiciones) {
-                            try {
-                              let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
-                              if (r.length > 0) compText = r.length === 1 ? `${getTipoLabel(r[0].tipo)} ${r[0].numero || ''}`.trim() : `${r.length} Comprobantes`;
-                            } catch(e) {}
-                          }
-                          return compText;
-                        })()}
-                      </td>
-                      <td>
-                        {(() => {
-                          let rucText = s.comprobante_ruc_emisor || '-';
-                          if (s.rendiciones) {
-                            try {
-                              let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
-                              if (r.length > 0) rucText = r.length === 1 ? (r[0].ruc || '-') : 'Varios';
-                            } catch(e) {}
-                          }
-                          return rucText;
-                        })()}
-                      </td>
-                      <td style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {s.motivo}
-                      </td>
-                      <td style={{ whiteSpace: 'nowrap' }}>
-                        <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>
-                          S/ {getMontoReal(s).toFixed(2)}
-                        </strong>
-                        {s.rendiciones && getMontoReal(s) !== Number(s.monto) && (
-                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
-                            Adelanto: S/ {Number(s.monto).toFixed(2)}
-                          </div>
-                        )}
-                      </td>
-                      <td>
-                        <span className={`badge ${
-                          s.estado === 'LIQUIDADO' ? 'badge-liquidado' :
-                          s.estado === 'APROBADO' ? 'badge-aprobado' :
-                          s.estado === 'RENDIDO' ? 'badge-aprobado' :
-                          s.estado === 'POR_RENDIR' ? 'badge-pendiente' :
-                          s.estado === 'POR_REEMBOLSAR' ? 'badge-aprobado' :
-                          s.estado === 'PENDIENTE_REEMBOLSO' ? 'badge-pendiente' :
-                          s.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
-                        }`}>
-                          {s.estado.replace('_', ' ')}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {(() => {
-                          const numSustentos = contarSustentosDeSolicitud(s);
-                          const tieneSustento = numSustentos > 0;
-                          return (
-                            <button
-                              type="button"
-                              onClick={() => handleDescargarSustentoFila(s)}
-                              disabled={!tieneSustento || downloadingId === s.id}
-                              className={`btn ${tieneSustento ? 'btn-secondary' : 'btn-ghost'}`}
-                              style={{
-                                padding: '0.3rem 0.6rem',
-                                fontSize: '0.75rem',
-                                display: 'inline-flex',
-                                alignItems: 'center',
-                                gap: '0.35rem',
-                                opacity: tieneSustento ? 1 : 0.4,
-                                cursor: tieneSustento ? 'pointer' : 'not-allowed'
-                              }}
-                              title={
-                                !tieneSustento 
-                                  ? 'Sin sustento adjunto' 
-                                  : numSustentos === 1 
-                                    ? 'Descargar comprobante adjunto' 
-                                    : `Descargar ${numSustentos} sustentos (.zip)`
-                              }
-                            >
-                              <FileDown size={14} />
-                              <span>
-                                {downloadingId === s.id 
-                                  ? '...' 
-                                  : tieneSustento 
-                                    ? (numSustentos > 1 ? `${numSustentos} Archivos` : 'Descargar') 
-                                    : 'Sin archivo'}
-                              </span>
-                            </button>
-                          );
-                        })()}
-                      </td>
-                    </tr>
-                  ))}
+                          {s.centro_costo && (
+                            <div style={{ fontSize: '0.67rem', color: '#0284c7', fontFamily: 'monospace', fontWeight: '700' }}>
+                              {s.centro_costo}
+                            </div>
+                          )}
+                        </td>
+                        <td 
+                          style={{ maxWidth: '115px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.74rem' }} 
+                          title={(() => {
+                            if (isIngreso) return s.comprobante_numero ? `Ticket ${s.comprobante_numero}` : 'Ticket Reciclaje';
+                            let t = s.comprobante_tipo ? `${getTipoLabel(s.comprobante_tipo)} ${s.comprobante_numero || ''}`.trim() : '-';
+                            return t;
+                          })()}
+                        >
+                          {(() => {
+                            if (isIngreso) {
+                              return s.comprobante_numero ? `Ticket ${s.comprobante_numero}` : 'Ticket Reciclaje';
+                            }
+                            let compText = s.comprobante_tipo 
+                              ? (s.comprobante_tipo.includes('Comprobantes') ? s.comprobante_tipo : `${getTipoLabel(s.comprobante_tipo)} ${s.comprobante_numero || ''}`.trim())
+                              : '-';
+                            if (s.rendiciones) {
+                              try {
+                                let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
+                                if (r.length > 0) compText = r.length === 1 ? `${getTipoLabel(r[0].tipo)} ${r[0].numero || ''}`.trim() : `${r.length} Comprobantes`;
+                              } catch(e) {}
+                            }
+                            return compText.replace('Sin Comprobante Físico', 'Sin Comprobante');
+                          })()}
+                        </td>
+                        <td style={{ fontSize: '0.74rem', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
+                          {(() => {
+                            if (isIngreso) {
+                              return (s.comprobante_ruc_emisor && s.comprobante_ruc_emisor !== '-') ? s.comprobante_ruc_emisor : '-';
+                            }
+                            let rucText = s.comprobante_ruc_emisor || '-';
+                            if (s.rendiciones) {
+                              try {
+                                let r = typeof s.rendiciones === 'string' ? JSON.parse(s.rendiciones) : s.rendiciones;
+                                if (r.length > 0) rucText = r.length === 1 ? (r[0].ruc || '-') : 'Varios';
+                              } catch(e) {}
+                            }
+                            return rucText;
+                          })()}
+                        </td>
+                        <td style={{ maxWidth: '160px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '0.74rem' }} title={s.motivo}>
+                          <span style={{ color: isAnulado ? '#94a3b8' : 'inherit' }}>
+                            {s.motivo}
+                          </span>
+                        </td>
+                        <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                          {isAnulado ? (
+                            <span style={{ textDecoration: 'line-through', color: '#94a3b8', fontWeight: '600', fontSize: '0.78rem' }}>
+                              S/ {Number(s.monto || 0).toFixed(2)}
+                            </span>
+                          ) : isIngreso ? (
+                            <strong style={{ color: '#15803d', fontSize: '0.82rem' }}>
+                              + S/ {Number(s.monto || 0).toFixed(2)}
+                            </strong>
+                          ) : (
+                            <>
+                              <strong style={{ color: '#0f172a', fontSize: '0.82rem' }}>
+                                S/ {getMontoReal(s).toFixed(2)}
+                              </strong>
+                              {s.rendiciones && getMontoReal(s) !== Number(s.monto) && (
+                                <div style={{ fontSize: '0.65rem', color: 'var(--text-muted)' }}>
+                                  Adel: S/ {Number(s.monto).toFixed(2)}
+                                </div>
+                              )}
+                            </>
+                          )}
+                        </td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          <span className={`badge ${
+                            s.estado === 'INGRESADO_CAJA' ? 'badge-reciclaje' :
+                            s.estado === 'PENDIENTE_RECEPCION' ? 'badge-pendiente' :
+                            s.estado === 'ANULADO' ? 'badge-rechazado' :
+                            s.estado === 'LIQUIDADO' ? 'badge-liquidado' :
+                            s.estado === 'APROBADO' ? 'badge-aprobado' :
+                            s.estado === 'RENDIDO' ? 'badge-aprobado' :
+                            s.estado === 'POR_RENDIR' ? 'badge-pendiente' :
+                            s.estado === 'POR_REEMBOLSAR' ? 'badge-aprobado' :
+                            s.estado === 'PENDIENTE_REEMBOLSO' ? 'badge-pendiente' :
+                            s.estado === 'RECHAZADO' ? 'badge-rechazado' : 'badge-pendiente'
+                          }`} style={{ fontSize: '0.65rem', padding: '0.12rem 0.42rem' }}>
+                            {s.estado === 'INGRESADO_CAJA' ? 'INGRESADO EN CAJA' :
+                             s.estado === 'PENDIENTE_RECEPCION' ? 'POR RECEPCIONAR' :
+                             s.estado === 'ANULADO' ? 'ANULADO' :
+                             s.estado.replace(/_/g, ' ')}
+                          </span>
+                        </td>
+                        <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                          {(() => {
+                            const numSustentos = contarSustentosDeSolicitud(s);
+                            const tieneSustento = numSustentos > 0;
+                            return (
+                              <button
+                                type="button"
+                                onClick={() => handleDescargarSustentoFila(s)}
+                                disabled={!tieneSustento || downloadingId === s.id}
+                                className={`btn ${tieneSustento ? 'btn-secondary' : 'btn-ghost'}`}
+                                style={{
+                                  padding: '0.2rem 0.45rem',
+                                  fontSize: '0.7rem',
+                                  display: 'inline-flex',
+                                  alignItems: 'center',
+                                  gap: '0.25rem',
+                                  opacity: tieneSustento ? 1 : 0.4,
+                                  cursor: tieneSustento ? 'pointer' : 'not-allowed'
+                                }}
+                                title={
+                                  !tieneSustento 
+                                    ? 'Sin sustento adjunto' 
+                                    : numSustentos === 1 
+                                      ? 'Descargar comprobante adjunto' 
+                                      : `Descargar ${numSustentos} sustentos (.zip)`
+                                }
+                              >
+                                <FileDown size={12} />
+                                <span>
+                                  {downloadingId === s.id 
+                                    ? '...' 
+                                    : tieneSustento 
+                                      ? (numSustentos > 1 ? `${numSustentos} Arch.` : 'Descargar') 
+                                      : 'Sin arch.'}
+                                </span>
+                              </button>
+                            );
+                          })()}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -869,23 +926,23 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
       {/* VISTA 2: HISTORIAL DE LIQUIDACIONES PASADAS */}
       {activeTab === 'HISTORIAL_LIQUIDACIONES' && (
         <div>
-          {/* Métricas del Historial */}
-          <div className="stats-grid" style={{ marginBottom: '1.25rem' }}>
-            <div className="stat-card">
+          {/* Métricas del Historial en Fila Compacta */}
+          <div className="stats-grid-row">
+            <div className="stat-card-compact" title={`Total de lotes oficiales liquidados: ${liquidacionesHistorial.length}`}>
               <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669' }}>
-                <FolderArchive size={20} />
+                <FolderArchive size={18} />
               </div>
-              <div>
+              <div className="stat-content">
                 <div className="stat-value">{liquidacionesHistorial.length}</div>
-                <div className="stat-label">Lotes Oficiales Liquidados</div>
+                <div className="stat-label">Lotes Liquidados</div>
               </div>
             </div>
 
-            <div className="stat-card">
+            <div className="stat-card-compact" title={`Total de gastos archivados: ${liquidacionesHistorial.reduce((sum, l) => sum + l.totalItems, 0)}`}>
               <div className="stat-icon-wrapper" style={{ background: '#eff6ff', color: '#2563eb' }}>
-                <FileCheck size={20} />
+                <FileCheck size={18} />
               </div>
-              <div>
+              <div className="stat-content">
                 <div className="stat-value">
                   {liquidacionesHistorial.reduce((sum, l) => sum + l.totalItems, 0)}
                 </div>
@@ -893,11 +950,11 @@ export function ModuloReportes({ currentUser, solicitudes, cajaFondo, categorias
               </div>
             </div>
 
-            <div className="stat-card">
+            <div className="stat-card-compact" title={`Total acumulado liquidado: S/ ${liquidacionesHistorial.reduce((sum, l) => sum + l.totalMonto, 0).toFixed(2)}`}>
               <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
-                <CheckCircle2 size={20} />
+                <CheckCircle2 size={18} />
               </div>
-              <div>
+              <div className="stat-content">
                 <div className="stat-value">
                   S/ {liquidacionesHistorial.reduce((sum, l) => sum + l.totalMonto, 0).toFixed(2)}
                 </div>

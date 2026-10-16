@@ -386,59 +386,59 @@ export function ModuloReciclaje({
         </div>
       )}
 
-      {/* Tarjetas de Métricas (KPIs) */}
-      <div className="stats-grid" style={{ marginBottom: '1.25rem' }}>
+      {/* Tarjetas de Métricas (KPIs) Compactas en Fila */}
+      <div className="stats-grid-row">
         {/* KPI 1: Recepcionado en Caja */}
-        <div className="stat-card">
+        <div className="stat-card-compact" title="Total Ingresado a Caja Chica por Reciclaje">
           <div className="stat-icon-wrapper" style={{ background: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}>
-            <TrendingUp size={20} />
+            <TrendingUp size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value" style={{ color: '#047857' }}>
               S/ {totalMontoRecepcionado.toFixed(2)}
             </div>
-            <div className="stat-label">Ingresado a Caja Chica ({ventasRecepcionadas.length})</div>
+            <div className="stat-label">Ingresado a Caja ({ventasRecepcionadas.length})</div>
           </div>
         </div>
 
         {/* KPI 2: Pendiente de Recepción */}
-        <div className="stat-card" style={{ borderColor: totalMontoPendiente > 0 ? '#fde68a' : undefined }}>
+        <div className="stat-card-compact" title="Pendiente de Entrega / Recepción en Caja" style={{ borderColor: totalMontoPendiente > 0 ? '#fde68a' : undefined }}>
           <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}>
-            <Clock size={20} />
+            <Clock size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value" style={{ color: totalMontoPendiente > 0 ? '#b45309' : '#64748b' }}>
               S/ {totalMontoPendiente.toFixed(2)}
             </div>
             <div className="stat-label">
-              Pendiente por Entregar ({ventasPendientes.length})
+              Pendiente Entrega ({ventasPendientes.length})
             </div>
           </div>
         </div>
 
         {/* KPI 3: Kilos Totales */}
-        <div className="stat-card">
+        <div className="stat-card-compact" title="Total de Kilogramos Vendidos">
           <div className="stat-icon-wrapper" style={{ background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe' }}>
-            <Scale size={20} />
+            <Scale size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value" style={{ color: '#1d4ed8' }}>
               {totalKilos > 0 ? `${totalKilos.toFixed(1)} Kg` : '0.0 Kg'}
             </div>
-            <div className="stat-label">Kilos Totales Vendidos</div>
+            <div className="stat-label">Kilos Totales</div>
           </div>
         </div>
 
         {/* KPI 4: Saldo Disponible */}
-        <div className="stat-card">
+        <div className="stat-card-compact" title="Saldo Disponible Actual en Caja Chica">
           <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
-            <Wallet size={20} />
+            <Wallet size={18} />
           </div>
-          <div>
+          <div className="stat-content">
             <div className="stat-value" style={{ color: '#0f172a' }}>
               S/ {saldoDisponibleActual.toFixed(2)}
             </div>
-            <div className="stat-label">Saldo Disponible Actual</div>
+            <div className="stat-label">Saldo Disponible</div>
           </div>
         </div>
       </div>
@@ -540,21 +540,21 @@ export function ModuloReciclaje({
       </div>
 
       {/* Tabla de Registros de Reciclaje */}
-      <div className="glass-panel" style={{ padding: '0.75rem' }}>
-        <div className="table-responsive sticky-page-scroll">
-          <table className="data-table">
+      <div className="glass-panel" style={{ padding: '0.65rem' }}>
+        <div className="table-responsive">
+          <table className="data-table table-compact" style={{ width: '100%' }}>
             <thead>
               <tr>
-                <th>Código</th>
-                <th>Fecha Venta</th>
-                <th>Registrado Por</th>
-                <th>Material</th>
-                <th>Pesaje & Precio</th>
-                <th>Importe</th>
-                <th>Comprador / Ticket</th>
-                <th style={{ textAlign: 'center' }}>Sustento</th>
-                <th>Estado</th>
-                <th style={{ textAlign: 'center' }}>Acciones</th>
+                <th style={{ width: '95px', whiteSpace: 'nowrap' }}>Código</th>
+                <th style={{ width: '80px', whiteSpace: 'nowrap' }}>Fecha Venta</th>
+                <th style={{ width: '135px', whiteSpace: 'nowrap' }}>Registrado Por</th>
+                <th style={{ width: '85px', whiteSpace: 'nowrap' }}>Material</th>
+                <th style={{ width: '110px', whiteSpace: 'nowrap' }}>Pesaje & Precio</th>
+                <th style={{ width: '85px', textAlign: 'right', whiteSpace: 'nowrap' }}>Importe</th>
+                <th style={{ width: '125px', whiteSpace: 'nowrap' }}>Comprador / Ticket</th>
+                <th style={{ width: '70px', textAlign: 'center', whiteSpace: 'nowrap' }}>Sustento</th>
+                <th style={{ width: '130px', whiteSpace: 'nowrap' }}>Estado</th>
+                <th style={{ width: '115px', textAlign: 'center', whiteSpace: 'nowrap' }}>Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -581,104 +581,106 @@ export function ModuloReciclaje({
 
                   return (
                     <tr key={s.id} style={{ opacity: isAnulado ? 0.5 : 1 }}>
-                      <td style={{ fontFamily: 'monospace', fontWeight: '700', color: isAnulado ? '#94a3b8' : isIngresado ? '#047857' : '#b45309' }}>
+                      <td style={{ fontFamily: 'monospace', fontWeight: '700', whiteSpace: 'nowrap', fontSize: '0.78rem', color: isAnulado ? '#94a3b8' : isIngresado ? '#047857' : '#b45309' }}>
                         {s.codigo}
                       </td>
-                      <td style={{ fontSize: '0.82rem' }}>
+                      <td style={{ whiteSpace: 'nowrap', fontSize: '0.74rem' }}>
                         {new Date(s.created_at).toLocaleDateString('es-PE')}
                       </td>
-                      <td>
-                        <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '0.85rem' }}>
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div style={{ fontWeight: '600', color: '#0f172a', fontSize: '0.78rem', whiteSpace: 'nowrap' }}>
                           {s.solicitante_nombre}
                         </div>
-                        <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                           DNI: {s.solicitante_dni}
                         </div>
                       </td>
-                      <td>
-                        <span className="badge badge-reciclaje">
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <span className="badge badge-reciclaje" style={{ fontSize: '0.68rem', padding: '0.12rem 0.45rem', whiteSpace: 'nowrap' }}>
                           {parsed.material || 'Cartón'}
                         </span>
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         {parsed.peso_kg > 0 ? (
-                          <div style={{ fontSize: '0.82rem' }}>
+                          <div style={{ fontSize: '0.76rem', whiteSpace: 'nowrap' }}>
                             <strong>{parsed.peso_kg} Kg</strong>
                             {parsed.precio_kg > 0 && (
-                              <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>
-                                {' '}@ S/ {Number(parsed.precio_kg).toFixed(2)}/Kg
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                                {' '}@ S/ {Number(parsed.precio_kg).toFixed(2)}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>-</span>
+                          <span style={{ fontSize: '0.74rem', color: 'var(--text-muted)' }}>-</span>
                         )}
                       </td>
-                      <td>
-                        <div style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
+                      <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
+                        <strong style={{
                           color: isAnulado ? '#94a3b8' : isIngresado ? '#059669' : '#d97706',
-                          fontWeight: '800',
-                          fontSize: '0.95rem'
+                          fontSize: '0.84rem',
+                          whiteSpace: 'nowrap'
                         }}>
-                          <ArrowDownLeft size={16} />
-                          <span>+ S/ {Number(s.monto).toFixed(2)}</span>
-                        </div>
+                          + S/ {Number(s.monto).toFixed(2)}
+                        </strong>
                       </td>
-                      <td>
-                        <div style={{ fontSize: '0.82rem', fontWeight: '600', color: '#0f172a' }}>
-                          {parsed.comprador || s.comprobante_razon_social || 'Reciclador Local'}
+                      <td style={{ whiteSpace: 'nowrap' }}>
+                        <div 
+                          style={{ fontSize: '0.76rem', fontWeight: '600', color: '#0f172a', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '120px' }}
+                          title={parsed.comprador || s.comprobante_razon_social || 'Reciclador'}
+                        >
+                          {parsed.comprador || s.comprobante_razon_social || 'Reciclador'}
                         </div>
                         {(parsed.ticket_numero || s.comprobante_numero) && (
-                          <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontFamily: 'monospace' }}>
+                          <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', fontFamily: 'monospace', whiteSpace: 'nowrap' }}>
                             Ticket: {parsed.ticket_numero || s.comprobante_numero}
                           </div>
                         )}
                       </td>
-                      <td style={{ textAlign: 'center' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
                         {s.abono_sustento_url ? (
                           <button
                             type="button"
                             onClick={() => setViewerImgUrl(s.abono_sustento_url)}
                             className="btn btn-secondary"
-                            style={{ padding: '0.25rem 0.55rem', fontSize: '0.72rem', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}
+                            style={{ padding: '0.18rem 0.45rem', fontSize: '0.7rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}
                             title="Ver ticket / comprobante adjunto"
                           >
-                            <Eye size={13} />
-                            <span>Ver Ticket</span>
+                            <Eye size={12} />
+                            <span>Ticket</span>
                           </button>
                         ) : (
-                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>Sin foto</span>
+                          <span style={{ fontSize: '0.72rem', color: '#94a3b8' }}>-</span>
                         )}
                       </td>
-                      <td>
+                      <td style={{ whiteSpace: 'nowrap' }}>
                         {isPendiente && (
-                          <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                            <Clock size={12} /> PENDIENTE ENTREGA
+                          <span className="badge badge-pendiente" style={{ fontSize: '0.65rem', padding: '0.12rem 0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                            <Clock size={11} /> POR RECEPCIONAR
                           </span>
                         )}
                         {isIngresado && (
-                          <div>
-                            <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                              <CheckCircle2 size={12} /> EN CAJA CHICA
+                          <div style={{ whiteSpace: 'nowrap' }}>
+                            <span className="badge badge-reciclaje" style={{ fontSize: '0.65rem', padding: '0.12rem 0.45rem', display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
+                              <CheckCircle2 size={11} /> EN CAJA CHICA
                             </span>
                             {s.pagado_por_nombre && (
-                              <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>
+                              <div 
+                                style={{ fontSize: '0.66rem', color: '#64748b', marginTop: '0.1rem', maxWidth: '135px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+                                title={`Recibió: ${s.pagado_por_nombre}`}
+                              >
                                 Recibió: {s.pagado_por_nombre}
                               </div>
                             )}
                           </div>
                         )}
                         {isAnulado && (
-                          <span className="badge badge-rechazado">
+                          <span className="badge badge-rechazado" style={{ fontSize: '0.65rem', padding: '0.12rem 0.45rem', whiteSpace: 'nowrap' }}>
                             ANULADO
                           </span>
                         )}
                       </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+                      <td style={{ textAlign: 'center', whiteSpace: 'nowrap' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', whiteSpace: 'nowrap' }}>
                           {/* Botón de Recepcionar Efectivo si está pendiente */}
                           {isPendiente && canRecepcionar && (
                             <button
@@ -692,23 +694,24 @@ export function ModuloReciclaje({
                               style={{
                                 background: '#059669',
                                 borderColor: '#047857',
-                                padding: '0.28rem 0.65rem',
-                                fontSize: '0.75rem',
+                                padding: '0.2rem 0.5rem',
+                                fontSize: '0.72rem',
                                 display: 'inline-flex',
                                 alignItems: 'center',
-                                gap: '0.3rem',
-                                fontWeight: '700'
+                                gap: '0.25rem',
+                                fontWeight: '700',
+                                whiteSpace: 'nowrap'
                               }}
                               title="Confirmar recepción física del dinero y sumar al saldo"
                             >
-                              <Check size={14} />
+                              <Check size={12} />
                               <span>Recepcionar</span>
                             </button>
                           )}
 
                           {isPendiente && !canRecepcionar && (
-                            <span style={{ fontSize: '0.72rem', color: '#b45309', background: '#fffbeb', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde68a', fontWeight: '600' }}>
-                              Entregar a Caja
+                            <span style={{ fontSize: '0.68rem', color: '#b45309', background: '#fffbeb', padding: '2px 5px', borderRadius: '4px', border: '1px solid #fde68a', fontWeight: '600', whiteSpace: 'nowrap' }}>
+                              Por entregar
                             </span>
                           )}
 
@@ -716,10 +719,10 @@ export function ModuloReciclaje({
                             type="button"
                             onClick={() => setSelectedDetalle(s)}
                             className="btn btn-ghost"
-                            style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem' }}
+                            style={{ padding: '0.2rem 0.35rem', fontSize: '0.72rem' }}
                             title="Ver detalle del registro"
                           >
-                            <Eye size={14} />
+                            <Eye size={13} />
                           </button>
 
                           {isAdmin && !isAnulado && (
@@ -727,10 +730,10 @@ export function ModuloReciclaje({
                               type="button"
                               onClick={() => handleAnular(s)}
                               className="btn btn-ghost"
-                              style={{ padding: '0.25rem 0.5rem', fontSize: '0.75rem', color: '#dc2626' }}
+                              style={{ padding: '0.2rem 0.35rem', fontSize: '0.72rem', color: '#dc2626' }}
                               title="Anular venta"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={13} />
                             </button>
                           )}
                         </div>

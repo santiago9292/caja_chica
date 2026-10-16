@@ -454,6 +454,106 @@ h1, h2, h3, h4, .font-heading {
   }
 }
 
+/* Fila de KPIs compacta en una sola línea */
+.stats-grid-row {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.55rem;
+  margin-bottom: 1.15rem;
+  width: 100%;
+}
+
+@media (min-width: 580px) and (max-width: 767px) {
+  .stats-grid-row {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.6rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .stats-grid-row {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    gap: 0.55rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .stats-grid-row > .stat-card-compact {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+}
+
+/* Tarjeta de métrica compacta para entrar en una sola línea */
+.stat-card-compact {
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-md);
+  background: #ffffff;
+  border: 1px solid var(--border-subtle);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.55rem;
+  min-width: 0;
+  transition: var(--transition);
+}
+
+.stat-card-compact:hover {
+  border-color: #cbd5e1;
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+.stat-card-compact .stat-icon-wrapper {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.stat-card-compact .stat-content {
+  min-width: 0;
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stat-card-compact .stat-value {
+  font-size: 1.05rem;
+  font-weight: 800;
+  font-family: 'Outfit', sans-serif;
+  line-height: 1.15;
+  color: #0f172a;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (min-width: 1200px) {
+  .stat-card-compact .stat-value {
+    font-size: 1.18rem;
+  }
+}
+
+.stat-card-compact .stat-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  line-height: 1.15;
+  margin-top: 0.1rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .stat-card {
   padding: 1rem;
   border-radius: var(--radius-lg);
@@ -548,19 +648,6 @@ h1, h2, h3, h4, .font-heading {
   z-index: 20;
 }
 
-/* En pantallas medianas y grandes, la cabecera de la tabla se mantiene fija bajo el header-bar al hacer scroll en la página */
-@media (min-width: 768px) {
-  .table-responsive.sticky-page-scroll {
-    overflow: visible;
-  }
-
-  .table-responsive.sticky-page-scroll .data-table thead th {
-    top: 64px;
-    z-index: 35;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-  }
-}
-
 .data-table td {
   padding: 0.75rem 0.85rem;
   border-bottom: 1px solid #f1f5f9;
@@ -570,6 +657,37 @@ h1, h2, h3, h4, .font-heading {
 
 .data-table tr:hover td {
   background: #f8fafc;
+}
+
+/* Tabla compacta optimizada para tablas densas sin scroll horizontal */
+.data-table.table-compact {
+  font-size: 0.76rem;
+  min-width: 0;
+  width: 100%;
+}
+
+@media (min-width: 768px) {
+  .data-table.table-compact {
+    font-size: 0.76rem;
+  }
+}
+
+.data-table.table-compact thead th {
+  padding: 0.45rem 0.5rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.data-table.table-compact td {
+  padding: 0.4rem 0.5rem;
+  font-size: 0.76rem;
+  line-height: 1.25;
+}
+
+.data-table.table-compact .badge {
+  font-size: 0.65rem;
+  padding: 0.12rem 0.42rem;
 }
 
 /* Modales Responsive */
