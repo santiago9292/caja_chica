@@ -390,7 +390,7 @@ h1, h2, h3, h4, .font-heading {
   color: #334155;
 }
 
-.form-input, .form-select, .form-textarea {
+.form-input, .form-select, .form-textarea, .form-control {
   background: #ffffff;
   border: 1px solid #cbd5e1;
   border-radius: var(--radius-md);
@@ -402,21 +402,40 @@ h1, h2, h3, h4, .font-heading {
   outline: none;
   width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
 }
 
 @media (min-width: 640px) {
-  .form-input, .form-select, .form-textarea {
+  .form-input, .form-select, .form-textarea, .form-control {
     font-size: 0.9rem;
   }
 }
 
-.form-input:focus, .form-select:focus, .form-textarea:focus {
-  border-color: var(--border-focus);
+.form-input:focus, .form-select:focus, .form-textarea:focus, .form-control:focus {
+  border-color: #0f172a;
   box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
 }
 
-.form-input::placeholder, .form-textarea::placeholder {
+.form-input::placeholder, .form-textarea::placeholder, .form-control::placeholder {
   color: #94a3b8;
+}
+
+.btn-close {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.35rem;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: var(--transition);
+}
+
+.btn-close:hover {
+  background: #f1f5f9;
+  color: #0f172a;
 }
 
 /* Stats Cards Responsive */

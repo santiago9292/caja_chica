@@ -21,7 +21,8 @@ import {
   Layers,
   ArrowDownLeft,
   Clock,
-  Check
+  Check,
+  Sparkles
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { playNotificationSound } from '../lib/audioNotifier';
@@ -514,7 +515,7 @@ export function ModuloReciclaje({
           <Search size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
           <input
             type="text"
-            className="form-control"
+            className="form-input"
             placeholder="Buscar por código (REC-...), responsable, comprador o ticket..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -743,45 +744,45 @@ export function ModuloReciclaje({
         </div>
       </div>
 
-      {/* MODAL 1: REGISTRAR NUEVA VENTA DE RECICLAJE */}
+      {/* =========================================================================
+          MODAL 1: REGISTRAR NUEVA VENTA DE RECICLAJE (DISEÑO CORPORATIVO PREMIUM)
+          ========================================================================= */}
       {modalNuevoOpen && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(5px)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            background: '#ffffff',
-            maxWidth: '560px',
-            width: '100%',
-            maxHeight: '92vh',
-            overflowY: 'auto',
-            padding: '1.75rem',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-xl)',
-            border: '1px solid #e2e8f0'
-          }}>
-            {/* Header Modal */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.25rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Recycle size={22} />
+        <div className="modal-overlay" onClick={() => setModalNuevoOpen(false)}>
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '580px', padding: '1.75rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabecera del Modal */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'flex-start',
+              marginBottom: '1.25rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  color: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <Recycle size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: '800', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: '800', margin: 0, lineHeight: 1.2 }}>
                     Registrar Venta de Reciclaje
                   </h3>
-                  <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', margin: 0 }}>
+                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: 0, marginTop: '0.25rem' }}>
                     Paso 1: Registra la venta. El dinero quedará pendiente hasta su entrega en Caja Chica.
                   </p>
                 </div>
@@ -789,28 +790,43 @@ export function ModuloReciclaje({
               <button
                 type="button"
                 onClick={() => setModalNuevoOpen(false)}
-                className="btn btn-ghost btn-icon"
+                className="btn-close"
+                title="Cerrar ventana"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
-            {/* Aviso explicativo del paso intermedio */}
+            {/* Aviso Informativo: Flujo de Control en 2 Pasos */}
             <div style={{
               background: '#fffbeb',
-              border: '1px solid #fde68a',
-              borderRadius: '8px',
-              padding: '0.75rem 1rem',
+              border: '1.5px solid #fde68a',
+              borderRadius: 'var(--radius-md)',
+              padding: '0.85rem 1rem',
               marginBottom: '1.25rem',
               display: 'flex',
               alignItems: 'flex-start',
-              gap: '0.5rem',
-              fontSize: '0.8rem',
-              color: '#92400e'
+              gap: '0.75rem'
             }}>
-              <AlertCircle size={18} color="#d97706" style={{ flexShrink: 0, marginTop: '2px' }} />
-              <div>
-                <strong>Flujo de Control:</strong> Al guardar este registro, el dinero <strong>NO se sumará al saldo inmediatamente</strong>. Quedará en estado <em>"Pendiente de Entrega"</em> hasta que el encargado de Caja Chica confirme la recepción física del dinero.
+              <div style={{
+                width: '28px',
+                height: '28px',
+                borderRadius: '50%',
+                background: '#fef3c7',
+                color: '#b45309',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginTop: '1px'
+              }}>
+                <AlertCircle size={17} />
+              </div>
+              <div style={{ fontSize: '0.825rem', color: '#92400e', lineHeight: 1.45 }}>
+                <strong style={{ display: 'block', color: '#78350f', marginBottom: '0.15rem' }}>
+                  Flujo de Control de Efectivo
+                </strong>
+                Al guardar, el registro quedará como <strong>"Pendiente de Entrega"</strong>. El dinero <strong>NO se sumará al saldo</strong> hasta que el encargado de Caja Chica confirme la recepción física del efectivo.
               </div>
             </div>
 
@@ -818,39 +834,51 @@ export function ModuloReciclaje({
               <div style={{
                 background: '#fef2f2',
                 border: '1px solid #fecaca',
-                borderRadius: '8px',
-                padding: '0.75rem',
+                borderRadius: 'var(--radius-md)',
+                padding: '0.75rem 1rem',
                 color: '#991b1b',
-                fontSize: '0.82rem',
-                marginBottom: '1rem',
+                fontSize: '0.85rem',
+                marginBottom: '1.15rem',
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem'
               }}>
-                <AlertCircle size={16} />
+                <AlertCircle size={17} />
                 <span>{errorMsg}</span>
               </div>
             )}
 
             <form onSubmit={handleGuardarVenta}>
-              {/* Fecha y Material */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+              {/* Fila 1: Fecha de Venta y Tipo de Material */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.15rem'
+              }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                     Fecha de Venta *
                   </label>
-                  <input
-                    type="date"
-                    required
-                    className="form-control"
-                    value={fecha}
-                    onChange={(e) => setFecha(e.target.value)}
-                    max={new Date().toISOString().slice(0, 10)}
-                  />
+                  <div style={{ position: 'relative' }}>
+                    <Calendar 
+                      size={17} 
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    />
+                    <input
+                      type="date"
+                      required
+                      className="form-input"
+                      value={fecha}
+                      onChange={(e) => setFecha(e.target.value)}
+                      max={new Date().toISOString().slice(0, 10)}
+                      style={{ paddingLeft: '2.5rem', height: '42px', fontSize: '0.875rem' }}
+                    />
+                  </div>
                 </div>
 
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                     Tipo de Material *
                   </label>
                   <select
@@ -858,6 +886,7 @@ export function ModuloReciclaje({
                     value={material}
                     onChange={(e) => setMaterial(e.target.value)}
                     required
+                    style={{ height: '42px', fontSize: '0.875rem' }}
                   >
                     {MATERIALES_RECICLAJE.map(m => (
                       <option key={m.id} value={m.id}>{m.icon} {m.label}</option>
@@ -866,189 +895,325 @@ export function ModuloReciclaje({
                 </div>
               </div>
 
-              {/* Kilos y Precio por Kg */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+              {/* Fila 2: Peso Total y Precio por Kg */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.15rem'
+              }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                     Peso Total (Kg)
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <Scale size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <Scale 
+                      size={17} 
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    />
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       placeholder="Ej. 120.5"
-                      className="form-control"
+                      className="form-input"
                       value={pesoKg}
                       onChange={(e) => handlePesoChange(e.target.value)}
-                      style={{ paddingLeft: '2.25rem' }}
+                      style={{ paddingLeft: '2.5rem', height: '42px', fontSize: '0.875rem' }}
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                     Precio por Kg (S/)
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <DollarSign size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <span style={{ 
+                      position: 'absolute', 
+                      left: '0.95rem', 
+                      top: '50%', 
+                      transform: 'translateY(-50%)', 
+                      fontWeight: '700', 
+                      color: '#94a3b8', 
+                      pointerEvents: 'none', 
+                      fontSize: '0.9rem' 
+                    }}>
+                      S/
+                    </span>
                     <input
                       type="number"
                       step="0.01"
                       min="0"
                       placeholder="Ej. 0.45"
-                      className="form-control"
+                      className="form-input"
                       value={precioKg}
                       onChange={(e) => handlePrecioChange(e.target.value)}
-                      style={{ paddingLeft: '2.25rem' }}
+                      style={{ paddingLeft: '2.5rem', height: '42px', fontSize: '0.875rem' }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Monto Total Calculado */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '800', color: '#047857' }}>
-                  Total a Entregar a Caja Chica (S/) *
-                </label>
-                <div style={{ position: 'relative' }}>
-                  <span style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', fontWeight: '800', color: '#059669', fontSize: '1.1rem' }}>S/</span>
+              {/* Fila 3: Hero Card - Total a Entregar en Caja Chica */}
+              <div style={{
+                background: '#f0fdf4',
+                border: '1.5px solid #86efac',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.15rem 1.25rem',
+                marginBottom: '1.25rem'
+              }}>
+                <div style={{ 
+                  display: 'flex', 
+                  justifyContent: 'space-between', 
+                  alignItems: 'center', 
+                  marginBottom: '0.5rem', 
+                  flexWrap: 'wrap', 
+                  gap: '0.4rem' 
+                }}>
+                  <label style={{ 
+                    fontSize: '0.8rem', 
+                    fontWeight: '800', 
+                    color: '#166534', 
+                    textTransform: 'uppercase', 
+                    letterSpacing: '0.03em', 
+                    margin: 0 
+                  }}>
+                    Total a Entregar a Caja Chica (Efectivo Físico) *
+                  </label>
+                  {pesoKg && precioKg && !isNaN(parseFloat(pesoKg)) && !isNaN(parseFloat(precioKg)) && (
+                    <span style={{ 
+                      fontSize: '0.72rem', 
+                      background: '#dcfce7', 
+                      color: '#15803d', 
+                      padding: '2px 8px', 
+                      borderRadius: '999px', 
+                      fontWeight: '700' 
+                    }}>
+                      Auto: {pesoKg} Kg × S/ {precioKg}
+                    </span>
+                  )}
+                </div>
+
+                <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+                  <span style={{
+                    position: 'absolute',
+                    left: '1rem',
+                    fontSize: '1.35rem',
+                    fontWeight: '900',
+                    color: '#059669',
+                    userSelect: 'none',
+                    pointerEvents: 'none'
+                  }}>
+                    S/
+                  </span>
                   <input
                     type="number"
                     step="0.01"
                     min="0.01"
                     required
                     placeholder="0.00"
-                    className="form-control"
+                    className="form-input"
                     value={montoTotal}
                     onChange={(e) => setMontoTotal(e.target.value)}
                     style={{
-                      paddingLeft: '2.5rem',
-                      fontSize: '1.25rem',
-                      fontWeight: '800',
+                      paddingLeft: '3rem',
+                      height: '52px',
+                      fontSize: '1.65rem',
+                      fontWeight: '900',
                       color: '#047857',
-                      background: '#ecfdf5',
-                      borderColor: '#a7f3d0'
+                      background: '#ffffff',
+                      borderColor: '#86efac',
+                      borderRadius: '10px',
+                      boxShadow: '0 2px 6px rgba(5, 150, 105, 0.08)'
                     }}
                   />
                 </div>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', display: 'block', marginTop: '0.25rem' }}>
-                  Este es el importe físico en efectivo que deberá recepcionar el encargado de Caja Chica.
-                </span>
+                <p style={{ 
+                  fontSize: '0.75rem', 
+                  color: '#15803d', 
+                  margin: 0, 
+                  marginTop: '0.45rem', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '0.35rem' 
+                }}>
+                  <span>💡</span>
+                  <span>Este importe en efectivo deberá ser recibido y confirmado por el encargado de Caja Chica.</span>
+                </p>
               </div>
 
-              {/* Comprador y N° Ticket */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.85rem', marginBottom: '1rem' }}>
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+              {/* Fila 4: Comprador / Empresa y N° Ticket */}
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '1rem',
+                marginBottom: '1.15rem'
+              }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                     Comprador / Empresa
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <Building2 size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <Building2 
+                      size={17} 
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    />
                     <input
                       type="text"
                       placeholder="Ej. Recicladora Lima SAC"
-                      className="form-control"
+                      className="form-input"
                       value={comprador}
                       onChange={(e) => setComprador(e.target.value)}
-                      style={{ paddingLeft: '2.25rem' }}
+                      style={{ paddingLeft: '2.5rem', height: '42px', fontSize: '0.875rem' }}
                     />
                   </div>
                 </div>
 
-                <div>
-                  <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+                <div className="form-group" style={{ margin: 0 }}>
+                  <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                     N° Ticket / Boleta Pesaje
                   </label>
                   <div style={{ position: 'relative' }}>
-                    <FileText size={16} style={{ position: 'absolute', left: '0.75rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8' }} />
+                    <FileText 
+                      size={17} 
+                      style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', color: '#94a3b8', pointerEvents: 'none' }} 
+                    />
                     <input
                       type="text"
                       placeholder="Ej. T-00452"
-                      className="form-control"
+                      className="form-input"
                       value={ticketNumero}
                       onChange={(e) => setTicketNumero(e.target.value)}
-                      style={{ paddingLeft: '2.25rem' }}
+                      style={{ paddingLeft: '2.5rem', height: '42px', fontSize: '0.875rem' }}
                     />
                   </div>
                 </div>
               </div>
 
-              {/* Foto de Ticket de Pesaje / Sustento */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
-                  Foto del Ticket de Pesaje / Comprobante (Recomendado)
+              {/* Fila 5: Foto del Ticket de Pesaje / Sustento */}
+              <div className="form-group" style={{ marginBottom: '1.15rem' }}>
+                <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
+                  Foto del Ticket de Pesaje / Sustento (Recomendado)
                 </label>
-                <div style={{
-                  border: '2px dashed #cbd5e1',
-                  borderRadius: '8px',
-                  padding: '1rem',
-                  textAlign: 'center',
-                  background: '#f8fafc',
-                  cursor: 'pointer'
-                }}>
-                  <input
-                    type="file"
-                    accept="image/*,application/pdf"
-                    onChange={handleFileUpload}
-                    id="sustento-reciclaje-input"
-                    style={{ display: 'none' }}
-                  />
-                  <label htmlFor="sustento-reciclaje-input" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.4rem', margin: 0 }}>
-                    <Camera size={26} color="#059669" />
-                    <span style={{ fontSize: '0.85rem', fontWeight: '600', color: '#0f172a' }}>
-                      {sustentoNombre ? sustentoNombre : 'Haga clic para tomar foto o adjuntar ticket'}
-                    </span>
-                    <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                      Formatos JPG, PNG o PDF (máx 8 MB)
-                    </span>
-                  </label>
-                </div>
 
-                {sustentoFile && sustentoFile.startsWith('data:image') && (
-                  <div style={{ marginTop: '0.65rem', position: 'relative', display: 'inline-block' }}>
-                    <img
-                      src={sustentoFile}
-                      alt="Vista previa"
-                      style={{ height: '90px', borderRadius: '6px', border: '1px solid #cbd5e1', objectFit: 'cover' }}
+                {!sustentoFile ? (
+                  <div style={{
+                    border: '2px dashed #cbd5e1',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '1.25rem',
+                    textAlign: 'center',
+                    background: '#f8fafc',
+                    cursor: 'pointer',
+                    transition: 'var(--transition)'
+                  }}>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      onChange={handleFileUpload}
+                      id="sustento-reciclaje-input"
+                      style={{ display: 'none' }}
                     />
+                    <label htmlFor="sustento-reciclaje-input" style={{ cursor: 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.45rem', margin: 0 }}>
+                      <div style={{
+                        width: '44px',
+                        height: '44px',
+                        borderRadius: '50%',
+                        background: '#ecfdf5',
+                        color: '#059669',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        <Camera size={22} />
+                      </div>
+                      <span style={{ fontSize: '0.875rem', fontWeight: '700', color: '#0f172a' }}>
+                        Haga clic para tomar foto o adjuntar ticket
+                      </span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                        Formatos JPG, PNG o PDF (máx. 8 MB)
+                      </span>
+                    </label>
+                  </div>
+                ) : (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '0.75rem 1rem',
+                    background: '#f8fafc',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 'var(--radius-md)',
+                    gap: '0.75rem'
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', overflow: 'hidden' }}>
+                      {sustentoFile.startsWith('data:image') ? (
+                        <img
+                          src={sustentoFile}
+                          alt="Vista previa"
+                          style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', border: '1px solid #e2e8f0', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                          <FileText size={22} />
+                        </div>
+                      )}
+                      <div style={{ overflow: 'hidden' }}>
+                        <span style={{ fontSize: '0.85rem', fontWeight: '700', color: '#0f172a', display: 'block', textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}>
+                          {sustentoNombre || 'Ticket adjunto'}
+                        </span>
+                        <span style={{ fontSize: '0.72rem', color: '#059669', fontWeight: '600' }}>
+                          ✓ Archivo listo para enviar
+                        </span>
+                      </div>
+                    </div>
+
                     <button
                       type="button"
                       onClick={() => {
                         setSustentoFile(null);
                         setSustentoNombre('');
                       }}
-                      style={{ position: 'absolute', top: '-6px', right: '-6px', background: '#dc2626', color: '#fff', border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                      className="btn btn-ghost"
+                      style={{ color: '#dc2626', padding: '0.4rem 0.6rem', fontSize: '0.75rem' }}
+                      title="Eliminar archivo"
                     >
-                      ×
+                      <Trash2 size={16} />
                     </button>
                   </div>
                 )}
               </div>
 
-              {/* Observaciones */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+              {/* Fila 6: Observaciones Adicionales */}
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                   Observaciones Adicionales
                 </label>
                 <textarea
-                  className="form-control"
+                  className="form-textarea"
                   rows={2}
-                  placeholder="Detalles adicionales sobre el lote, estado del material, etc."
+                  placeholder="Detalles sobre el lote, merma, estado del material, etc."
                   value={observaciones}
                   onChange={(e) => setObservaciones(e.target.value)}
-                  style={{ fontSize: '0.82rem' }}
+                  style={{ fontSize: '0.85rem' }}
                 />
               </div>
 
-              {/* Botones de Acción */}
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              {/* Pie con Botones de Acción */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '0.75rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--border-subtle)'
+              }}>
                 <button
                   type="button"
                   onClick={() => setModalNuevoOpen(false)}
                   className="btn btn-secondary"
                   disabled={isSubmitting}
+                  style={{ padding: '0.65rem 1.25rem', height: '42px', fontWeight: '600' }}
                 >
                   Cancelar
                 </button>
@@ -1060,14 +1225,16 @@ export function ModuloReciclaje({
                   style={{
                     background: '#059669',
                     borderColor: '#047857',
-                    display: 'flex',
+                    padding: '0.65rem 1.4rem',
+                    height: '42px',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)',
+                    display: 'inline-flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.55rem 1.25rem',
-                    fontWeight: '700'
+                    gap: '0.45rem'
                   }}
                 >
-                  <Plus size={16} />
+                  <Plus size={17} />
                   <span>{isSubmitting ? 'Registrando...' : 'Registrar Venta (Pendiente de Entrega)'}</span>
                 </button>
               </div>
@@ -1076,42 +1243,45 @@ export function ModuloReciclaje({
         </div>
       )}
 
-      {/* MODAL 2: CONFIRMAR RECEPCIÓN FÍSICA DE DINERO EN CAJA CHICA */}
+      {/* =========================================================================
+          MODAL 2: CONFIRMAR RECEPCIÓN FÍSICA EN CAJA CHICA (FINTECH STYLE)
+          ========================================================================= */}
       {modalRecepcionOpen && solicitudARecepcionar && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(5px)',
-          zIndex: 1050,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            background: '#ffffff',
-            maxWidth: '520px',
-            width: '100%',
-            padding: '1.75rem',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-xl)',
-            border: '1px solid #a7f3d0'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="modal-overlay" onClick={() => setModalRecepcionOpen(false)}>
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '520px', padding: '1.75rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabecera */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: '0.85rem'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{
+                  width: '42px',
+                  height: '42px',
+                  borderRadius: '12px',
+                  background: '#ecfdf5',
+                  border: '1px solid #a7f3d0',
+                  color: '#059669',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
                   <CheckCircle2 size={24} />
                 </div>
                 <div>
-                  <h3 style={{ fontSize: '1.15rem', color: '#0f172a', fontWeight: '800', margin: 0 }}>
+                  <h3 style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: '800', margin: 0 }}>
                     Recepcionar Efectivo en Caja
                   </h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  <span style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                     {solicitudARecepcionar.codigo} • Entregado por {solicitudARecepcionar.solicitante_nombre}
                   </span>
                 </div>
@@ -1119,75 +1289,83 @@ export function ModuloReciclaje({
               <button
                 type="button"
                 onClick={() => setModalRecepcionOpen(false)}
-                className="btn btn-ghost btn-icon"
+                className="btn-close"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
             <form onSubmit={handleConfirmarRecepcion}>
-              {/* Tarjeta de Resumen Financiero */}
+              {/* Resumen Financiero con Diferencial de Saldo */}
               <div style={{
                 background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                borderRadius: '10px',
-                padding: '1.15rem',
+                border: '1.5px solid #86efac',
+                borderRadius: 'var(--radius-md)',
+                padding: '1.25rem',
                 marginBottom: '1.25rem',
                 textAlign: 'center'
               }}>
-                <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                  Efectivo Físico a Ingresar a Caja Chica
+                <div style={{ fontSize: '0.78rem', color: '#166534', fontWeight: '800', textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: '0.25rem' }}>
+                  Efectivo Físico por Ingresar a Caja Chica
                 </div>
-                <div style={{ fontSize: '2rem', fontWeight: '900', color: '#047857' }}>
+                <div style={{ fontSize: '2.25rem', fontWeight: '900', color: '#047857' }}>
                   + S/ {Number(solicitudARecepcionar.monto).toFixed(2)}
                 </div>
-                <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '0.25rem' }}>
+                <div style={{ fontSize: '0.825rem', color: '#15803d', marginTop: '0.25rem' }}>
                   {solicitudARecepcionar.motivo}
                 </div>
 
                 <div style={{
                   display: 'flex',
                   justifyContent: 'space-around',
-                  marginTop: '0.85rem',
+                  marginTop: '1rem',
                   paddingTop: '0.85rem',
                   borderTop: '1px dashed #86efac',
-                  fontSize: '0.78rem'
+                  fontSize: '0.8rem'
                 }}>
                   <div>
-                    <span style={{ color: '#475569', display: 'block' }}>Saldo Caja Actual:</span>
-                    <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>S/ {saldoDisponibleActual.toFixed(2)}</strong>
+                    <span style={{ color: '#475569', display: 'block', fontSize: '0.75rem' }}>Saldo Actual en Caja:</span>
+                    <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>S/ {saldoDisponibleActual.toFixed(2)}</strong>
                   </div>
-                  <div style={{ color: '#15803d', fontWeight: '700', alignSelf: 'center' }}>➔</div>
+                  <div style={{ color: '#15803d', fontWeight: '800', alignSelf: 'center', fontSize: '1.1rem' }}>➔</div>
                   <div>
-                    <span style={{ color: '#15803d', display: 'block', fontWeight: '700' }}>Nuevo Saldo Disponible:</span>
-                    <strong style={{ color: '#047857', fontSize: '1rem', fontWeight: '900' }}>
+                    <span style={{ color: '#15803d', display: 'block', fontWeight: '700', fontSize: '0.75rem' }}>Nuevo Saldo Resultante:</span>
+                    <strong style={{ color: '#047857', fontSize: '1.1rem', fontWeight: '900' }}>
                       S/ {(saldoDisponibleActual + Number(solicitudARecepcionar.monto)).toFixed(2)}
                     </strong>
                   </div>
                 </div>
               </div>
 
-              {/* Campo de Notas de Recepción */}
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
+              {/* Notas de Recepción */}
+              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
+                <label className="form-label" style={{ fontWeight: '700', fontSize: '0.82rem', color: '#334155' }}>
                   Notas de Recepción del Cajero (Opcional)
                 </label>
                 <input
                   type="text"
-                  className="form-control"
-                  placeholder="Ej. Dinero recibido en sobre / en efectivo en ventanilla"
+                  className="form-input"
+                  placeholder="Ej. Dinero recibido en efectivo en ventanilla de caja"
                   value={notasRecepcion}
                   onChange={(e) => setNotasRecepcion(e.target.value)}
-                  style={{ fontSize: '0.85rem' }}
+                  style={{ height: '42px', fontSize: '0.875rem' }}
                 />
               </div>
 
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'flex-end',
+                alignItems: 'center',
+                gap: '0.75rem',
+                paddingTop: '1rem',
+                borderTop: '1px solid var(--border-subtle)'
+              }}>
                 <button
                   type="button"
                   onClick={() => setModalRecepcionOpen(false)}
                   className="btn btn-secondary"
                   disabled={isRecepcionando}
+                  style={{ padding: '0.65rem 1.25rem', height: '42px', fontWeight: '600' }}
                 >
                   Cancelar
                 </button>
@@ -1201,12 +1379,14 @@ export function ModuloReciclaje({
                     borderColor: '#047857',
                     display: 'flex',
                     alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.6rem 1.25rem',
-                    fontWeight: '700'
+                    gap: '0.45rem',
+                    padding: '0.65rem 1.4rem',
+                    height: '42px',
+                    fontWeight: '700',
+                    boxShadow: '0 4px 12px rgba(5, 150, 105, 0.25)'
                   }}
                 >
-                  <CheckCircle2 size={16} />
+                  <CheckCircle2 size={17} />
                   <span>{isRecepcionando ? 'Recepcionando...' : 'Confirmar Recepción y Sumar al Saldo'}</span>
                 </button>
               </div>
@@ -1215,46 +1395,39 @@ export function ModuloReciclaje({
         </div>
       )}
 
-      {/* MODAL 3: VER DETALLE DE VENTA */}
+      {/* =========================================================================
+          MODAL 3: VER DETALLE COMPLETO DE VENTA (CICLO DE VIDA DE 2 PASOS)
+          ========================================================================= */}
       {selectedDetalle && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(15, 23, 42, 0.65)',
-          backdropFilter: 'blur(5px)',
-          zIndex: 1000,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          padding: '1rem',
-          animation: 'fadeIn 0.2s ease-out'
-        }}>
-          <div className="glass-panel" style={{
-            background: '#ffffff',
-            maxWidth: '520px',
-            width: '100%',
-            padding: '1.5rem',
-            borderRadius: 'var(--radius-lg)',
-            boxShadow: 'var(--shadow-xl)'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
+        <div className="modal-overlay" onClick={() => setSelectedDetalle(null)}>
+          <div 
+            className="modal-content" 
+            style={{ maxWidth: '540px', padding: '1.75rem' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Cabecera */}
+            <div style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: '1.25rem',
+              borderBottom: '1px solid var(--border-subtle)',
+              paddingBottom: '0.85rem'
+            }}>
               <div>
                 <span className="badge badge-reciclaje" style={{ fontSize: '0.75rem', marginBottom: '0.25rem' }}>
                   VENTA DE RECICLAJE
                 </span>
-                <h3 style={{ fontSize: '1.2rem', color: '#0f172a', fontWeight: '800', margin: 0 }}>
+                <h3 style={{ fontSize: '1.25rem', color: '#0f172a', fontWeight: '800', margin: 0 }}>
                   {selectedDetalle.codigo}
                 </h3>
               </div>
               <button
                 type="button"
                 onClick={() => setSelectedDetalle(null)}
-                className="btn btn-ghost btn-icon"
+                className="btn-close"
               >
-                <X size={18} />
+                <X size={20} />
               </button>
             </div>
 
@@ -1269,53 +1442,54 @@ export function ModuloReciclaje({
               const isAnul = selectedDetalle.estado === 'ANULADO';
 
               return (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {/* Tarjeta de Importe y Estado */}
                   <div style={{
-                    padding: '1rem',
+                    padding: '1.15rem',
                     background: isIngr ? '#f0fdf4' : isPend ? '#fffbeb' : '#fef2f2',
-                    border: `1px solid ${isIngr ? '#bbf7d0' : isPend ? '#fde68a' : '#fecaca'}`,
-                    borderRadius: '8px',
+                    border: `1.5px solid ${isIngr ? '#86efac' : isPend ? '#fde68a' : '#fecaca'}`,
+                    borderRadius: 'var(--radius-md)',
                     textAlign: 'center'
                   }}>
                     <div style={{
                       fontSize: '0.78rem',
                       color: isIngr ? '#166534' : isPend ? '#92400e' : '#991b1b',
-                      fontWeight: '700',
-                      textTransform: 'uppercase'
+                      fontWeight: '800',
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.03em'
                     }}>
                       {isIngr ? 'Efectivo Ingresado a Caja Chica' : isPend ? 'Pendiente de Entrega en Caja Chica' : 'Venta Anulada'}
                     </div>
                     <div style={{
-                      fontSize: '1.85rem',
+                      fontSize: '2rem',
                       fontWeight: '900',
                       color: isIngr ? '#047857' : isPend ? '#b45309' : '#dc2626'
                     }}>
                       + S/ {Number(selectedDetalle.monto).toFixed(2)}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: isIngr ? '#15803d' : '#475569' }}>
+                    <div style={{ fontSize: '0.8rem', color: isIngr ? '#15803d' : '#475569', marginTop: '0.15rem' }}>
                       {p.peso_kg > 0 ? `${p.peso_kg} Kg de ${p.material || 'Cartón'}` : p.material || 'Cartón'}
                       {p.precio_kg > 0 ? ` @ S/ ${Number(p.precio_kg).toFixed(2)} / Kg` : ''}
                     </div>
                   </div>
 
-                  {/* Estado del flujo */}
+                  {/* Estado del flujo de 2 pasos */}
                   <div style={{
-                    padding: '0.75rem',
-                    borderRadius: '6px',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 'var(--radius-md)',
                     background: '#f8fafc',
                     border: '1px solid #e2e8f0',
-                    fontSize: '0.8rem',
+                    fontSize: '0.825rem',
                     display: 'flex',
                     flexDirection: 'column',
-                    gap: '0.4rem'
+                    gap: '0.55rem'
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       <CheckCircle2 size={16} color="#059669" />
                       <span><strong>Paso 1 (Registrado):</strong> Por {selectedDetalle.solicitante_nombre} el {new Date(selectedDetalle.created_at).toLocaleString('es-PE')}</span>
                     </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {isIngr ? (
                         <>
                           <CheckCircle2 size={16} color="#059669" />
@@ -1335,44 +1509,60 @@ export function ModuloReciclaje({
                     </div>
 
                     {p.notas_recepcion && (
-                      <div style={{ fontSize: '0.75rem', color: '#475569', marginLeft: '1.4rem' }}>
+                      <div style={{ fontSize: '0.78rem', color: '#475569', marginLeft: '1.5rem', background: '#ffffff', padding: '0.35rem 0.65rem', borderRadius: '4px', border: '1px solid #e2e8f0' }}>
                         <em>Nota recepción: {p.notas_recepcion}</em>
                       </div>
                     )}
                   </div>
 
                   {/* Grid de Metadatos */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.65rem', fontSize: '0.82rem' }}>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.75rem',
+                    fontSize: '0.825rem',
+                    background: '#f8fafc',
+                    padding: '0.85rem 1rem',
+                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid #e2e8f0'
+                  }}>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>Comprador:</span>
-                      <div style={{ fontWeight: '600' }}>{p.comprador || selectedDetalle.comprobante_razon_social || '-'}</div>
+                      <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>Comprador:</span>
+                      <strong style={{ color: '#0f172a' }}>{p.comprador || selectedDetalle.comprobante_razon_social || '-'}</strong>
                     </div>
                     <div>
-                      <span style={{ color: 'var(--text-muted)' }}>N° Ticket:</span>
-                      <div style={{ fontWeight: '600', fontFamily: 'monospace' }}>{p.ticket_numero || selectedDetalle.comprobante_numero || '-'}</div>
+                      <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem' }}>N° Ticket:</span>
+                      <strong style={{ color: '#0f172a', fontFamily: 'monospace' }}>{p.ticket_numero || selectedDetalle.comprobante_numero || '-'}</strong>
                     </div>
                   </div>
 
                   {p.notas && (
-                    <div style={{ fontSize: '0.82rem', background: '#f8fafc', padding: '0.65rem', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', fontWeight: '700' }}>Notas del vendedor:</span>
+                    <div style={{ fontSize: '0.825rem', background: '#f8fafc', padding: '0.75rem 1rem', borderRadius: 'var(--radius-md)', border: '1px solid #e2e8f0' }}>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', fontWeight: '700', marginBottom: '0.15rem' }}>Notas del vendedor:</span>
                       {p.notas}
                     </div>
                   )}
 
                   {selectedDetalle.abono_sustento_url && (
                     <div>
-                      <span style={{ color: 'var(--text-muted)', fontSize: '0.75rem', display: 'block', marginBottom: '0.35rem', fontWeight: '700' }}>Foto del Ticket:</span>
+                      <span style={{ color: 'var(--text-muted)', fontSize: '0.78rem', display: 'block', marginBottom: '0.4rem', fontWeight: '700' }}>Ticket de Pesaje / Sustento:</span>
                       <img
                         src={selectedDetalle.abono_sustento_url}
                         alt="Ticket pesaje"
-                        style={{ width: '100%', maxHeight: '180px', objectFit: 'contain', borderRadius: '6px', border: '1px solid #e2e8f0', cursor: 'pointer' }}
+                        style={{ width: '100%', maxHeight: '200px', objectFit: 'contain', borderRadius: '8px', border: '1px solid #cbd5e1', cursor: 'pointer', background: '#0f172a' }}
                         onClick={() => setViewerImgUrl(selectedDetalle.abono_sustento_url)}
                       />
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'flex-end',
+                    gap: '0.75rem',
+                    marginTop: '0.5rem',
+                    paddingTop: '0.85rem',
+                    borderTop: '1px solid var(--border-subtle)'
+                  }}>
                     <button
                       type="button"
                       onClick={() => setSelectedDetalle(null)}
@@ -1413,7 +1603,9 @@ export function ModuloReciclaje({
         </div>
       )}
 
-      {/* MODAL 4: VISUALIZADOR DE FOTO EN PANTALLA COMPLETA */}
+      {/* =========================================================================
+          MODAL 4: VISUALIZADOR DE FOTO EN PANTALLA COMPLETA
+          ========================================================================= */}
       {viewerImgUrl && (
         <div style={{
           position: 'fixed',
@@ -1426,12 +1618,27 @@ export function ModuloReciclaje({
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '1rem'
+          padding: '1rem',
+          animation: 'fadeIn 0.15s ease-out'
         }}>
           <button
             type="button"
             onClick={() => setViewerImgUrl(null)}
-            style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#334155', color: '#fff', border: 'none', borderRadius: '50%', width: '36px', height: '36px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              position: 'absolute',
+              top: '1.5rem',
+              right: '1.5rem',
+              background: '#334155',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '50%',
+              width: '38px',
+              height: '38px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
             <X size={20} />
           </button>
