@@ -11,7 +11,7 @@ import {
 } from 'lucide-react';
 import { playNotificationSound } from '../lib/audioNotifier';
 
-import { DEFAULT_CATEGORIAS } from '../lib/store';
+import { DEFAULT_CATEGORIAS, store } from '../lib/store';
 
 const METODOS_DESTINO = [
   { id: 'YAPE', label: 'Yape', sublabel: 'Billetera Móvil (Celular)', placeholder: 'Ej. 987 654 321', isPhone: true, icon: '📱' },
@@ -25,7 +25,7 @@ const METODOS_DESTINO = [
   { id: 'OTRO', label: 'Otro Banco / Medio', sublabel: 'Cualquier otra entidad', placeholder: 'Indique entidad y N° de cuenta o CCI', isPhone: false, icon: '💳' },
 ];
 
-export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab, categorias = [] }) {
+export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab, categorias = [], solicitudes = [] }) {
   const listaCategorias = (categorias && categorias.length > 0 ? categorias : DEFAULT_CATEGORIAS).filter(c => c.activo !== false);
 
   // Centros de costo disponibles únicos
@@ -51,24 +51,57 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
   // Modalidad seleccionada para "A mí": 'EFECTIVO_CAJA', 'YAPE', 'PLIN' (ninguna preseleccionada)
   const [miModalidadAbono, setMiModalidadAbono] = useState('');
 
-  // Número personal para "A mí" recordado en localStorage para futuras solicitudes
+  // Número personal para "A mí" recordado en localStorage, perfil de usuario o solicitudes previas
   const [miNumeroAbono, setMiNumeroAbono] = useState(() => {
     if (!currentUser?.dni) return '';
     try {
-      return localStorage.getItem(`caja_mi_numero_abono_${currentUser.dni}`) || '';
-    } catch {
-      return '';
-    }
+      const local = localStorage.getItem(`caja_mi_numero_abono_${currentUser.dni}`);
+      if (local) return local;
+    } catch {}
+    if (currentUser?.telefono) return currentUser.telefono;
+    return '';
   });
 
   useEffect(() => {
-    if (currentUser?.dni && !miNumeroAbono) {
-      try {
-        const numGuardado = localStorage.getItem(`caja_mi_numero_abono_${currentUser.dni}`);
-        if (numGuardado) setMiNumeroAbono(numGuardado);
-      } catch {}
+    if (!currentUser?.dni) return;
+
+    // Si ya tiene valor, no sobreescribir
+    if (miNumeroAbono) return;
+
+    // 1. Probar en localStorage del navegador actual
+    try {
+      const numGuardado = localStorage.getItem(`caja_mi_numero_abono_${currentUser.dni}`);
+      if (numGuardado) {
+        setMiNumeroAbono(numGuardado);
+        return;
+      }
+    } catch {}
+
+    // 2. Probar en el perfil del usuario (Supabase)
+    if (currentUser?.telefono) {
+      setMiNumeroAbono(currentUser.telefono);
+      return;
     }
-  }, [currentUser?.dni]);
+
+    // 3. Probar en la última solicitud registrada en la base de datos con Yape o Plin
+    if (solicitudes && solicitudes.length > 0) {
+      const ultimaSol = [...solicitudes]
+        .filter(s => 
+          s.solicitante_dni === currentUser.dni && 
+          (s.abono_banco === 'YAPE' || s.abono_banco === 'PLIN') && 
+          s.abono_cuenta_numero && 
+          s.abono_cuenta_numero !== 'EFECTIVO_VENTANILLA'
+        )
+        .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))[0];
+
+      if (ultimaSol?.abono_cuenta_numero) {
+        setMiNumeroAbono(ultimaSol.abono_cuenta_numero);
+        try {
+          localStorage.setItem(`caja_mi_numero_abono_${currentUser.dni}`, ultimaSol.abono_cuenta_numero);
+        } catch {}
+      }
+    }
+  }, [currentUser?.dni, currentUser?.telefono, solicitudes, miNumeroAbono]);
 
   // Datos para el abono cuando es a un tercero (tampoco preseleccionado)
   const [abonoBanco, setAbonoBanco] = useState('');
@@ -142,11 +175,13 @@ export function FormularioIngreso({ currentUser, onSubmitSolicitud, onSuccessTab
       const catObj = listaCategorias.find(c => c.id === categoriaId);
       const isTercero = destinatarioTipo === 'TERCERO';
 
-      // Si es a mí y usó Yape o Plin, guardar su número personal en localStorage para no tener que tipear de nuevo
+      // Si es a mí y usó Yape o Plin, guardar su número personal en localStorage y en la nube (perfil de usuario)
       if (!isTercero && currentUser?.dni && (miModalidadAbono === 'YAPE' || miModalidadAbono === 'PLIN') && miNumeroAbono.trim()) {
+        const numLimpio = miNumeroAbono.trim();
         try {
-          localStorage.setItem(`caja_mi_numero_abono_${currentUser.dni}`, miNumeroAbono.trim());
+          localStorage.setItem(`caja_mi_numero_abono_${currentUser.dni}`, numLimpio);
         } catch {}
+        store.guardarTelefonoUsuario(currentUser.dni, numLimpio);
       }
 
       const data = {

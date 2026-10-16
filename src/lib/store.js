@@ -752,6 +752,23 @@ class DataStore {
     return user;
   }
 
+  async guardarTelefonoUsuario(dni, telefono) {
+    if (!dni || !telefono) return;
+    const cleanTel = telefono.trim();
+    const user = this.usuarios.find(u => u.dni === dni);
+    if (user && user.telefono !== cleanTel) {
+      user.telefono = cleanTel;
+      this.persist('caja_usuarios', this.usuarios);
+      if (supabase) {
+        try {
+          await supabase.from('usuarios').update({ telefono: cleanTel }).eq('dni', dni);
+        } catch (e) {
+          console.warn('Error actualizando teléfono en Supabase:', e);
+        }
+      }
+    }
+  }
+
   // --- MÉTODOS DE SOLICITUDES Y CAJA CHICA ---
   // --- OPTIMIZACIÓN DE EGRESS ---
   // Columnas con imágenes en base64. NO se descargan en el listado periódico:

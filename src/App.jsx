@@ -514,6 +514,7 @@ export function App() {
               <FormularioIngreso
                 currentUser={currentUser}
                 categorias={categorias}
+                solicitudes={solicitudes}
                 onSubmitSolicitud={handleCreateSolicitud}
                 onSuccessTab={() => setCurrentTab('mis_solicitudes')}
               />
