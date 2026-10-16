@@ -1639,7 +1639,6 @@ class DataStore {
   }
 
   // --- MÓDULO DE VENTA DE RECICLAJE (CARTÓN Y MATERIALES) ---
-  // Paso 1: El vendedor registra la venta (queda PENDIENTE_RECEPCION, NO suma al saldo aún)
   async registrarVentaReciclaje(ventaData) {
     const {
       monto,
@@ -1687,7 +1686,7 @@ class DataStore {
       motivo: `Venta de reciclaje: ${peso_kg ? `${peso_kg} Kg de ${material}` : material}`,
       categoria: 'RECICLAJE',
       centro_costo: 'ALMACEN',
-      estado: 'PENDIENTE_RECEPCION', // Queda como pendiente hasta que Caja recepcione el dinero físico
+      estado: 'INGRESADO_CAJA',
       comprobante_tipo: 'TICKET_RECICLAJE',
       comprobante_numero: ticket_numero || correlativo,
       comprobante_ruc_emisor: '-',
@@ -1697,26 +1696,30 @@ class DataStore {
       abono_sustento_nombre: sustento_nombre || null,
       abono_metodo: 'Efectivo en Caja',
       abono_operacion: ticket_numero || correlativo,
-      abono_fecha: null,
+      abono_fecha: ahora,
       observaciones_aprobador: JSON.stringify({
         peso_kg: Number(peso_kg || 0),
         precio_kg: Number(precio_kg || 0),
         material: material || 'Cartón',
         comprador: comprador || '',
         ticket_numero: ticket_numero || '',
-        notas: observaciones || '',
-        registrado_por: usuario ? `${usuario.nombres} ${usuario.apellidos}`.trim() : 'Operador'
+        notas: observaciones || ''
       }),
       created_at: fechaVenta
     };
 
-    // 1. Registrar en la lista de solicitudes (NO se suma al fondo todavía)
+    // 1. Sumar inmediatamente el importe al saldo disponible de Caja Chica
+    this.cajaFondo.monto_disponible = Number((Number(this.cajaFondo.monto_disponible || 0) + montoVal).toFixed(2));
+    this.persist('caja_fondo', this.cajaFondo);
+
+    // 2. Registrar en la lista de solicitudes
     this.solicitudes.unshift(newReciclaje);
     this.persist('caja_solicitudes', this.solicitudes);
 
-    // 2. Sincronizar en Supabase
+    // 3. Sincronizar en Supabase
     if (supabase) {
       try {
+        await this.syncCajaFondoToSupabase();
         const clean = this.sanitizeSolicitudForSupabase(newReciclaje);
         const { error } = await supabase.from('solicitudes').insert(clean);
         if (error) {
@@ -1727,22 +1730,22 @@ class DataStore {
       }
     }
 
-    // 3. Auditoría y Notificaciones a Administradores y Cajeros
+    // 4. Auditoría y Notificaciones
     this.logAudit({
-      accion: 'REGISTRO_VENTA_RECICLAJE',
+      accion: 'VENTA_RECICLAJE',
       modulo: 'CAJA',
       codigo,
       entidad_id: newReciclaje.id,
       usuario_dni: usuario?.dni || '',
       usuario_nombre: newReciclaje.solicitante_nombre,
-      detalle: `Venta de reciclaje registrada (${codigo}): ${newReciclaje.motivo} por S/ ${montoVal.toFixed(2)}. Pendiente de entrega física en Caja Chica.`,
-      tipo: 'INFO'
+      detalle: `Ingreso por venta de reciclaje (${codigo}): ${newReciclaje.motivo} por S/ ${montoVal.toFixed(2)}. Saldo en Caja Chica incrementado a S/ ${this.cajaFondo.monto_disponible.toFixed(2)}.`,
+      tipo: 'SUCCESS'
     });
 
     this.addNotification({
-      titulo: `Reciclaje por Recepcionar: S/ ${montoVal.toFixed(2)}`,
-      mensaje: `${newReciclaje.solicitante_nombre} registró una venta de ${material} por S/ ${montoVal.toFixed(2)} (${codigo}). Pendiente de entrega en Caja Chica.`,
-      tipo: 'WARNING',
+      titulo: `Ingreso por Reciclaje: S/ ${montoVal.toFixed(2)}`,
+      mensaje: `${newReciclaje.solicitante_nombre} registró S/ ${montoVal.toFixed(2)} por venta de ${material} (${codigo}). Dinero sumado a Caja Chica.`,
+      tipo: 'SUCCESS',
       usuario_dni: 'ADMINS',
       referencia_id: newReciclaje.id
     });
@@ -1752,92 +1755,16 @@ class DataStore {
       .map(u => u.dni);
 
     this.sendOneSignalPush(
-      `Reciclaje por Recepcionar: S/ ${montoVal.toFixed(2)}`,
-      `${newReciclaje.solicitante_nombre} registró S/ ${montoVal.toFixed(2)} por venta de ${material}. Pendiente de recepción en caja.`,
+      `Ingreso Reciclaje: S/ ${montoVal.toFixed(2)}`,
+      `${newReciclaje.solicitante_nombre} sumó S/ ${montoVal.toFixed(2)} a Caja Chica por venta de ${material}.`,
       adminYCajerosDnis,
-      { evento: 'RECICLAJE_PENDIENTE', codigo }
+      { evento: 'VENTA_RECICLAJE', codigo }
     );
 
-    this.broadcastSync({ type: 'VENTA_RECICLAJE_SAVED', solicitud: newReciclaje });
+    this.broadcastSync({ type: 'VENTA_RECICLAJE_SAVED', solicitud: newReciclaje, fondo: this.cajaFondo });
     this.notifyListeners({ type: 'DATA_LOADED' });
 
     return newReciclaje;
-  }
-
-  // Paso 2: El Cajero / Admin confirma la recepción física del dinero -> RECIÉN AQUÍ SE SUMA AL SALDO
-  async recepcionarVentaReciclaje(id, cajeroUser, notasRecepcion = '') {
-    const sol = this.solicitudes.find(s => s.id === id);
-    if (!sol) throw new Error('Registro de reciclaje no encontrado');
-    if (sol.estado === 'INGRESADO_CAJA') throw new Error('Esta venta ya fue recepcionada en Caja Chica');
-    if (sol.estado === 'ANULADO') throw new Error('Esta venta se encuentra anulada');
-
-    const montoVal = Number(sol.monto || 0);
-    const ahora = new Date().toISOString();
-    const cajeroNombre = cajeroUser ? `${cajeroUser.nombres} ${cajeroUser.apellidos}`.trim() : 'Caja';
-
-    let parsed = {};
-    try {
-      parsed = JSON.parse(sol.observaciones_aprobador || '{}');
-    } catch (e) {}
-
-    parsed.recepcionado_por = cajeroNombre;
-    parsed.recepcionado_dni = cajeroUser?.dni || '';
-    parsed.recepcionado_fecha = ahora;
-    if (notasRecepcion) parsed.notas_recepcion = notasRecepcion;
-
-    sol.estado = 'INGRESADO_CAJA';
-    sol.pagado_por_dni = cajeroUser?.dni || '';
-    sol.pagado_por_nombre = cajeroNombre;
-    sol.pagado_fecha = ahora;
-    sol.abono_fecha = ahora;
-    sol.observaciones_aprobador = JSON.stringify(parsed);
-
-    // 1. RECIÉN SUMAR AL SALDO DISPONIBLE DE CAJA CHICA
-    this.cajaFondo.monto_disponible = Number((Number(this.cajaFondo.monto_disponible || 0) + montoVal).toFixed(2));
-    this.persist('caja_fondo', this.cajaFondo);
-    this.persist('caja_solicitudes', this.solicitudes);
-
-    // 2. Sincronizar en Supabase
-    if (supabase) {
-      try {
-        await this.syncCajaFondoToSupabase();
-        await supabase.from('solicitudes').update({
-          estado: 'INGRESADO_CAJA',
-          pagado_por_dni: sol.pagado_por_dni,
-          pagado_por_nombre: sol.pagado_por_nombre,
-          pagado_fecha: sol.pagado_fecha,
-          abono_fecha: sol.abono_fecha,
-          observaciones_aprobador: sol.observaciones_aprobador
-        }).eq('id', id);
-      } catch (err) {
-        console.warn('Error sincronizando recepción de reciclaje a Supabase:', err);
-      }
-    }
-
-    // 3. Auditoría y Notificaciones
-    this.logAudit({
-      accion: 'RECEPCION_VENTA_RECICLAJE',
-      modulo: 'CAJA',
-      codigo: sol.codigo,
-      entidad_id: sol.id,
-      usuario_dni: cajeroUser?.dni || '',
-      usuario_nombre: cajeroNombre,
-      detalle: `Caja (${cajeroNombre}) confirmó la recepción física de S/ ${montoVal.toFixed(2)} por venta de reciclaje (${sol.codigo}) de ${sol.solicitante_nombre}. Saldo en Caja Chica incrementado a S/ ${this.cajaFondo.monto_disponible.toFixed(2)}.`,
-      tipo: 'SUCCESS'
-    });
-
-    this.addNotification({
-      titulo: `Reciclaje Recepcionado: S/ ${montoVal.toFixed(2)}`,
-      mensaje: `${cajeroNombre} recepcionó en Caja Chica S/ ${montoVal.toFixed(2)} de la venta de reciclaje ${sol.codigo}. Saldo sumado exitosamente.`,
-      tipo: 'SUCCESS',
-      usuario_dni: sol.solicitante_dni,
-      referencia_id: sol.id
-    });
-
-    this.broadcastSync({ type: 'VENTA_RECICLAJE_RECEPCIONADA', solicitud: sol, fondo: this.cajaFondo });
-    this.notifyListeners({ type: 'DATA_LOADED' });
-
-    return sol;
   }
 
   async anularVentaReciclaje(id, adminUser, motivo = '') {
@@ -1846,23 +1773,18 @@ class DataStore {
     if (sol.estado === 'ANULADO') throw new Error('Esta venta ya se encuentra anulada');
 
     const montoAnular = Number(sol.monto || 0);
-    const habiaIngresado = sol.estado === 'INGRESADO_CAJA';
 
     sol.estado = 'ANULADO';
     sol.observaciones_aprobador = `${sol.observaciones_aprobador || ''} | [ANULADO por ${adminUser?.nombres || 'Admin'}: ${motivo || 'Error de registro'}]`;
 
-    // Si ya había sido recepcionado en caja, descontar del saldo disponible
-    if (habiaIngresado) {
-      this.cajaFondo.monto_disponible = Math.max(0, Number((this.cajaFondo.monto_disponible - montoAnular).toFixed(2)));
-      this.persist('caja_fondo', this.cajaFondo);
-    }
+    // Descontar del saldo disponible
+    this.cajaFondo.monto_disponible = Math.max(0, Number((this.cajaFondo.monto_disponible - montoAnular).toFixed(2)));
+    this.persist('caja_fondo', this.cajaFondo);
     this.persist('caja_solicitudes', this.solicitudes);
 
     if (supabase) {
       try {
-        if (habiaIngresado) {
-          await this.syncCajaFondoToSupabase();
-        }
+        await this.syncCajaFondoToSupabase();
         await supabase.from('solicitudes').update({
           estado: 'ANULADO',
           observaciones_aprobador: sol.observaciones_aprobador
@@ -1879,7 +1801,7 @@ class DataStore {
       entidad_id: sol.id,
       usuario_dni: adminUser?.dni || '',
       usuario_nombre: adminUser ? `${adminUser.nombres} ${adminUser.apellidos}` : 'Administrador',
-      detalle: `Venta de reciclaje ${sol.codigo} anulada. ${habiaIngresado ? `Se descontaron S/ ${montoAnular.toFixed(2)} de caja.` : 'No había ingresado a caja.'} Motivo: ${motivo || 'Error de registro'}.`,
+      detalle: `Venta de reciclaje ${sol.codigo} anulada por S/ ${montoAnular.toFixed(2)}. Motivo: ${motivo || 'Error de registro'}. Saldo disponible ajustado a S/ ${this.cajaFondo.monto_disponible.toFixed(2)}`,
       tipo: 'WARNING'
     });
 

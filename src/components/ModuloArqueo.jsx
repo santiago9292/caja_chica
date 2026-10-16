@@ -22,7 +22,7 @@ import { playNotificationSound } from '../lib/audioNotifier';
 import { ModalAbono } from './ModalAbono';
 import { store } from '../lib/store';
 
-export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo, onRecepcionarVentaReciclaje }) {
+export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEstado, onAsignarFondo, onReponerFondo }) {
   const montoTotal = Number(cajaFondo?.monto_total || 500);
   const montoDisponible = Number(cajaFondo?.monto_disponible || 0);
   const isAdmin = currentUser?.roles?.includes('ADMINISTRADOR') || currentUser?.roles?.includes('SYSADMIN');
@@ -39,11 +39,6 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
   const [solicitudAbonoModal, setSolicitudAbonoModal] = useState(null);
   const [sustentoModalUrl, setSustentoModalUrl] = useState(null);
   const [loadingSustentoId, setLoadingSustentoId] = useState(null);
-
-  // Modal de Recepción de Dinero de Reciclaje
-  const [reciclajeModalSol, setReciclajeModalSol] = useState(null);
-  const [reciclajeNotas, setReciclajeNotas] = useState('');
-  const [isRecepcionandoReciclaje, setIsRecepcionandoReciclaje] = useState(false);
 
   useEffect(() => {
     // Si hay alguna solicitud pendiente de reembolso o devolución por recibir en caja,
@@ -104,10 +99,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
 
   // Ventas de reciclaje que ingresan efectivo a caja chica
   const ventasReciclaje = solicitudes.filter(s => s.tipo === 'INGRESO_RECICLAJE' && s.estado !== 'ANULADO');
-  const ventasReciclajeRecepcionadas = ventasReciclaje.filter(s => s.estado === 'INGRESADO_CAJA');
-  const totalReciclaje = ventasReciclajeRecepcionadas.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
-  const ventasReciclajePendientes = ventasReciclaje.filter(s => s.estado === 'PENDIENTE_RECEPCION');
-  const totalReciclajePendiente = ventasReciclajePendientes.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
+  const totalReciclaje = ventasReciclaje.reduce((acc, cur) => acc + Number(cur.monto || 0), 0);
 
   const totalPendienteOAprobado = solicitudes
     .filter(s => (s.estado === 'PENDIENTE' || s.estado === 'APROBADO' || s.estado === 'POR_REEMBOLSAR' || s.estado === 'PENDIENTE_REEMBOLSO') && s.tipo !== 'INGRESO_RECICLAJE')
@@ -179,32 +171,6 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
     try {
       await onUpdateEstado(solId, nuevoEstado, obs, extraData);
     } finally {
-      setProcessingId(null);
-    }
-  };
-
-  const handleConfirmarRecepcionReciclaje = (sol) => {
-    setReciclajeModalSol(sol);
-    setReciclajeNotas('');
-  };
-
-  const handleEjecutarRecepcionReciclaje = async (e) => {
-    e?.preventDefault();
-    if (!reciclajeModalSol) return;
-    setIsRecepcionandoReciclaje(true);
-    setProcessingId(reciclajeModalSol.id);
-    try {
-      if (onRecepcionarVentaReciclaje) {
-        await onRecepcionarVentaReciclaje(reciclajeModalSol.id, reciclajeNotas.trim());
-      }
-      playNotificationSound('success');
-      alert(`¡Recepción confirmada! Se sumaron S/ ${Number(reciclajeModalSol.monto).toFixed(2)} al saldo de Caja Chica.`);
-      setReciclajeModalSol(null);
-      setReciclajeNotas('');
-    } catch (err) {
-      alert('Error confirmando recepción: ' + err.message);
-    } finally {
-      setIsRecepcionandoReciclaje(false);
       setProcessingId(null);
     }
   };
@@ -328,19 +294,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
             </div>
             <div>
               <div className="stat-value" style={{ color: '#15803d' }}>+ S/ {totalReciclaje.toFixed(2)}</div>
-              <div className="stat-label">Ingresos Reciclaje (Caja)</div>
-            </div>
-          </div>
-        )}
-
-        {totalReciclajePendiente > 0 && (
-          <div className="stat-card" style={{ borderColor: '#fde68a' }}>
-            <div className="stat-icon-wrapper" style={{ background: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}>
-              <Clock size={22} />
-            </div>
-            <div>
-              <div className="stat-value" style={{ color: '#b45309' }}>S/ {totalReciclajePendiente.toFixed(2)}</div>
-              <div className="stat-label">Reciclaje por Recepcionar ({ventasReciclajePendientes.length})</div>
+              <div className="stat-label">Ingresos por Reciclaje</div>
             </div>
           </div>
         )}
@@ -498,14 +452,14 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                 <Recycle size={14} />
                 <span>Reciclaje (+S/)</span>
                 <span style={{ 
-                  background: filtroBandeja === 'RECICLAJE' ? 'rgba(255,255,255,0.25)' : ventasReciclajePendientes.length > 0 ? '#fef3c7' : '#ecfdf5', 
-                  color: filtroBandeja === 'RECICLAJE' ? '#fff' : ventasReciclajePendientes.length > 0 ? '#b45309' : '#059669',
+                  background: filtroBandeja === 'RECICLAJE' ? 'rgba(255,255,255,0.25)' : '#ecfdf5', 
+                  color: filtroBandeja === 'RECICLAJE' ? '#fff' : '#059669',
                   padding: '1px 6px', 
                   borderRadius: '999px', 
                   fontWeight: '700', 
                   fontSize: '0.75rem' 
                 }}>
-                  {ventasReciclaje.length}{ventasReciclajePendientes.length > 0 ? ` (${ventasReciclajePendientes.length} pend.)` : ''}
+                  {ventasReciclaje.length}
                 </span>
               </button>
 
@@ -625,28 +579,9 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                       <td>
                         {sol.tipo === 'INGRESO_RECICLAJE' && (
                           <div>
-                            {sol.estado === 'PENDIENTE_RECEPCION' && (
-                              <span className="badge" style={{ background: '#fef3c7', color: '#b45309', border: '1px solid #fde68a', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <Clock size={12} /> Pendiente de Entrega
-                              </span>
-                            )}
-                            {sol.estado === 'INGRESADO_CAJA' && (
-                              <div>
-                                <span className="badge" style={{ background: '#ecfdf5', color: '#047857', border: '1px solid #a7f3d0', display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                                  <CheckCircle2 size={12} /> En Caja Chica
-                                </span>
-                                {sol.pagado_por_nombre && (
-                                  <div style={{ fontSize: '0.7rem', color: '#64748b', marginTop: '0.15rem' }}>
-                                    Recibió: {sol.pagado_por_nombre}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            {sol.estado === 'ANULADO' && (
-                              <span className="badge badge-rechazado" style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
-                                <XCircle size={12} /> Reciclaje Anulado
-                              </span>
-                            )}
+                            <span className={`badge ${sol.estado === 'ANULADO' ? 'badge-rechazado' : 'badge-ingreso'}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem' }}>
+                              <Recycle size={13} /> {sol.estado === 'ANULADO' ? 'Reciclaje Anulado' : 'Ingreso Reciclaje'}
+                            </span>
                             {sol.abono_sustento_url && (
                               <div style={{ marginTop: '0.25rem' }}>
                                 <button
@@ -789,27 +724,7 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                         )}
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        {sol.tipo === 'INGRESO_RECICLAJE' ? (
-                          sol.estado === 'PENDIENTE_RECEPCION' ? (
-                            <button 
-                              type="button"
-                              className="btn btn-success" 
-                              onClick={() => handleConfirmarRecepcionReciclaje(sol)}
-                              disabled={processingId === sol.id}
-                              style={{ whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: '0.35rem', background: '#059669', borderColor: '#047857' }}
-                            >
-                              <Check size={16} /> Confirmar Recepción
-                            </button>
-                          ) : sol.estado === 'INGRESADO_CAJA' ? (
-                            <span style={{ fontSize: '0.75rem', color: '#059669', fontWeight: '700' }}>
-                              ✓ Sumado al Saldo
-                            </span>
-                          ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#dc2626' }}>
-                              Anulado
-                            </span>
-                          )
-                        ) : (sol.estado === 'APROBADO' || sol.estado === 'POR_REEMBOLSAR') ? (
+                        {(sol.estado === 'APROBADO' || sol.estado === 'POR_REEMBOLSAR') ? (
                           <button 
                             className="btn btn-primary" 
                             onClick={() => handleAbonar(sol)}
@@ -923,116 +838,6 @@ export function ModuloArqueo({ cajaFondo, solicitudes, currentUser, onUpdateEsta
                 </div>
               )}
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Modal Confirmación de Recepción de Dinero de Reciclaje */}
-      {reciclajeModalSol && (
-        <div className="modal-overlay" onClick={() => setReciclajeModalSol(null)}>
-          <div className="modal-content" style={{ maxWidth: '520px', padding: '1.5rem' }} onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', borderBottom: '1px solid #f1f5f9', paddingBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ width: '38px', height: '38px', borderRadius: '10px', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <Recycle size={22} />
-                </div>
-                <div>
-                  <h3 style={{ fontSize: '1.15rem', color: '#0f172a', margin: 0, fontWeight: '800' }}>
-                    Recepcionar Dinero de Reciclaje
-                  </h3>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                    {reciclajeModalSol.codigo} • Entregado por {reciclajeModalSol.solicitante_nombre}
-                  </span>
-                </div>
-              </div>
-              <button type="button" onClick={() => setReciclajeModalSol(null)} className="btn-close">
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleEjecutarRecepcionReciclaje}>
-              <div style={{
-                background: '#f0fdf4',
-                border: '1px solid #bbf7d0',
-                borderRadius: '10px',
-                padding: '1.15rem',
-                marginBottom: '1.25rem',
-                textAlign: 'center'
-              }}>
-                <div style={{ fontSize: '0.75rem', color: '#166534', fontWeight: '700', textTransform: 'uppercase', marginBottom: '0.25rem' }}>
-                  Efectivo Físico por Ingresar a Caja Chica
-                </div>
-                <div style={{ fontSize: '2rem', fontWeight: '900', color: '#047857' }}>
-                  + S/ {Number(reciclajeModalSol.monto).toFixed(2)}
-                </div>
-                <div style={{ fontSize: '0.8rem', color: '#15803d', marginTop: '0.25rem' }}>
-                  {reciclajeModalSol.motivo}
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-around',
-                  marginTop: '0.85rem',
-                  paddingTop: '0.85rem',
-                  borderTop: '1px dashed #86efac',
-                  fontSize: '0.78rem'
-                }}>
-                  <div>
-                    <span style={{ color: '#475569', display: 'block' }}>Saldo Actual en Caja:</span>
-                    <strong style={{ color: '#0f172a', fontSize: '0.9rem' }}>S/ {montoDisponible.toFixed(2)}</strong>
-                  </div>
-                  <div style={{ color: '#15803d', fontWeight: '700', alignSelf: 'center' }}>➔</div>
-                  <div>
-                    <span style={{ color: '#15803d', display: 'block', fontWeight: '700' }}>Nuevo Saldo Disponible:</span>
-                    <strong style={{ color: '#047857', fontSize: '1rem', fontWeight: '900' }}>
-                      S/ {(montoDisponible + Number(reciclajeModalSol.monto)).toFixed(2)}
-                    </strong>
-                  </div>
-                </div>
-              </div>
-
-              <div style={{ marginBottom: '1.25rem' }}>
-                <label className="form-label" style={{ fontSize: '0.8rem', fontWeight: '700' }}>
-                  Notas de Recepción del Cajero (Opcional)
-                </label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Ej. Dinero recibido en efectivo en ventanilla de caja"
-                  value={reciclajeNotas}
-                  onChange={(e) => setReciclajeNotas(e.target.value)}
-                  style={{ fontSize: '0.85rem' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem' }}>
-                <button
-                  type="button"
-                  onClick={() => setReciclajeModalSol(null)}
-                  className="btn btn-secondary"
-                  disabled={isRecepcionandoReciclaje}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={isRecepcionandoReciclaje}
-                  className="btn btn-primary"
-                  style={{
-                    background: '#059669',
-                    borderColor: '#047857',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    padding: '0.6rem 1.25rem',
-                    fontWeight: '700'
-                  }}
-                >
-                  <Check size={16} />
-                  <span>{isRecepcionandoReciclaje ? 'Recepcionando...' : 'Confirmar Recepción y Sumar al Saldo'}</span>
-                </button>
-              </div>
-            </form>
           </div>
         </div>
       )}

@@ -465,10 +465,6 @@ export function App() {
     return await store.registrarVentaReciclaje(ventaData);
   };
 
-  const handleRecepcionarVentaReciclaje = async (id, notas) => {
-    return await store.recepcionarVentaReciclaje(id, currentUser, notas);
-  };
-
   const handleAnularVentaReciclaje = async (id, adminUser, motivo) => {
     return await store.anularVentaReciclaje(id, adminUser, motivo);
   };
@@ -530,7 +526,6 @@ export function App() {
                 solicitudes={solicitudes}
                 onRegistrarVentaReciclaje={handleRegistrarVentaReciclaje}
                 onAnularVentaReciclaje={handleAnularVentaReciclaje}
-                onRecepcionarVentaReciclaje={handleRecepcionarVentaReciclaje}
               />
             )}
 
@@ -550,7 +545,6 @@ export function App() {
                 onUpdateEstado={handleUpdateEstado}
                 onAsignarFondo={async (monto) => await store.updateFondoAsignado(monto)}
                 onReponerFondo={async (monto) => await store.reponerFondo(monto)}
-                onRecepcionarVentaReciclaje={handleRecepcionarVentaReciclaje}
               />
             )}
 
