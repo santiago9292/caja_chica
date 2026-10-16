@@ -429,18 +429,20 @@ export function ModuloReciclaje({
           </div>
         </div>
 
-        {/* KPI 4: Saldo Disponible */}
-        <div className="stat-card-compact" title="Saldo Disponible Actual en Caja Chica">
-          <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
-            <Wallet size={18} />
-          </div>
-          <div className="stat-content">
-            <div className="stat-value" style={{ color: '#0f172a' }}>
-              S/ {saldoDisponibleActual.toFixed(2)}
+        {/* KPI 4: Saldo Disponible (Solo visible para Administradores / Sysadmins) */}
+        {isAdmin && (
+          <div className="stat-card-compact" title="Saldo Disponible Actual en Caja Chica (Visible solo para administradores)">
+            <div className="stat-icon-wrapper" style={{ background: '#f8fafc', color: '#0f172a', border: '1px solid #e2e8f0' }}>
+              <Wallet size={18} />
             </div>
-            <div className="stat-label">Saldo Disponible</div>
+            <div className="stat-content">
+              <div className="stat-value" style={{ color: '#0f172a' }}>
+                S/ {saldoDisponibleActual.toFixed(2)}
+              </div>
+              <div className="stat-label">Saldo Disponible</div>
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Barra de Filtros por Estado */}
@@ -1318,26 +1320,28 @@ export function ModuloReciclaje({
                   {solicitudARecepcionar.motivo}
                 </div>
 
-                <div style={{
-                  display: 'flex',
-                  justifyContent: 'space-around',
-                  marginTop: '1rem',
-                  paddingTop: '0.85rem',
-                  borderTop: '1px dashed #86efac',
-                  fontSize: '0.8rem'
-                }}>
-                  <div>
-                    <span style={{ color: '#475569', display: 'block', fontSize: '0.75rem' }}>Saldo Actual en Caja:</span>
-                    <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>S/ {saldoDisponibleActual.toFixed(2)}</strong>
+                {isAdmin && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-around',
+                    marginTop: '1rem',
+                    paddingTop: '0.85rem',
+                    borderTop: '1px dashed #86efac',
+                    fontSize: '0.8rem'
+                  }}>
+                    <div>
+                      <span style={{ color: '#475569', display: 'block', fontSize: '0.75rem' }}>Saldo Actual en Caja:</span>
+                      <strong style={{ color: '#0f172a', fontSize: '0.95rem' }}>S/ {saldoDisponibleActual.toFixed(2)}</strong>
+                    </div>
+                    <div style={{ color: '#15803d', fontWeight: '800', alignSelf: 'center', fontSize: '1.1rem' }}>➔</div>
+                    <div>
+                      <span style={{ color: '#15803d', display: 'block', fontWeight: '700', fontSize: '0.75rem' }}>Nuevo Saldo Resultante:</span>
+                      <strong style={{ color: '#047857', fontSize: '1.1rem', fontWeight: '900' }}>
+                        S/ {(saldoDisponibleActual + Number(solicitudARecepcionar.monto)).toFixed(2)}
+                      </strong>
+                    </div>
                   </div>
-                  <div style={{ color: '#15803d', fontWeight: '800', alignSelf: 'center', fontSize: '1.1rem' }}>➔</div>
-                  <div>
-                    <span style={{ color: '#15803d', display: 'block', fontWeight: '700', fontSize: '0.75rem' }}>Nuevo Saldo Resultante:</span>
-                    <strong style={{ color: '#047857', fontSize: '1.1rem', fontWeight: '900' }}>
-                      S/ {(saldoDisponibleActual + Number(solicitudARecepcionar.monto)).toFixed(2)}
-                    </strong>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Notas de Recepción */}
